@@ -1,3 +1,5 @@
+import { createGoogle } from '@ai-sdk/google'
+import { createGroq } from '@ai-sdk/groq'
 import { createOpenAI } from '@ai-sdk/openai'
 import type { LanguageModel } from 'ai'
 import { createHash } from 'node:crypto'
@@ -59,19 +61,62 @@ function metadata(
 export function createModelsFromEnv(
   environment = process.env
 ): LanguageModel[] {
-  const apiKey = environment.OPENAI_API_KEY?.trim()
-  if (!apiKey) return []
-  const names = (environment.ENRICHMENT_MODEL_CHAIN ?? 'gpt-4o-mini')
+  const names = (
+    environment.ENRICHMENT_MODEL_CHAIN ??
+    'groq/llama-3.1-8b-instant,gemini/gemini-2.5-flash-lite'
+  )
     .split(',')
     .map(model => model.trim())
     .filter(Boolean)
-  const provider = createOpenAI({
-    apiKey,
-    ...(environment.OPENAI_BASE_URL?.trim()
-      ? { baseURL: environment.OPENAI_BASE_URL.trim() }
-      : {}),
-  })
-  return names.map(name => provider(name))
+  const models: LanguageModel[] = []
+  const providers = new Map<string, (model: string) => LanguageModel>()
+
+  for (const entry of names) {
+    const [providerName, ...modelParts] = entry.split('/')
+    const provider = providerName.toLowerCase()
+    const modelName = modelParts.join('/').trim()
+
+    if (provider === 'groq') {
+      const apiKey = environment.GROQ_API_KEY?.trim()
+      if (!apiKey) continue
+      const factory =
+        providers.get(provider) ??
+        (createGroq({ apiKey }) as unknown as (model: string) => LanguageModel)
+      providers.set(provider, factory)
+      models.push(factory(modelName || 'llama-3.1-8b-instant'))
+      continue
+    }
+
+    if (provider === 'gemini' || provider === 'google') {
+      const apiKey = environment.GOOGLE_GENERATIVE_AI_API_KEY?.trim()
+      if (!apiKey) continue
+      const factory =
+        providers.get(provider) ??
+        (createGoogle({ apiKey }) as unknown as (
+          model: string
+        ) => LanguageModel)
+      providers.set(provider, factory)
+      models.push(factory(modelName || 'gemini-2.5-flash-lite'))
+      continue
+    }
+
+    if (provider === 'openai') {
+      const apiKey = environment.OPENAI_API_KEY?.trim()
+      if (!apiKey || !modelName) continue
+      const factory =
+        providers.get(provider) ??
+        (createOpenAI({
+          apiKey,
+          ...(environment.OPENAI_BASE_URL?.trim()
+            ? { baseURL: environment.OPENAI_BASE_URL.trim() }
+            : {}),
+        }) as unknown as (model: string) => LanguageModel)
+      providers.set(provider, factory)
+      models.push(factory(modelName))
+    }
+  }
+
+  return models
 }
 
 export async function runEnrichmentPipeline(

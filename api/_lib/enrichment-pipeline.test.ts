@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { runEnrichmentPipeline } from './enrichment-pipeline'
+import {
+  createModelsFromEnv,
+  runEnrichmentPipeline,
+} from './enrichment-pipeline'
 
 function detail(hash: string) {
   return {
@@ -13,6 +16,33 @@ function detail(hash: string) {
 }
 
 describe('enrichment pipeline policy', () => {
+  it('resolves the configured provider chain and skips missing keys', () => {
+    const models = createModelsFromEnv({
+      ENRICHMENT_MODEL_CHAIN:
+        'gemini/gemini-test,groq/llama-test,openai/gpt-test',
+      GOOGLE_GENERATIVE_AI_API_KEY: 'google-key',
+      GROQ_API_KEY: 'groq-key',
+    })
+
+    expect(models).toHaveLength(2)
+    expect(models.map(model => model.modelId)).toEqual([
+      'gemini-test',
+      'llama-test',
+    ])
+  })
+
+  it('uses Groq then Gemini by default', () => {
+    const models = createModelsFromEnv({
+      GROQ_API_KEY: 'groq-key',
+      GOOGLE_GENERATIVE_AI_API_KEY: 'google-key',
+    })
+
+    expect(models.map(model => model.modelId)).toEqual([
+      'llama-3.1-8b-instant',
+      'gemini-2.5-flash-lite',
+    ])
+  })
+
   it('skips existing seed records but re-enriches changed sync records', async () => {
     const upsertSkillMetadata = vi.fn()
     const putRawSkillFiles = vi.fn()

@@ -164,6 +164,17 @@ async searchSkills(q: string, limit: number | null) : Promise<Result<SkillsShSki
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * Fetches enrichment and related skills for a catalog skill.
+ */
+async fetchSkillDetail(skillId: string) : Promise<Result<SkillDetailData, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("fetch_skill_detail", { skillId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -217,6 +228,10 @@ export type RecoveryError =
  * JSON serialization/deserialization error
  */
 { type: "ParseError"; message: string }
+export type RelatedSkill = { skillId: string; score: number; repository: string | null; sourceUrl: string | null; installCount: number | null }
+export type SkillDetailData = { skillId: string; enrichment: SkillEnrichment | null; related: RelatedSkill[] }
+export type SkillEnrichment = { skillId: string; contentHash: string; required: SkillEnrichmentRequired; optional: JsonValue; estimatedReadTimeMinutes: number }
+export type SkillEnrichmentRequired = { primaryGoal: string; requires: string[]; estimatedComplexity: string; bestFor: string[] }
 export type SkillsShSkill = { id: string; slug: string; name: string; source: string; installs: number; sourceType: string; installUrl?: string | null; url: string; isDuplicate?: boolean | null }
 
 /** tauri-specta globals **/

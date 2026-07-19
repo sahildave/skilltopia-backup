@@ -27,6 +27,10 @@ export type {
   JsonValue,
   RecoveryError,
   SkillsShSkill,
+  SkillDetailData,
+  SkillEnrichment,
+  SkillEnrichmentRequired,
+  RelatedSkill,
 } from './bindings'
 
 /**

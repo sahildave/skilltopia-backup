@@ -44,6 +44,54 @@ pub struct SkillsSearchResponse {
     pub count: Option<i32>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SkillEnrichmentRequired {
+    #[serde(rename = "primaryGoal")]
+    pub primary_goal: String,
+    pub requires: Vec<String>,
+    #[serde(rename = "estimatedComplexity")]
+    pub estimated_complexity: String,
+    #[serde(rename = "bestFor")]
+    pub best_for: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SkillEnrichment {
+    #[serde(rename = "skillId")]
+    pub skill_id: String,
+    #[serde(rename = "contentHash")]
+    pub content_hash: String,
+    pub required: SkillEnrichmentRequired,
+    pub optional: serde_json::Value,
+    #[serde(rename = "estimatedReadTimeMinutes")]
+    pub estimated_read_time_minutes: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct RelatedSkill {
+    #[serde(rename = "skillId")]
+    pub skill_id: String,
+    pub score: f64,
+    pub repository: Option<String>,
+    #[serde(rename = "sourceUrl")]
+    pub source_url: Option<String>,
+    #[serde(rename = "installCount")]
+    pub install_count: Option<i32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SkillDetailData {
+    #[serde(rename = "skillId")]
+    pub skill_id: String,
+    pub enrichment: Option<SkillEnrichment>,
+    pub related: Vec<RelatedSkill>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SkillDetailResponse {
+    pub data: SkillDetailData,
+}
+
 fn proxy_base_url() -> String {
     std::env::var("SKILLS_PROXY_BASE_URL")
         .ok()
@@ -158,6 +206,24 @@ pub async fn search_skills(q: String, limit: Option<i32>) -> Result<Vec<SkillsSh
 
     let response: SkillsSearchResponse = get_json(&path).await?;
     Ok(filter_duplicates(response.data))
+}
+
+/// Fetches enrichment and related skills for a catalog skill.
+#[tauri::command]
+#[specta::specta]
+pub async fn fetch_skill_detail(skill_id: String) -> Result<SkillDetailData, String> {
+    let skill_id = skill_id.trim().to_string();
+    if skill_id.is_empty() {
+        return Err("Skill ID must not be empty.".to_string());
+    }
+    let encoded = urlencoding_encode(&skill_id);
+    let path = if direct_token().is_some() {
+        format!("/skills/detail?skill_id={encoded}")
+    } else {
+        format!("/api/skills/detail?skill_id={encoded}")
+    };
+    let response: SkillDetailResponse = get_json(&path).await?;
+    Ok(response.data)
 }
 
 /// Minimal URL-encoding for query values (enough for search strings).

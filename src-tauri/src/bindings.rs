@@ -18,6 +18,7 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         quick_pane::update_quick_pane_shortcut,
         skills_sh::fetch_skills_leaderboard,
         skills_sh::search_skills,
+        skills_sh::fetch_skill_detail,
     ])
 }
 

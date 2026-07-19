@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { parseSkillsLeaderboardQuery, parseSkillsSearchQuery } from './query'
+import {
+  parseSkillDetailQuery,
+  parseSkillsLeaderboardQuery,
+  parseSkillsSearchQuery,
+} from './query'
 
 describe('parseSkillsLeaderboardQuery', () => {
   it('accepts allowed params and builds a cleaned query', () => {
@@ -122,6 +126,30 @@ describe('parseSkillsSearchQuery', () => {
     ).toBe(false)
     expect(
       parseSkillsSearchQuery(new URLSearchParams({ q: 'ab', limit: '201' })).ok
+    ).toBe(false)
+  })
+})
+
+describe('parseSkillDetailQuery', () => {
+  it('accepts and cleans a skill id', () => {
+    const result = parseSkillDetailQuery(
+      new URLSearchParams({ skill_id: 'owner/my-skill' })
+    )
+
+    expect(result.ok).toBe(true)
+    if (!result.ok) return
+    expect(result.query.toString()).toBe('skill_id=owner%2Fmy-skill')
+  })
+
+  it('rejects missing, malformed, and unknown detail params', () => {
+    expect(parseSkillDetailQuery(new URLSearchParams()).ok).toBe(false)
+    expect(
+      parseSkillDetailQuery(new URLSearchParams({ skill_id: 'my-skill' })).ok
+    ).toBe(false)
+    expect(
+      parseSkillDetailQuery(
+        new URLSearchParams({ skill_id: 'owner/skill', extra: '1' })
+      ).ok
     ).toBe(false)
   })
 })

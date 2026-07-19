@@ -10,6 +10,7 @@ export type QueryParseResult =
 const LEADERBOARD_VIEWS = new Set(['all-time', 'trending', 'hot'])
 const LEADERBOARD_KEYS = new Set(['view', 'page', 'per_page'])
 const SEARCH_KEYS = new Set(['q', 'limit', 'owner'])
+const DETAIL_KEYS = new Set(['skill_id'])
 
 function invalid(message: string): QueryParseResult {
   return {
@@ -110,5 +111,22 @@ export function parseSkillsSearchQuery(
     cleaned.set('owner', owner)
   }
 
+  return { ok: true, query: cleaned }
+}
+
+export function parseSkillDetailQuery(
+  params: URLSearchParams
+): QueryParseResult {
+  const unknown = rejectUnknownKeys(params, DETAIL_KEYS)
+  if (unknown) return unknown
+
+  const skillId = params.get('skill_id')?.trim()
+  if (!skillId) return invalid('skill_id is required')
+  if (skillId.length > 200 || !/^[^/\s]+\/[^/\s]+$/u.test(skillId)) {
+    return invalid('skill_id must use the owner/skill format')
+  }
+
+  const cleaned = new URLSearchParams()
+  cleaned.set('skill_id', skillId)
   return { ok: true, query: cleaned }
 }

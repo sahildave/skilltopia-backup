@@ -13,6 +13,8 @@ export const skillsShQueryKeys = {
     [...skillsShQueryKeys.all, 'leaderboard', view, perPage] as const,
   search: (query: string, limit: number) =>
     [...skillsShQueryKeys.all, 'search', query, limit] as const,
+  detail: (skillId: string) =>
+    [...skillsShQueryKeys.all, 'detail', skillId] as const,
 }
 
 export const DISCOVERY_VIEWS = [
@@ -70,5 +72,18 @@ export function useSkillsSearch(
     enabled,
     staleTime: SEARCH_STALE_MS,
     gcTime: 1000 * 60 * 5,
+  })
+}
+
+export function useSkillDetail(skillId: string | null) {
+  return useQuery({
+    queryKey: skillsShQueryKeys.detail(skillId ?? ''),
+    queryFn: async () => {
+      if (!skillId) throw new Error('Skill ID is required.')
+      return unwrapResult(await commands.fetchSkillDetail(skillId))
+    },
+    enabled: Boolean(skillId),
+    staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 30,
   })
 }

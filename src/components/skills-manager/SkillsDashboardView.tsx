@@ -35,6 +35,7 @@ import {
   useSkillsLeaderboard,
   useSkillsSearch,
 } from '@/services/skills-sh'
+import { SkillDetailDialog } from './SkillDetailDialog'
 
 function formatInstalls(count: number): string {
   return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(count)
@@ -45,11 +46,13 @@ function SkillCard({
   index,
   reduceMotion,
   compact = false,
+  onOpen,
 }: {
   skill: SkillsShSkill
   index: number
   reduceMotion: boolean
   compact?: boolean
+  onOpen: (skill: SkillsShSkill) => void
 }) {
   return (
     <motion.div
@@ -89,6 +92,9 @@ function SkillCard({
           </div>
         </CardContent>
         <CardFooter className="justify-end border-t px-4 pt-4">
+          <Button variant="outline" size="sm" onClick={() => onOpen(skill)}>
+            Details
+          </Button>
           <Button
             variant="ghost"
             size="sm"
@@ -134,9 +140,11 @@ function errorMessage(error: unknown): string | null {
 function DiscoveryRail({
   view,
   reduceMotion,
+  onOpen,
 }: {
   view: (typeof DISCOVERY_VIEWS)[number]
   reduceMotion: boolean
+  onOpen: (skill: SkillsShSkill) => void
 }) {
   const query = useSkillsLeaderboard({ view: view.id, perPage: 12 })
   const skills = query.data ?? []
@@ -179,6 +187,7 @@ function DiscoveryRail({
                 skill={skill}
                 index={index}
                 reduceMotion={reduceMotion}
+                onOpen={onOpen}
                 compact
               />
             ))}
@@ -192,9 +201,11 @@ function DiscoveryRail({
 function SearchResults({
   query,
   reduceMotion,
+  onOpen,
 }: {
   query: ReturnType<typeof useSkillsSearch>
   reduceMotion: boolean
+  onOpen: (skill: SkillsShSkill) => void
 }) {
   const skills = query.data ?? []
   const error = errorMessage(query.error)
@@ -228,6 +239,7 @@ function SearchResults({
             skill={skill}
             index={index}
             reduceMotion={reduceMotion}
+            onOpen={onOpen}
           />
         ))}
       </AnimatePresence>
@@ -242,6 +254,7 @@ export function SkillsDashboardView() {
   const isSearching = debouncedQuery.trim().length >= 2
   const search = useSkillsSearch(debouncedQuery, { enabled: isSearching })
   const hasSearchError = isSearching && Boolean(search.error)
+  const [selectedSkill, setSelectedSkill] = useState<SkillsShSkill | null>(null)
 
   return (
     <div className="relative flex h-full flex-col">
@@ -289,18 +302,40 @@ export function SkillsDashboardView() {
       <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col gap-10 p-6">
           {isSearching ? (
-            <SearchResults query={search} reduceMotion={reduceMotion} />
+            <SearchResults
+              query={search}
+              reduceMotion={reduceMotion}
+              onOpen={setSelectedSkill}
+            />
           ) : (
             DISCOVERY_VIEWS.map(view => (
               <DiscoveryRail
                 key={view.id}
                 view={view}
                 reduceMotion={reduceMotion}
+                onOpen={setSelectedSkill}
               />
             ))
           )}
         </div>
       </ScrollArea>
+      <SkillDetailDialog
+        skill={selectedSkill}
+        onOpenChange={open => {
+          if (!open) setSelectedSkill(null)
+        }}
+        onSelectRelated={skillId => {
+          setSelectedSkill({
+            id: skillId,
+            slug: skillId.split('/').at(-1) ?? skillId,
+            name: skillId.split('/').at(-1) ?? skillId,
+            source: skillId.split('/')[0] ?? '',
+            installs: 0,
+            sourceType: 'github',
+            url: `https://skills.sh/skills/${skillId}`,
+          })
+        }}
+      />
     </div>
   )
 }

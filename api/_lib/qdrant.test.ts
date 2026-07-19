@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   ensureQdrantCollection,
   getQdrantConfig,
+  searchSkillsByText,
   searchNearestSkills,
   upsertSkillEmbedding,
 } from './qdrant'
@@ -136,6 +137,34 @@ describe('Qdrant helpers', () => {
     await expect(
       searchNearestSkills('missing/skill', 10, config)
     ).resolves.toEqual([])
+  })
+
+  it('searches the enriched subset by query text using Cloud Inference', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        response({
+          result: { config: { params: { vectors: { dense: { size: 384 } } } } },
+        })
+      )
+      .mockResolvedValueOnce(
+        response({
+          result: {
+            points: [{ score: 0.88, payload: { skill_id: 'owner/a' } }],
+          },
+        })
+      )
+
+    await expect(
+      searchSkillsByText('accessible forms', 5, config)
+    ).resolves.toEqual([{ skillId: 'owner/a', score: 0.88 }])
+
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
+      query: { text: 'accessible forms', model: config.embeddingModel },
+      using: 'dense',
+      limit: 5,
+      with_payload: true,
+    })
   })
 
   it('rejects a collection whose vector size does not match the configured model', async () => {

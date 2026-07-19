@@ -115,6 +115,23 @@ function toSkillEnrichmentRecord(
   }
 }
 
+function toSkillMetadataRecord(
+  row: Record<string, unknown>
+): SkillMetadataRecord {
+  return {
+    ...toSkillEnrichmentRecord(row),
+    sourceUrl: row.source_url ? String(row.source_url) : undefined,
+    repository: row.repository ? String(row.repository) : undefined,
+    installCount:
+      row.install_count === null || row.install_count === undefined
+        ? undefined
+        : Number(row.install_count),
+    rawStoragePrefix: row.raw_storage_prefix
+      ? String(row.raw_storage_prefix)
+      : undefined,
+  }
+}
+
 function throwOnError(error: { message: string } | null): void {
   if (error) throw new Error(`Supabase repository error: ${error.message}`)
 }
@@ -149,6 +166,18 @@ export function createSupabaseRepository(client: RepositoryClient) {
       throwOnError(result.error)
       const row = result.data as Record<string, unknown> | null
       return row?.enrichment_required ? toSkillEnrichmentRecord(row) : null
+    },
+
+    async getSkillMetadata(skillIds: string[]): Promise<SkillMetadataRecord[]> {
+      if (skillIds.length === 0) return []
+      const result = await client
+        .from('skill_metadata')
+        .select('*')
+        .in('skill_id', skillIds)
+      throwOnError(result.error)
+      return (result.data ?? [])
+        .filter(row => row.enrichment_required)
+        .map(row => toSkillMetadataRecord(row as Record<string, unknown>))
     },
 
     async upsertSkillEnrichment(

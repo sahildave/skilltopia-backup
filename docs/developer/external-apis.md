@@ -40,10 +40,10 @@ React (Dashboard) → TanStack Query → Tauri command (reqwest)
 
 ### Endpoints used
 
-| App use                | Proxy route                                         | Upstream                    |
-| ---------------------- | --------------------------------------------------- | --------------------------- |
-| Default grid (top 500) | `GET /api/skills?view=all-time&page=0&per_page=500` | `GET /api/v1/skills`        |
-| Debounced search       | `GET /api/skills/search?q=…&limit=50`               | `GET /api/v1/skills/search` |
+| App use                 | Proxy route                                         | Upstream                                   |
+| ----------------------- | --------------------------------------------------- | ------------------------------------------ |
+| Default grid (top 500)  | `GET /api/skills?view=all-time&page=0&per_page=500` | `GET /api/v1/skills`                       |
+| Hybrid debounced search | `GET /api/skills/search?q=…&limit=50`               | Keyword skills.sh + Qdrant semantic search |
 
 Upstream auth: `Authorization: Bearer <Vercel OIDC token>`. Upstream rate limit: 600 requests/minute per (team, project). Errors: `400`, `401`, `404`, `429`, `503` (see upstream docs).
 
@@ -113,6 +113,11 @@ Never commit Infisical exports or checked-in `.env` files.
 - Service: `src/services/skills-sh.ts` (`useSkillsLeaderboard`, `useSkillsSearch`)
 - Commands: `fetch_skills_leaderboard`, `search_skills` (tauri-specta)
 - Duplicate skills (`isDuplicate: true`) are filtered out in Rust before reaching the UI
+
+The search route returns one ranked list: keyword matches precede semantic-only
+matches, duplicate IDs are removed, and exact/high-install matches receive a
+small ranking boost. If Qdrant or Supabase is unavailable, the route returns
+the keyword response with its normal result limit.
 
 ## Setup
 

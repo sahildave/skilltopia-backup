@@ -44,6 +44,12 @@ type SearchResponse = {
   }>
 }
 
+type SearchOptions = {
+  query: unknown
+  limit: number
+  filter?: Record<string, unknown>
+}
+
 export class QdrantError extends Error {
   readonly status: number
 
@@ -224,19 +230,33 @@ export async function searchNearestSkills(
   const vector = source.result?.vector?.[config.vectorName]
   if (!vector) return []
 
+  return searchQdrantPoints(
+    {
+      query: vector,
+      limit,
+      filter: {
+        must_not: [{ key: 'skill_id', match: { value: skillId } }],
+      },
+    },
+    config
+  )
+}
+
+async function searchQdrantPoints(
+  options: SearchOptions,
+  config: QdrantConfig
+): Promise<SimilarSkill[]> {
   const result = await qdrantRequest<QdrantResponse<SearchResponse>>(
     config,
     `${collectionPath(config)}/points/query`,
     {
       method: 'POST',
       body: JSON.stringify({
-        query: vector,
+        query: options.query,
         using: config.vectorName,
-        limit,
+        limit: options.limit,
         with_payload: true,
-        filter: {
-          must_not: [{ key: 'skill_id', match: { value: skillId } }],
-        },
+        ...(options.filter ? { filter: options.filter } : {}),
       }),
     }
   )
@@ -247,4 +267,24 @@ export async function searchNearestSkills(
       ? [{ skillId: resultSkillId, score: point.score }]
       : []
   })
+}
+
+export async function searchSkillsByText(
+  text: string,
+  limit = 10,
+  config: QdrantConfig = getQdrantConfig()
+): Promise<SimilarSkill[]> {
+  if (!text.trim()) throw new Error('text must not be empty')
+  if (!Number.isInteger(limit) || limit <= 0 || limit > 100) {
+    throw new Error('limit must be an integer between 1 and 100')
+  }
+
+  await ensureQdrantCollection(config)
+  return searchQdrantPoints(
+    {
+      query: { text, model: config.embeddingModel },
+      limit,
+    },
+    config
+  )
 }

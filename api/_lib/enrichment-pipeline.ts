@@ -251,36 +251,41 @@ export async function runEnrichmentPipeline(
   return result
 }
 
-export async function runLocalEnrichment(
-  options: Omit<EnrichmentPipelineOptions, 'repository' | 'models'> &
-    Partial<Pick<EnrichmentPipelineOptions, 'repository' | 'models'>> = {}
-): Promise<EnrichmentRunResult> {
-  return runEnrichmentPipeline({
+type LocalEnrichmentOptions = Omit<
+  EnrichmentPipelineOptions,
+  'repository' | 'models' | 'mode'
+> &
+  Partial<Pick<EnrichmentPipelineOptions, 'repository' | 'models'>>
+
+function withLocalDefaults(
+  options: LocalEnrichmentOptions,
+  mode: EnrichmentMode = 'seed'
+): EnrichmentPipelineOptions {
+  return {
     repository: options.repository ?? createSupabaseRepositoryFromEnv(),
     models: options.models ?? createModelsFromEnv(),
     ...options,
+    mode,
     maxEnriched: options.maxEnriched ?? maxEnrichedFromEnv(),
-  })
+  }
+}
+
+export async function runLocalEnrichment(
+  options: LocalEnrichmentOptions = {}
+): Promise<EnrichmentRunResult> {
+  return runEnrichmentPipeline(withLocalDefaults(options, 'seed'))
 }
 
 // The sync stub reuses the same bounded runner but changes the skip policy to hash comparison.
 export async function runEnrichmentSync(
-  options: Omit<EnrichmentPipelineOptions, 'mode'>
+  options: LocalEnrichmentOptions = {}
 ): Promise<EnrichmentRunResult> {
-  return runEnrichmentPipeline({
-    ...options,
-    mode: 'sync',
-    maxEnriched: options.maxEnriched ?? maxEnrichedFromEnv(),
-  })
+  return runEnrichmentPipeline(withLocalDefaults(options, 'sync'))
 }
 
 /** Re-enrich regardless of existing rows / content hash (e.g. after fixing model config). */
 export async function runEnrichmentForce(
-  options: Omit<EnrichmentPipelineOptions, 'mode'>
+  options: LocalEnrichmentOptions = {}
 ): Promise<EnrichmentRunResult> {
-  return runEnrichmentPipeline({
-    ...options,
-    mode: 'force',
-    maxEnriched: options.maxEnriched ?? maxEnrichedFromEnv(),
-  })
+  return runEnrichmentPipeline(withLocalDefaults(options, 'force'))
 }

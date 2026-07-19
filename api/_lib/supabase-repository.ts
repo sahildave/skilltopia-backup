@@ -25,6 +25,15 @@ export type SkillMetadataRecord = SkillEnrichmentRecord & {
   rawStoragePrefix?: string
 }
 
+export type SkillSourceMetadata = {
+  skillId: string
+  contentHash: string
+  sourceUrl?: string
+  repository?: string
+  installCount?: number
+  rawStoragePrefix?: string
+}
+
 export type RawSkillFile = {
   path: string
   content: string | Uint8Array
@@ -41,6 +50,10 @@ type Database = {
           enrichment_required: EnrichmentRequired | null
           enrichment_optional: Record<string, unknown>
           estimated_read_time_minutes: number | null
+          source_url: string | null
+          repository: string | null
+          install_count: number | null
+          raw_storage_prefix: string | null
         }
         Insert: Record<string, unknown>
         Update: Record<string, unknown>
@@ -77,6 +90,19 @@ function metadataRow(record: SkillEnrichmentRecord): Record<string, unknown> {
   }
 }
 
+function sourceMetadataRow(
+  record: SkillSourceMetadata
+): Record<string, unknown> {
+  return {
+    skill_id: record.skillId,
+    content_hash: record.contentHash,
+    source_url: record.sourceUrl ?? null,
+    repository: record.repository ?? null,
+    install_count: record.installCount ?? null,
+    raw_storage_prefix: record.rawStoragePrefix ?? null,
+  }
+}
+
 function toSkillEnrichmentRecord(
   row: Record<string, unknown>
 ): SkillEnrichmentRecord {
@@ -105,6 +131,13 @@ export function estimateReadTimeMinutes(content: string): number {
 
 export function createSupabaseRepository(client: RepositoryClient) {
   return {
+    async upsertSkillMetadata(record: SkillSourceMetadata): Promise<void> {
+      const result = await client
+        .from('skill_metadata')
+        .upsert(sourceMetadataRow(record), { onConflict: 'skill_id' })
+      throwOnError(result.error)
+    },
+
     async getSkillEnrichment(
       skillId: string
     ): Promise<SkillEnrichmentRecord | null> {

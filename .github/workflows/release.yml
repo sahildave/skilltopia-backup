@@ -56,6 +56,9 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Check bundled seed size
+        run: npm run seed:check
+
       - name: Build and release
         uses: tauri-apps/tauri-action@dev
         env:

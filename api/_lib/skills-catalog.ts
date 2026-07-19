@@ -4,7 +4,10 @@ export type CatalogSkill = {
   id: string
   source: string
   slug: string
+  name?: string
   installs: number
+  sourceType?: string
+  installUrl?: string
   url?: string
 }
 

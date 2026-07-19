@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { getSeedForView } from '@/data/skills-seed'
+import { getSeedDetail, getSeedForView } from '@/data/skills-seed'
 import { logger } from '@/lib/logger'
 import {
   commands,
@@ -83,6 +83,8 @@ export function useSkillDetail(skillId: string | null) {
       return unwrapResult(await commands.fetchSkillDetail(skillId))
     },
     enabled: Boolean(skillId),
+    initialData: () => (skillId ? getSeedDetail(skillId) : undefined),
+    initialDataUpdatedAt: 0,
     staleTime: 1000 * 60 * 10,
     gcTime: 1000 * 60 * 30,
   })

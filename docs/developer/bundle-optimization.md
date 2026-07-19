@@ -44,6 +44,19 @@ du -sh dist/*           # Check output sizes
 ls -lah dist/assets/    # Examine chunks
 ```
 
+## Bundled Skill Seed
+
+The first-run dashboard data is generated into `src/data/skills-seed.ts` from
+the Backend API seed route or a local JSON snapshot:
+
+```bash
+npm run seed:generate -- --input scripts/seed-snapshot.json
+npm run seed:check
+```
+
+The generated artifact includes the top 12 skills and any available enrichment.
+The generator and release workflow fail when it exceeds 250 KiB.
+
 ## When to Optimize Further
 
 The built-in optimizations are sufficient for most apps. Consider more when:

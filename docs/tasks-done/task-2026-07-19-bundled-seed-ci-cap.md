@@ -16,10 +16,10 @@ Ship a **small generated seed** so first open isn’t an empty dashboard.
 
 ## Scope
 
-- [ ] `npm` script to export seed from Backend API / local DB snapshot  
-- [ ] Bundle seed into the desktop app  
-- [ ] CI check: fail when seed artifact > 250 KB  
-- [ ] Truncate/limit skill count or summary length to stay under cap  
+- [x] `npm` script to export seed from Backend API / local DB snapshot
+- [x] Bundle seed into the desktop app
+- [x] CI check: fail when seed artifact > 250 KB
+- [x] Truncate/limit skill count or summary length to stay under cap
 
 ## Out of scope
 

@@ -14,28 +14,35 @@ Qdrant.
 | `GOOGLE_GENERATIVE_AI_API_KEY` | Gemini (`@ai-sdk/google`)     |
 | `ENRICHMENT_MODEL_CHAIN`       | Ordered `provider/model` list |
 
-Current chain in Infisical:
+Recommended chain (supports AI SDK `generateObject` / `json_schema`):
 
 ```bash
-ENRICHMENT_MODEL_CHAIN=groq/llama-3.1-8b-instant,gemini/gemini-2.5-flash-lite
+ENRICHMENT_MODEL_CHAIN=groq/openai/gpt-oss-20b,gemini/gemini-2.5-flash
 ```
+
+Do **not** use `groq/llama-3.1-8b-instant` here — Groq rejects `json_schema` on
+that model, so enrichment silently falls back to rule-based. Prefer
+`gemini-2.5-flash` over `gemini-2.5-flash-lite` if Lite returns 404 for your
+API key.
 
 Order is try-next-on-failure; **rule-based extraction is always last** in code.
 Skip a provider by omitting its API key. Also configure Supabase and Qdrant
 (see [infisical.md](./infisical.md)).
 
-The local process also needs `VERCEL_OIDC_TOKEN` unless it is run through a
-linked Vercel environment.
+The local process also needs `VERCEL_OIDC_TOKEN` (e.g. from `.env.local` after
+`vercel link`) unless it is run through a linked Vercel environment.
 
 ## Modes
 
-Use `npm run enrich:local -- --sync` for the sync stub. Seed mode skips every
-skill that already has enrichment; sync mode re-enriches only when the detail
-hash differs from the stored hash.
+| Flag | Behavior |
+| --- | --- |
+| (default) | Seed: skip skills that already have enrichment |
+| `--sync` | Re-enrich only when the detail content hash changed |
+| `--force` | Re-enrich even when enrichment already exists (same hash) |
 
 Set `MAX_ENRICHED` in Infisical (`dev`) or the shell (e.g. `MAX_ENRICHED=20 npm
 run enrich:local`) to bound a run. Invalid/missing values default to 500; the
 hard cap in code is always 500.
 
-`npm run enrich:local` prints step-by-step progress on stderr (`[enrich …]`)
-so long leaderboard/detail/LLM/Qdrant waits are visible.
+`npm run enrich:local` prints colored step-by-step progress on stderr, including
+per-model failures and `confidence=llm|rule-based`.

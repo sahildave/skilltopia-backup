@@ -85,17 +85,31 @@ export function extractRuleBased(markdown: string): ExtractedEnrichment {
   }
 }
 
+export type EnrichModelFailure = {
+  modelId: string
+  message: string
+  index: number
+}
+
 export async function enrichWithModel(
   markdown: string,
   models: LanguageModel[],
   ruleBased: ExtractedEnrichment = extractRuleBased(markdown),
   pause = async (milliseconds: number) =>
-    new Promise<void>(resolve => setTimeout(resolve, milliseconds))
+    new Promise<void>(resolve => setTimeout(resolve, milliseconds)),
+  onModelFailure?: (failure: EnrichModelFailure) => void
 ): Promise<ExtractedEnrichment> {
   const prompt = `Extract structured metadata from this skill document. Preserve only facts supported by the document.\n\n${markdown.slice(0, 24000)}`
   let lastError: unknown
 
   for (const [index, model] of models.entries()) {
+    const modelId =
+      typeof model === 'object' &&
+      model !== null &&
+      'modelId' in model &&
+      typeof model.modelId === 'string'
+        ? model.modelId
+        : `model-${index}`
     try {
       const result = await generateObject({
         model,
@@ -112,10 +126,13 @@ export async function enrichWithModel(
             ? { outputs: result.object.outputs }
             : {}),
           confidence: 'llm',
+          modelId,
         },
       }
     } catch (error) {
       lastError = error
+      const message = error instanceof Error ? error.message : String(error)
+      onModelFailure?.({ modelId, message, index })
       if (index < models.length - 1) await pause(1000 * 2 ** index)
     }
   }

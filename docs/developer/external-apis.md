@@ -81,30 +81,29 @@ Dashboard skills load only through **Tauri** (Rust → Backend API). Chrome / `n
 
 Secrets and config come from **Infisical** (see [infisical.md](./infisical.md)): Backend keys in `dev` / `prod`, desktop-safe keys in `local`.
 
-**1. Both local** (default day-to-day — app + Backend API on your machine):
+**1. Tauri local + Backend API (deployed)** — default day-to-day (`npm run dev:local`):
 
 ```bash
-infisical run --env=dev -- npm run proxy:dev          # Terminal A — Backend API :3000
-infisical run --env=local -- npm run tauri:dev:local   # Terminal B — Tauri → local proxy
-```
-
-Or wrap your usual `npm run dev:local` once both Infisical envs are wired the way you prefer. Requires the Vercel CLI (`npx vercel`) and a linked project with OIDC Federation enabled. `vercel.json` sets an API-only `devCommand` so `vercel dev` does not start Vite (Tauri already owns `:1420`).
-
-**2. Tauri local + Backend API (deployed)** — app local, proxy on Vercel (no `vercel dev`):
-
-```bash
-infisical run --env=local -- npm run tauri:dev
+npm run dev:local
+# same as: npm run tauri:dev
 ```
 
 Uses Infisical `SKILLS_PROXY_BASE_URL` when set; otherwise the Rust default `https://skills-explorer-six.vercel.app`.
 
-### Local maintainer path
-
-For local development **without** `vercel dev`, store a short-lived OIDC token as `SKILLS_SH_TOKEN` in Infisical `local`. When that env var is set, Rust calls `https://skills.sh` directly (maintainer path only — not for end users). Prefer the local proxy + OIDC path above when possible.
+**2. Both local** (optional — app + Backend API on your machine):
 
 ```bash
-infisical run --env=local -- npm run tauri:dev
+npm run dev:local:proxy
+# or split terminals:
+#   npm run proxy:dev          # Backend API :3000 (Infisical dev + VERCEL_TELEMETRY_DISABLED)
+#   npm run tauri:dev:local    # Tauri → http://127.0.0.1:3000
 ```
+
+Requires the Vercel CLI (`npx vercel`) and a linked project with OIDC Federation enabled. `vercel.json` sets an API-only `devCommand` so `vercel dev` does not start Vite (Tauri already owns `:1420`). On some macOS hosts, `vercel dev` fails to spawn the `@vercel/node` builder (`spawn EBADF` → `NO_RESPONSE_FROM_FUNCTION`); use path 1 when that happens.
+
+### Local maintainer path
+
+For local development **without** the Backend API, store a short-lived OIDC token as `SKILLS_SH_TOKEN` in Infisical `local`. When that env var is set, Rust calls `https://skills.sh` directly (maintainer path only — not for end users). Prefer the deployed Backend path above when possible.
 
 Never commit Infisical exports or checked-in `.env` files.
 

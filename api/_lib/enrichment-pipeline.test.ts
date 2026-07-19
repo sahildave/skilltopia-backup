@@ -40,9 +40,44 @@ describe('enrichment pipeline policy', () => {
     })
 
     expect(models.map(model => model.modelId)).toEqual([
-      'llama-3.1-8b-instant',
-      'gemini-2.5-flash-lite',
+      'openai/gpt-oss-20b',
+      'gemini-2.5-flash',
     ])
+  })
+
+  it('keeps nested Groq model ids (openai/gpt-oss-20b)', () => {
+    const models = createModelsFromEnv({
+      ENRICHMENT_MODEL_CHAIN: 'groq/openai/gpt-oss-20b',
+      GROQ_API_KEY: 'groq-key',
+    })
+
+    expect(models.map(model => model.modelId)).toEqual(['openai/gpt-oss-20b'])
+  })
+
+  it('force mode re-enriches even when content hash is unchanged', async () => {
+    const upsertSkillEnrichment = vi.fn()
+    const repository = {
+      getSkillEnrichment: vi
+        .fn()
+        .mockResolvedValue({ contentHash: 'sha256:same' }),
+      upsertSkillMetadata: vi.fn(),
+      putRawSkillFiles: vi.fn(),
+      upsertSkillEnrichment,
+    } as never
+
+    await expect(
+      runEnrichmentPipeline({
+        repository,
+        models: [],
+        maxEnriched: 1,
+        throttleMs: 0,
+        mode: 'force',
+        loadLeaderboard: async () => [detail('sha256:same')],
+        loadDetail: async () => detail('sha256:same'),
+        embed: vi.fn(),
+      })
+    ).resolves.toMatchObject({ enriched: 1, skipped: 0 })
+    expect(upsertSkillEnrichment).toHaveBeenCalledTimes(1)
   })
 
   it('reads MAX_ENRICHED from env and caps at the hard limit', () => {

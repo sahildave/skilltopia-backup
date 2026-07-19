@@ -25,9 +25,9 @@ skills.sh production auth on Vercel is **OIDC Federation** (project setting), no
 Package scripts already wrap Infisical. Daily workflow:
 
 ```bash
-npm run dev:local    # proxy:dev (env=dev) + tauri:dev:local (env=local)
-npm run tauri:dev    # desktop → deployed Backend; Infisical local
-npm run enrich:local # Backend secrets from Infisical dev
+npm run dev:local       # alias of tauri:dev — desktop → deployed Backend (Infisical local)
+npm run enrich:local    # Backend secrets from Infisical dev
+npm run dev:local:proxy # optional: vercel dev :3000 + tauri:dev:local (broken on some macOS; see external-apis.md)
 ```
 
 ```bash
@@ -67,7 +67,7 @@ Used by `npm run enrich:local` (Infisical `dev`) and any Backend enrich path tha
 | ------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GROQ_API_KEY`                 | **yes** | `@ai-sdk/groq` default. Primary free model.                                                                                                                             |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | **yes** | `@ai-sdk/google` default. Gemini fallback.                                                                                                                              |
-| `ENRICHMENT_MODEL_CHAIN`       | no      | Ordered `provider/model` list. Current value in `dev` / `prod`: `groq/llama-3.1-8b-instant,gemini/gemini-2.5-flash-lite`. Rule-based extraction is always last in code. |
+| `ENRICHMENT_MODEL_CHAIN`       | no      | Ordered `provider/model` list. Prefer Groq models that support structured outputs (`openai/gpt-oss-20b`). Default in code: `groq/openai/gpt-oss-20b,gemini/gemini-2.5-flash`. Rule-based is always last. |
 | `MAX_ENRICHED`                 | no      | Config knob (capped at `500` in code); optional in Infisical                                                                                                            |
 | Enrich-route protect secret    | **yes** | Only if a secret-protected Backend enrich route is added                                                                                                                |
 
@@ -79,7 +79,7 @@ Hybrid search, enrichment UI, and seed (tasks 5–8) reuse the Backend set above
 
 | Key                     | Secret? | Purpose                                                                                                                          |
 | ----------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `SKILLS_PROXY_BASE_URL` | no      | Optional. Point `tauri:dev` at your Backend deploy. `tauri:dev:local` / `dev:local` force `http://127.0.0.1:3000` in the script. |
+| `SKILLS_PROXY_BASE_URL` | no      | Optional. Point `tauri:dev` / `dev:local` at a Backend deploy. `tauri:dev:local` / `dev:local:proxy` force `http://127.0.0.1:3000`. |
 
 You do **not** need any secrets in Infisical `local` for daily `npm run dev:local`. An empty `local` env is fine (CLI still injects).
 
@@ -121,15 +121,23 @@ OIDC tokens are minted at runtime by Vercel; do not store a long-lived skills.sh
 
 **You do not need this for `npm run dev:local`.**
 
-That script runs local Backend (`vercel dev` + OIDC) and points Tauri at `http://127.0.0.1:3000`. skills.sh auth stays on the proxy; Tauri never holds a skills.sh credential.
+That script aliases `tauri:dev`: Tauri talks to the deployed Backend API (default `https://skills-explorer-six.vercel.app`). skills.sh auth stays on the Backend; Tauri never holds a skills.sh credential.
 
-`SKILLS_SH_TOKEN` is an escape hatch only: if set in the Tauri process, Rust **bypasses** the Backend API and calls `https://skills.sh` with that bearer token. Use it only when debugging without `vercel dev`. Prefer not setting it. Do not put it in `prod` or release builds.
+`SKILLS_SH_TOKEN` is an escape hatch only: if set in the Tauri process, Rust **bypasses** the Backend API and calls `https://skills.sh` with that bearer token. Prefer not setting it. Do not put it in `prod` or release builds.
+
+To exercise a **local** Backend (`vercel dev` on `:3000`), use `npm run dev:local:proxy` (or `proxy:dev` + `tauri:dev:local`). On some macOS versions the Vercel CLI fails with `spawn EBADF` when building serverless functions — prefer the deployed Backend path when that happens.
 
 ### `GROQ_API_KEY` + `GOOGLE_GENERATIVE_AI_API_KEY` + `ENRICHMENT_MODEL_CHAIN`
 
 1. Create a [Groq](https://console.groq.com/) API key → `GROQ_API_KEY`.
 2. Create a [Google AI Studio](https://aistudio.google.com/apikey) key → `GOOGLE_GENERATIVE_AI_API_KEY`.
-3. Set `ENRICHMENT_MODEL_CHAIN` to the ordered fallback list, e.g. `groq/llama-3.1-8b-instant,gemini/gemini-2.5-flash-lite`.
+3. Set `ENRICHMENT_MODEL_CHAIN` to models that support structured JSON (AI SDK `generateObject`). Recommended:
+
+```bash
+ENRICHMENT_MODEL_CHAIN=groq/openai/gpt-oss-20b,gemini/gemini-2.5-flash
+```
+
+`llama-3.1-8b-instant` on Groq does **not** support `json_schema` and will always fall through to rule-based.
 4. Store all three in Infisical **`dev`** (local enrich) and **`prod`** (if prod enrich / Backend needs them). Never in `local`.
 5. Run enrichment with `npm run enrich:local` so Infisical injects `dev`. Daily UI (`dev:local`) does not need LLM keys.
 

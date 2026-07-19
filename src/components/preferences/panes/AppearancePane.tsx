@@ -14,11 +14,9 @@ import { usePreferences, useSavePreferences } from '@/services/preferences'
 import { availableLanguages } from '@/i18n'
 import { logger } from '@/lib/logger'
 
-// Language display names (native names)
+// Language display names (native names). Extend when adding locales.
 const languageNames: Record<string, string> = {
   en: 'English',
-  fr: 'Français',
-  ar: 'العربية',
 }
 
 export function AppearancePane() {

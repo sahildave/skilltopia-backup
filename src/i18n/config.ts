@@ -1,13 +1,11 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import en from '../../locales/en.json'
-import ar from '../../locales/ar.json'
-import fr from '../../locales/fr.json'
 
+// English is the only shipped locale today. Add more JSON files under
+// /locales and register them here when you introduce another language.
 const resources = {
   en: { translation: en },
-  ar: { translation: ar },
-  fr: { translation: fr },
 }
 
 // RTL language detection (includes languages not yet in resources for future expansion)

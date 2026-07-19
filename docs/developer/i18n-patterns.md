@@ -15,9 +15,8 @@ This app uses [react-i18next](https://react.i18next.com/) for internationalizati
 
 ```
 /locales/
-├── en.json              # English (default)
-├── ar.json              # Arabic (RTL example)
-└── [lang].json          # Additional languages
+├── en.json              # English (only shipped locale today)
+└── [lang].json          # Additional languages (add when needed)
 
 /src/i18n/
 ├── config.ts            # i18next configuration
@@ -25,6 +24,8 @@ This app uses [react-i18next](https://react.i18next.com/) for internationalizati
 ├── language-init.ts     # System locale detection
 └── index.ts             # Exports
 ```
+
+English is the only registered locale. The i18n stack (react-i18next, language preference, RTL helpers) stays in place so additional languages can be added without rewiring.
 
 ## Adding New Translatable Strings
 
@@ -58,9 +59,9 @@ function MyComponent() {
 }
 ```
 
-### Step 3: Add to Other Languages
+### Step 3: Add to Other Languages (when present)
 
-Add the same keys to all other language files (e.g., `/locales/ar.json`).
+If other locale files exist under `/locales/`, add the same keys there. Today only `en.json` ships.
 
 ## Key Naming Conventions
 
@@ -137,22 +138,22 @@ Update `/src/i18n/config.ts`:
 
 ```typescript
 import en from '../../locales/en.json'
-import ar from '../../locales/ar.json'
 import es from '../../locales/es.json' // NEW
 
 const resources = {
   en: { translation: en },
-  ar: { translation: ar },
   es: { translation: es }, // NEW
 }
 ```
 
+Also add a display name in `AppearancePane` (`languageNames`).
+
 ### Step 3: Add RTL Support (if applicable)
 
-If the language is RTL, add it to the `rtlLanguages` array:
+If the language is RTL, ensure it is in the `rtlLanguages` array in `config.ts`:
 
 ```typescript
-const rtlLanguages = ['ar', 'he', 'fa', 'ur'] // Add your RTL language
+const rtlLanguages = ['ar', 'he', 'fa', 'ur'] // Add your RTL language if missing
 ```
 
 ## RTL Language Support
@@ -299,14 +300,14 @@ const text = t('menu.about', { appName: 'My App' })
 
 // Or use i18n directly
 const currentLanguage = i18n.language
-await i18n.changeLanguage('ar')
+await i18n.changeLanguage('en')
 ```
 
 ## Testing with RTL
 
-To test RTL layout:
+No RTL locale ships today. To verify RTL layout after adding one:
 
-1. Open Preferences > Appearance
-2. Change language to Arabic (ar)
+1. Register an RTL language in `config.ts` and Preferences
+2. Change language to that locale in Preferences > Appearance
 3. Verify layout mirrors correctly
 4. Check all text alignment uses logical properties

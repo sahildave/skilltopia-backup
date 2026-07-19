@@ -8,6 +8,7 @@ This repository is a template with sensible defaults for building Tauri React ap
 
 ### New Sessions
 
+- Read @CODING_STANDARD.md for how code should be written (judgement standards)
 - Read @docs/tasks.md for task management
 - Review `docs/developer/architecture-guide.md` for high-level patterns
 - Check `docs/developer/README.md` for the full documentation index
@@ -18,19 +19,33 @@ This repository is a template with sensible defaults for building Tauri React ap
 **CRITICAL:** Follow these strictly:
 
 0. **Use npm only**: This project uses `npm`, NOT `pnpm`. Always use `npm install`, `npm run`, etc.
-1. **Read Before Editing**: Always read files first to understand context
-2. **Follow Established Patterns**: Use patterns from this file and `docs/developer`
-3. **Senior Architect Mindset**: Consider performance, maintainability, testability
-4. **Batch Operations**: Use multiple tool calls in single responses
-5. **Match Code Style**: Follow existing formatting and patterns
-6. **Test Coverage**: Write comprehensive tests for business logic
-7. **Quality Gates**: Run `npm run check:all` after significant changes
-8. **No Dev Server**: Ask user to run and report back
-9. **No Unsolicited Commits**: Only when explicitly requested
-10. **Documentation**: Update relevant `docs/developer/` files for new patterns
-11. **Removing files**: Always use `rm -f`
+1. **Coding Standards**: Follow `@CODING_STANDARD.md` for all code judgement. Where it conflicts with a generic smell heuristic, the coding standard wins.
+2. **Read Before Editing**: Always read files first to understand context
+3. **Follow Established Patterns**: Use patterns from this file, `CODING_STANDARD.md`, and `docs/developer`
+4. **Senior Architect Mindset**: Consider performance, maintainability, testability
+5. **Batch Operations**: Use multiple tool calls in single responses
+6. **Match Code Style**: Follow existing formatting and patterns
+7. **Test Coverage**: Write comprehensive tests for business logic
+8. **Quality Gates**: Run `npm run check:all` after significant changes
+9. **No Dev Server**: Ask user to run and report back
+10. **No Unsolicited Commits**: Only when explicitly requested
+11. **Documentation**: Update relevant `docs/developer/` files for new patterns
+12. **Removing files**: Always use `rm -f`
 
 **CRITICAL:** Use Tauri v2 docs only. Always use modern Rust formatting: `format!("{variable}")`
+
+### UI & Animation Skills (CRITICAL)
+
+**CRITICAL:** When doing UI work, always read and follow these skills before implementing:
+
+- `/shadcn` — component selection, composition, and styling rules
+- `/baseline-ui` — baseline UI constraints (layout, interaction, a11y, anti-slop)
+
+**CRITICAL:** When adding or changing animations/motion, always read and follow these skills before implementing:
+
+- `/apple-design` — fluid interaction and motion principles
+- `/improve-animations` — audit-then-plan workflow for motion improvements
+- `/mastering-animate-presence` — AnimatePresence / exit animation rules
 
 ## Architecture Patterns (CRITICAL)
 
@@ -119,6 +134,7 @@ For complete patterns and detailed guidance, see `docs/developer/README.md`.
 
 Key documents:
 
+- `CODING_STANDARD.md` - Code judgement standards (source of truth for `/code-review` Standards axis)
 - `architecture-guide.md` - Mental models, security, anti-patterns
 - `state-management.md` - State onion, getState() pattern details
 - `tauri-commands.md` - Adding new Rust commands
@@ -134,6 +150,11 @@ These are specific to Claude Code but documented here for context.
 - `/check` - Check work against architecture, run `npm run check:all`, suggest commit message
 - `/cleanup` - Run static analysis (knip, jscpd, check:all), get structured recommendations
 - `/change-package-manager <bun|pnpm|npm>` - Switch package manager across all config, scripts, docs, CI, and AI instructions
+- `/shadcn` - shadcn/ui components, composition, and styling (required for UI work)
+- `/baseline-ui` - baseline UI constraints (required for UI work)
+- `/apple-design` - fluid interaction and motion principles (required for animation work)
+- `/improve-animations` - audit-then-plan workflow for motion (required for animation work)
+- `/mastering-animate-presence` - AnimatePresence / exit animation rules (required for animation work)
 
 ### Agents
 

@@ -33,11 +33,12 @@ Technical documentation for building and extending this app. These docs describe
 
 ## Data & Storage
 
-| Document                                  | Description                                  |
-| ----------------------------------------- | -------------------------------------------- |
-| [Data Persistence](./data-persistence.md) | File storage patterns, atomic writes, SQLite |
-| [External APIs](./external-apis.md)       | HTTP API calls, authentication, caching      |
-| [Supabase Repository](./supabase-repository.md) | Server-only skill metadata and raw-file storage |
+| Document                                        | Description                                                      |
+| ----------------------------------------------- | ---------------------------------------------------------------- |
+| [Data Persistence](./data-persistence.md)       | File storage patterns, atomic writes, SQLite                     |
+| [External APIs](./external-apis.md)             | HTTP API calls, authentication, caching                          |
+| [Supabase Repository](./supabase-repository.md) | Server-only skill metadata and raw-file storage                  |
+| [Qdrant Embeddings](./qdrant.md)                | Server-only Cloud Inference vectors and nearest-neighbor helpers |
 
 ## Quality & Tooling
 

@@ -7,5 +7,7 @@
   },
   "files.associations": {
     "*.css": "tailwindcss"
-  }
+  },
+  "snyk.advanced.organization": "75cb8074-8de6-4b40-8157-25f9ae882d76",
+  "snyk.advanced.autoSelectOrganization": true
 }

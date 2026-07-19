@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -9,6 +10,11 @@ import { RightSideBar } from './RightSideBar'
 import { MainWindowContent } from './MainWindowContent'
 import { CommandPalette } from '@/components/command-palette/CommandPalette'
 import { PreferencesDialog } from '@/components/preferences/PreferencesDialog'
+import {
+  SkillsContent,
+  SkillsSidebar,
+  type SkillsNavId,
+} from '@/components/skills-manager'
 import { Toaster } from 'sonner'
 import { useTheme } from '@/hooks/use-theme'
 import { useUIStore } from '@/store/ui-store'
@@ -21,25 +27,26 @@ import { cn } from '@/lib/utils'
  * Sidebar defaults + main default must equal 100.
  */
 const LAYOUT = {
-  leftSidebar: { default: 20, min: 15, max: 40 },
+  leftSidebar: { default: 22, min: 15, max: 35 },
   rightSidebar: { default: 20, min: 15, max: 40 },
   main: { min: 30 },
 } as const
-
-// Main content default is calculated to ensure totals sum to 100%
-const MAIN_CONTENT_DEFAULT =
-  100 - LAYOUT.leftSidebar.default - LAYOUT.rightSidebar.default
 
 export function MainWindow() {
   const { theme } = useTheme()
   const leftSidebarVisible = useUIStore(state => state.leftSidebarVisible)
   const rightSidebarVisible = useUIStore(state => state.rightSidebarVisible)
+  const [activeNav, setActiveNav] = useState<SkillsNavId>('library')
+
+  const mainDefault = rightSidebarVisible
+    ? 100 - LAYOUT.leftSidebar.default - LAYOUT.rightSidebar.default
+    : 100 - LAYOUT.leftSidebar.default
 
   // Set up global event listeners (keyboard shortcuts, etc.)
   useMainWindowEventListeners()
 
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden rounded-[var(--app-corner-radius)] bg-background">
+    <div className="flex h-dvh w-full flex-col overflow-hidden rounded-[var(--app-corner-radius)] bg-background">
       <TitleBar />
 
       <div className="flex flex-1 overflow-hidden">
@@ -50,16 +57,17 @@ export function MainWindow() {
             maxSize={LAYOUT.leftSidebar.max}
             className={cn(!leftSidebarVisible && 'hidden')}
           >
-            <LeftSideBar />
+            <LeftSideBar>
+              <SkillsSidebar active={activeNav} onSelect={setActiveNav} />
+            </LeftSideBar>
           </ResizablePanel>
 
           <ResizableHandle className={cn(!leftSidebarVisible && 'hidden')} />
 
-          <ResizablePanel
-            defaultSize={MAIN_CONTENT_DEFAULT}
-            minSize={LAYOUT.main.min}
-          >
-            <MainWindowContent />
+          <ResizablePanel defaultSize={mainDefault} minSize={LAYOUT.main.min}>
+            <MainWindowContent>
+              <SkillsContent active={activeNav} />
+            </MainWindowContent>
           </ResizablePanel>
 
           <ResizableHandle className={cn(!rightSidebarVisible && 'hidden')} />

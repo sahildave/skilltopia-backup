@@ -24,7 +24,7 @@ export const useUIStore = create<UIState>()(
   devtools(
     set => ({
       leftSidebarVisible: true,
-      rightSidebarVisible: true,
+      rightSidebarVisible: false,
       commandPaletteOpen: false,
       preferencesOpen: false,
       lastQuickPaneEntry: null,

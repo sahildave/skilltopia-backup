@@ -45,25 +45,33 @@ React (Dashboard) → TanStack Query → Tauri command (reqwest)
 | Default grid (top 500) | `GET /api/skills?view=all-time&page=0&per_page=500` | `GET /api/v1/skills`        |
 | Debounced search       | `GET /api/skills/search?q=…&limit=50`               | `GET /api/v1/skills/search` |
 
-Upstream auth: `Authorization: Bearer <Vercel OIDC token>`. Rate limit: 600 requests/minute per (team, project). Errors: `400`, `401`, `404`, `429`, `503` (see upstream docs).
+Upstream auth: `Authorization: Bearer <Vercel OIDC token>`. Upstream rate limit: 600 requests/minute per (team, project). Errors: `400`, `401`, `404`, `429`, `503` (see upstream docs).
 
 ### Open-source security model
 
+The proxy is a **credential amplifier**: anyone who can hit your deployment URL shares your project’s OIDC quota. Each distributor should deploy their own Vercel project + OIDC Federation and set `SKILLS_PROXY_BASE_URL` to that deployment — do not rely on a shared public default in production forks.
+
 - **Do not** ship Infisical secrets, OIDC tokens, or `VITE_*` API keys in the desktop binary.
+- **Do not** add browser CORS on `/api/*` (Tauri/Rust bypasses CORS; wildcard CORS only helps browser abuse).
 - **Do** deploy `api/` on Vercel, enable **OIDC Federation** on that project, and point the app at the deployment URL.
+- Proxy hardening (in `api/`):
+  - **Query allowlist** — `/api/skills` allows only `view` (`all-time` \| `trending` \| `hot`), `page` (≥ 0), `per_page` (1–500). `/api/skills/search` allows only `q` (min 2 chars), `limit` (1–200), optional `owner`. Unknown keys → `400`.
+  - **In-memory IP rate limit** — fixed window, 60 req/min per client IP (`x-forwarded-for` / `x-real-ip`). Best-effort across Fluid Compute instances; not a substitute for Vercel Firewall/WAF rules on `/api/*` if you need harder abuse protection.
 - Proxy base URL resolution (Rust):
   1. Runtime env `SKILLS_PROXY_BASE_URL` (highest priority)
   2. Compile-time `SKILLS_PROXY_BASE_URL` if set when building
-  3. Default `https://skills-explorer.vercel.app` (change after you deploy)
+  3. Dev convenience default `https://skills-explorer.vercel.app` — override for your own deploy; do not treat this as a shared production backend for forks
 
 ### Deploy the proxy
 
-1. Link and deploy this repo’s `api/` routes with Vercel (`vercel` / Git integration). `vercel.json` is configured for an API-focused deploy.
+1. Link and deploy this repo’s `api/` routes with Vercel (`vercel` / Git integration). `vercel.json` is configured for an API-focused deploy (no browser CORS headers).
 2. In the Vercel project: **Settings → OIDC Federation → On**.
 3. Confirm:
    - `GET https://<your-deployment>/api/skills?per_page=5`
+   - `GET https://<your-deployment>/api/skills?per_page=9999` → `400`
    - `GET https://<your-deployment>/api/skills/search?q=react&limit=5`
-4. Set `SKILLS_PROXY_BASE_URL` for local Tauri runs if the default URL is not yours:
+   - Unknown query keys → `400`
+4. Set `SKILLS_PROXY_BASE_URL` for local Tauri runs (required for forks / release builds pointed at your deploy):
    ```bash
    export SKILLS_PROXY_BASE_URL=https://your-deployment.vercel.app
    npm run tauri:dev

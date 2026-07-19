@@ -8,8 +8,8 @@ use specta::Type;
 
 const SKILLS_API_BASE: &str = "https://skills.sh/api/v1";
 
-/// Default public proxy base (no trailing slash). Override with `SKILLS_PROXY_BASE_URL`.
-/// Deploy the `api/` routes on Vercel and replace this with your deployment URL.
+/// Dev convenience public proxy base (no trailing slash). Override with `SKILLS_PROXY_BASE_URL`.
+/// Forks/release builds should point at their own Vercel deploy — do not rely on a shared default.
 const DEFAULT_PROXY_BASE_URL: &str = "https://skills-explorer.vercel.app";
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

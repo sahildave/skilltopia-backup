@@ -1,4 +1,5 @@
 import { getVercelOidcToken } from '@vercel/oidc'
+import { clientIp, PROXY_RATE_LIMIT, proxyRateLimit } from './rate-limit'
 
 const SKILLS_API_BASE = 'https://skills.sh/api/v1'
 
@@ -43,5 +44,26 @@ export function methodNotAllowed(): Response {
   return Response.json(
     { error: 'method_not_allowed', message: 'Only GET is supported.' },
     { status: 405 }
+  )
+}
+
+export function enforceRateLimit(request: Request): Response | null {
+  const result = proxyRateLimit(clientIp(request))
+  if (result.ok) return null
+
+  return Response.json(
+    {
+      error: 'rate_limited',
+      message: 'Too many requests. Try again shortly.',
+    },
+    {
+      status: 429,
+      headers: {
+        'Retry-After': String(result.retryAfterSec),
+        'X-RateLimit-Limit': String(PROXY_RATE_LIMIT),
+        'X-RateLimit-Remaining': '0',
+        'X-RateLimit-Reset': String(Math.ceil(result.resetAt / 1000)),
+      },
+    }
   )
 }

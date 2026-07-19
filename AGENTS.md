@@ -4,6 +4,11 @@
 
 This repository is a template with sensible defaults for building Tauri React apps.
 
+## Vocabulary
+
+- **Backend API**: The Vercel-hosted HTTP API under `api/`. It owns all secrets and env (skills.sh auth, Supabase, Qdrant, AI provider keys). The Tauri desktop app and web UI never hold those credentials; they only call the Backend API.
+- Do not say “Vercel API” in plans/tasks when you mean this — use **Backend API**. (“Vercel” is the host; **Backend API** is our product surface.)
+
 ## Core Rules
 
 ### New Sessions

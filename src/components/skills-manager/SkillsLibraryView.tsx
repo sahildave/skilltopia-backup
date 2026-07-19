@@ -50,7 +50,6 @@ export function SkillsLibraryView() {
           ) : null}
         </div>
         <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
-          Skills installed in the global scope at{' '}
           <code className="bg-muted rounded px-1.5 py-0.5 text-xs">
             ~/.agents/skills
           </code>
@@ -58,9 +57,7 @@ export function SkillsLibraryView() {
         </p>
         <div>
           <Button onClick={handleRead} disabled={loading}>
-            {loading ? (
-              <LoaderCircle className="size-4 animate-spin" />
-            ) : null}
+            {loading ? <LoaderCircle className="size-4 animate-spin" /> : null}
             Read ~/.agents/skills
           </Button>
         </div>
@@ -93,7 +90,11 @@ export function SkillsLibraryView() {
                 </pre>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" onClick={handleRead} disabled={loading}>
+                <Button
+                  variant="outline"
+                  onClick={handleRead}
+                  disabled={loading}
+                >
                   Try again
                 </Button>
               </CardFooter>

@@ -68,6 +68,22 @@ export async function buildAppMenu(): Promise<Menu> {
       ],
     })
 
+    // Edit submenu — required on macOS so WKWebView receives Select All / Cut /
+    // Copy / Paste / Undo accelerators when a text field is focused.
+    const editSubmenu = await Submenu.new({
+      text: t('menu.edit'),
+      items: [
+        await PredefinedMenuItem.new({ item: 'Undo' }),
+        await PredefinedMenuItem.new({ item: 'Redo' }),
+        await PredefinedMenuItem.new({ item: 'Separator' }),
+        await PredefinedMenuItem.new({ item: 'Cut' }),
+        await PredefinedMenuItem.new({ item: 'Copy' }),
+        await PredefinedMenuItem.new({ item: 'Paste' }),
+        await PredefinedMenuItem.new({ item: 'Separator' }),
+        await PredefinedMenuItem.new({ item: 'SelectAll' }),
+      ],
+    })
+
     // Build the View submenu
     const viewSubmenu = await Submenu.new({
       text: t('menu.view'),
@@ -89,7 +105,7 @@ export async function buildAppMenu(): Promise<Menu> {
 
     // Build the complete menu
     const menu = await Menu.new({
-      items: [appSubmenu, viewSubmenu],
+      items: [appSubmenu, editSubmenu, viewSubmenu],
     })
 
     // Set as the application menu

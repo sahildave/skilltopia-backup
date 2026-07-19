@@ -3,5 +3,6 @@
   "framework": null,
   "installCommand": "npm install",
   "buildCommand": "echo 'API-only deploy'",
-  "outputDirectory": "public"
+  "outputDirectory": "public",
+  "devCommand": "node scripts/backend-api-dev-placeholder.js"
 }

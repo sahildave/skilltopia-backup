@@ -26,10 +26,22 @@ App Name
 ├── ────────────────────
 └── Quit App Name            (Cmd+Q)
 
+Edit
+├── Undo                     (Cmd+Z)
+├── Redo                     (Cmd+Shift+Z)
+├── ────────────────────
+├── Cut                      (Cmd+X)
+├── Copy                     (Cmd+C)
+├── Paste                    (Cmd+V)
+├── ────────────────────
+└── Select All               (Cmd+A)
+
 View
 ├── Toggle Left Sidebar      (Cmd+1)
 └── Toggle Right Sidebar     (Cmd+2)
 ```
+
+**Why Edit exists:** On macOS, Tauri’s WKWebView only receives standard text-editing accelerators (Select All, Cut, Copy, Paste, Undo/Redo) when they are registered as native `PredefinedMenuItem`s on the app menu. Without this submenu, inputs like the dashboard search field ignore ⌘A even though they are ordinary HTML inputs.
 
 ## Architecture
 

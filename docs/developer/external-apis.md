@@ -60,22 +60,50 @@ The proxy is a **credential amplifier**: anyone who can hit your deployment URL 
 - Proxy base URL resolution (Rust):
   1. Runtime env `SKILLS_PROXY_BASE_URL` (highest priority)
   2. Compile-time `SKILLS_PROXY_BASE_URL` if set when building
-  3. Dev convenience default `https://skills-explorer.vercel.app` — override for your own deploy; do not treat this as a shared production backend for forks
+  3. Default `https://skills-explorer-six.vercel.app` (this project’s Vercel deploy). Override with `SKILLS_PROXY_BASE_URL` for forks or local `vercel dev`
 
 ### Deploy the proxy
 
 1. Link and deploy this repo’s `api/` routes with Vercel (`vercel` / Git integration). `vercel.json` is configured for an API-focused deploy (no browser CORS headers).
 2. In the Vercel project: **Settings → OIDC Federation → On**.
-3. Confirm:
-   - `GET https://<your-deployment>/api/skills?per_page=5`
-   - `GET https://<your-deployment>/api/skills?per_page=9999` → `400`
-   - `GET https://<your-deployment>/api/skills/search?q=react&limit=5`
+3. Confirm against this project’s deploy (or your fork’s URL):
+   - `GET https://skills-explorer-six.vercel.app/api/skills?per_page=5`
+   - `GET https://skills-explorer-six.vercel.app/api/skills?per_page=9999` → `400`
+   - `GET https://skills-explorer-six.vercel.app/api/skills/search?q=react&limit=5`
    - Unknown query keys → `400`
-4. Set `SKILLS_PROXY_BASE_URL` for local Tauri runs (required for forks / release builds pointed at your deploy):
+4. Forks / release builds: point Tauri at your own deploy:
    ```bash
-   export SKILLS_PROXY_BASE_URL=https://your-deployment.vercel.app
+   export SKILLS_PROXY_BASE_URL=https://skills-explorer-six.vercel.app
    npm run tauri:dev
    ```
+   (Replace the URL with your fork’s Vercel host. This repo’s default already uses `skills-explorer-six`.)
+
+### Local-first development
+
+Dashboard skills load only through **Tauri** (Rust → Backend API). Chrome / `npm run dev` does **not** load the catalog — use `tauri:dev` (Vite HMR still applies to React).
+
+**1. Both local** (default day-to-day — app + Backend API on your machine):
+
+```bash
+npm run dev:local
+```
+
+Runs `proxy:dev` and `tauri:dev:local` together via `concurrently`, with colored `proxy` / `tauri` log prefixes. Requires the Vercel CLI (`npx vercel`) and a linked project with OIDC Federation enabled. `vercel.json` sets an API-only `devCommand` so `vercel dev` does not start Vite (Tauri already owns `:1420`).
+
+To run them in separate terminals instead:
+
+```bash
+npm run proxy:dev          # Terminal A — Backend API :3000
+npm run tauri:dev:local    # Terminal B — Tauri → local proxy
+```
+
+**2. Tauri local + Backend API (deployed)** — app local, proxy on Vercel (no `vercel dev`):
+
+```bash
+npm run tauri:dev
+```
+
+Uses the Rust default `https://skills-explorer-six.vercel.app` (or set `SKILLS_PROXY_BASE_URL` for a fork).
 
 ### Local maintainer / Infisical (optional)
 

@@ -26,6 +26,9 @@ credentials.json
 # Vercel CLI (`vercel link`) — project auth / org metadata
 .vercel
 
+# Supabase CLI link metadata
+supabase/.temp
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -39,3 +42,4 @@ credentials.json
 *.sw?
 
 /graphify-out
+.env*

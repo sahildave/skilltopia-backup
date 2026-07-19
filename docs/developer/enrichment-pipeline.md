@@ -36,3 +36,6 @@ hash differs from the stored hash.
 Set `MAX_ENRICHED` in Infisical (`dev`) or the shell (e.g. `MAX_ENRICHED=20 npm
 run enrich:local`) to bound a run. Invalid/missing values default to 500; the
 hard cap in code is always 500.
+
+`npm run enrich:local` prints step-by-step progress on stderr (`[enrich …]`)
+so long leaderboard/detail/LLM/Qdrant waits are visible.

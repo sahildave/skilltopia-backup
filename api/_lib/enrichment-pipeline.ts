@@ -12,7 +12,7 @@ import {
 } from './supabase-repository'
 import { upsertSkillEmbedding } from './qdrant'
 
-export const MAX_ENRICHED = 20
+export const MAX_ENRICHED = 500
 type Repository = ReturnType<typeof createSupabaseRepositoryFromEnv>
 export type EnrichmentMode = 'seed' | 'sync'
 
@@ -26,6 +26,7 @@ export type EnrichmentPipelineOptions = {
   loadLeaderboard?: typeof fetchLeaderboard
   loadDetail?: typeof fetchSkillDetail
   sleep?: (milliseconds: number) => Promise<void>
+  log?: (message: string) => void
 }
 
 /** Reads `MAX_ENRICHED` from env; invalid/missing → default; always capped at `MAX_ENRICHED`. */
@@ -143,6 +144,7 @@ export async function runEnrichmentPipeline(
   const loadLeaderboard = options.loadLeaderboard ?? fetchLeaderboard
   const loadDetail = options.loadDetail ?? fetchSkillDetail
   const embed = options.embed ?? upsertSkillEmbedding
+  const log = options.log ?? (() => {})
   const result: EnrichmentRunResult = {
     attempted: 0,
     enriched: 0,
@@ -150,23 +152,32 @@ export async function runEnrichmentPipeline(
     failed: [],
   }
 
-  for (const skill of (await loadLeaderboard(maxEnriched)).slice(
-    0,
-    maxEnriched
-  )) {
+  log(
+    `start mode=${mode} maxEnriched=${maxEnriched} models=${options.models.length} throttleMs=${throttleMs}`
+  )
+  log('fetching leaderboard from skills.sh…')
+  const skills = (await loadLeaderboard(maxEnriched)).slice(0, maxEnriched)
+  log(`leaderboard returned ${skills.length} skill(s)`)
+
+  for (const [index, skill] of skills.entries()) {
+    const step = `[${index + 1}/${skills.length}] ${skill.id}`
     result.attempted += 1
     try {
+      log(`${step}: fetching detail…`)
       const detail = await loadDetail(skill.id)
       const source = metadata(detail)
+      log(`${step}: checking existing enrichment…`)
       const existing = await options.repository.getSkillEnrichment(detail.id)
       if (
         existing &&
         (mode === 'seed' || existing.contentHash === source.contentHash)
       ) {
         result.skipped += 1
+        log(`${step}: skipped (already enriched)`)
         continue
       }
 
+      log(`${step}: upserting metadata + raw files…`)
       await options.repository.upsertSkillMetadata(source)
       const files = detail.files ?? []
       await options.repository.putRawSkillFiles(
@@ -177,25 +188,37 @@ export async function runEnrichmentPipeline(
         files.find(file => file.path.toLowerCase() === 'skill.md')?.contents ??
         ''
       if (!markdown.trim()) throw new Error('Skill detail has no SKILL.md')
+      log(`${step}: running model/rule enrichment…`)
       const enrichment = await enrichWithModel(markdown, options.models)
+      log(`${step}: persisting enrichment…`)
       await options.repository.upsertSkillEnrichment({
         ...source,
         ...enrichment,
         estimatedReadTimeMinutes: estimateReadTimeMinutes(markdown),
       })
+      log(`${step}: upserting Qdrant embedding…`)
       await embed(
         detail.id,
         distilledEnrichmentText(enrichment, { skillId: detail.id })
       )
       result.enriched += 1
+      log(`${step}: enriched`)
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
       result.failed.push({
         skillId: skill.id,
-        message: error instanceof Error ? error.message : String(error),
+        message,
       })
+      log(`${step}: failed — ${message}`)
     }
-    if (throttleMs > 0) await sleep(throttleMs)
+    if (throttleMs > 0) {
+      log(`${step}: throttling ${throttleMs}ms…`)
+      await sleep(throttleMs)
+    }
   }
+  log(
+    `done attempted=${result.attempted} enriched=${result.enriched} skipped=${result.skipped} failed=${result.failed.length}`
+  )
   return result
 }
 

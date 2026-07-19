@@ -4,11 +4,11 @@ This project uses **Infisical as the single source of truth** for environment se
 
 ## Environments
 
-| Infisical env | Sync / inject into | Purpose |
-| --- | --- | --- |
-| `prod` | Vercel **Production** | Deployed Backend API (`api/`) |
-| `dev` | Vercel **Preview** / **Development**, local `vercel dev`, enrich scripts | Non-prod Backend + local server work |
-| `local` | Tauri desktop via `infisical run` | Desktop-safe vars only (no Supabase / Qdrant / LLM keys) |
+| Infisical env | Sync / inject into                                                       | Purpose                                                  |
+| ------------- | ------------------------------------------------------------------------ | -------------------------------------------------------- |
+| `prod`        | Vercel **Production**                                                    | Deployed Backend API (`api/`)                            |
+| `dev`         | Vercel **Preview** / **Development**, local `vercel dev`, enrich scripts | Non-prod Backend + local server work                     |
+| `local`       | Tauri desktop via `infisical run`                                        | Desktop-safe vars only (no Supabase / Qdrant / LLM keys) |
 
 Use **separate** Supabase projects and Qdrant clusters (or at least separate keys) for `dev` vs `prod` so local enrichment cannot wipe production data.
 
@@ -16,23 +16,23 @@ skills.sh production auth on Vercel is **OIDC Federation** (project setting), no
 
 ## Who gets which secrets
 
-| Consumer | Infisical env | Allowed keys |
-| --- | --- | --- |
-| Backend API on Vercel | `prod` / `dev` | Full Backend set below |
-| Local Backend (`vercel dev`) / enrich scripts | `dev` | Full Backend set |
-| Tauri desktop | `local` | `SKILLS_PROXY_BASE_URL`, optional `SKILLS_SH_TOKEN` only |
+| Consumer                                      | Infisical env  | Allowed keys                                                                                |
+| --------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------- |
+| Backend API on Vercel                         | `prod` / `dev` | Full Backend set below                                                                      |
+| Local Backend (`vercel dev`) / enrich scripts | `dev`          | Full Backend set                                                                            |
+| Tauri desktop                                 | `local`        | Optional `SKILLS_PROXY_BASE_URL` only (`tauri:dev:local` hardcodes `http://127.0.0.1:3000`) |
+
+Package scripts already wrap Infisical. Daily workflow:
 
 ```bash
-# ✅ GOOD: Backend / enrich with Infisical
-infisical run --env=dev -- npm run proxy:dev
-infisical run --env=dev -- npm run <enrich-script>
+npm run dev:local    # proxy:dev (env=dev) + tauri:dev:local (env=local)
+npm run tauri:dev    # desktop → deployed Backend; Infisical local
+npm run enrich:local # Backend secrets from Infisical dev
+```
 
-# ✅ GOOD: Tauri with desktop-safe Infisical env
-infisical run --env=local -- npm run tauri:dev
-infisical run --env=local -- npm run tauri:dev:local
-
+```bash
 # ❌ BAD: Inject Backend secrets into the desktop process
-infisical run --env=dev -- npm run tauri:dev
+infisical run --env=dev -- npm run tauri -- dev
 ```
 
 Never expose Backend secrets through `VITE_*`, the Tauri bundle, or a shared Infisical env that the desktop app loads.
@@ -41,53 +41,61 @@ Never expose Backend secrets through `VITE_*`, the Tauri bundle, or a shared Inf
 
 ### Required (MVP tasks 2–3)
 
-| Key | Secret? | Where used |
-| --- | --- | --- |
-| `SUPABASE_URL` | treat as sensitive | `api/_lib/supabase-repository.ts` |
-| `SUPABASE_SERVICE_ROLE_KEY` | **yes** | same |
-| `QDRANT_URL` | treat as sensitive | `api/_lib/qdrant.ts` |
-| `QDRANT_API_KEY` | **yes** | same |
+| Key                         | Secret?            | Where used                                                                     |
+| --------------------------- | ------------------ | ------------------------------------------------------------------------------ |
+| `SUPABASE_URL`              | treat as sensitive | `api/_lib/supabase-repository.ts`                                              |
+| `SUPABASE_SERVICE_ROLE_KEY` | **yes**            | same — value should be `sb_secret_...` (prefer over legacy JWT `service_role`) |
+| `QDRANT_URL`                | treat as sensitive | `api/_lib/qdrant.ts`                                                           |
+| `QDRANT_API_KEY`            | **yes**            | same                                                                           |
 
 ### Optional Qdrant overrides (defaults in code)
 
-| Key | Default |
-| --- | --- |
-| `QDRANT_COLLECTION` | `skill_embeddings` |
+| Key                      | Default                                  |
+| ------------------------ | ---------------------------------------- |
+| `QDRANT_COLLECTION`      | `skill_embeddings`                       |
 | `QDRANT_EMBEDDING_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` |
-| `QDRANT_VECTOR_NAME` | `dense` |
-| `QDRANT_VECTOR_SIZE` | `384` |
+| `QDRANT_VECTOR_NAME`     | `dense`                                  |
+| `QDRANT_VECTOR_SIZE`     | `384`                                    |
 
 Change model id and vector size **together** when switching embedding models.
 
-### Coming with enrichment (task 4)
+### Enrichment LLM (task 9 — AI SDK provider chain)
 
-| Key | Notes |
-| --- | --- |
-| LLM provider key(s) | Env-driven AI SDK chain. Exact names TBD when the provider is chosen (e.g. Vercel AI Gateway, OpenAI, Anthropic). Add to `dev` / `prod` then. |
-| `MAX_ENRICHED` | Config knob (starts at `500`), not a secret — optional in Infisical |
-| Enrich-route protect secret | Only if a secret-protected Backend enrich route is added |
+Used by `npm run enrich:local` (Infisical `dev`) and any Backend enrich path that syncs from Infisical. Do **not** put these in `local`.
+
+| Key                            | Secret? | Notes                                                                                                                                                                   |
+| ------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GROQ_API_KEY`                 | **yes** | `@ai-sdk/groq` default. Primary free model.                                                                                                                             |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | **yes** | `@ai-sdk/google` default. Gemini fallback.                                                                                                                              |
+| `ENRICHMENT_MODEL_CHAIN`       | no      | Ordered `provider/model` list. Current value in `dev` / `prod`: `groq/llama-3.1-8b-instant,gemini/gemini-2.5-flash-lite`. Rule-based extraction is always last in code. |
+| `MAX_ENRICHED`                 | no      | Config knob (capped at `500` in code); optional in Infisical                                                                                                            |
+| Enrich-route protect secret    | **yes** | Only if a secret-protected Backend enrich route is added                                                                                                                |
+
+Missing provider keys are skipped at runtime; at least one of Groq/Gemini should be set for LLM enrichment. See [enrichment-pipeline.md](./enrichment-pipeline.md).
 
 Hybrid search, enrichment UI, and seed (tasks 5–8) reuse the Backend set above; they do not add desktop secrets.
 
 ## Desktop secrets (`local`)
 
-| Key | Secret? | Purpose |
-| --- | --- | --- |
-| `SKILLS_PROXY_BASE_URL` | no | Point Tauri at your Backend deploy or `http://127.0.0.1:3000` for local proxy |
-| `SKILLS_SH_TOKEN` | **yes** | Maintainer-only: bypass proxy and call skills.sh directly |
+| Key                     | Secret? | Purpose                                                                                                                          |
+| ----------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `SKILLS_PROXY_BASE_URL` | no      | Optional. Point `tauri:dev` at your Backend deploy. `tauri:dev:local` / `dev:local` force `http://127.0.0.1:3000` in the script. |
 
-Default proxy without Infisical: `https://skills-explorer-six.vercel.app`. Forks should set `SKILLS_PROXY_BASE_URL` to their own Vercel host.
+You do **not** need any secrets in Infisical `local` for daily `npm run dev:local`. An empty `local` env is fine (CLI still injects).
+
+Default when unset: `https://skills-explorer-six.vercel.app`.
 
 ## How to obtain hard variables
 
 ### `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`
 
 1. Create a Supabase project (use a separate project for `dev` vs `prod` if possible).
-2. Dashboard → **Project Settings → API**:
+2. Dashboard → **Project Settings → API Keys** (or the Connect dialog):
    - **Project URL** → `SUPABASE_URL` (form `https://<project-ref>.supabase.co`)
-   - **service_role** key (secret) → `SUPABASE_SERVICE_ROLE_KEY`
-3. Apply `supabase/migrations/20260719000000_create_skill_repository.sql` to that project before the repository will work.
-4. Never put the `anon` / publishable key in Infisical as a substitute for `service_role` — the repository requires service role. Never put `service_role` in Tauri / `local`.
+   - Create / copy a **secret** key (`sb_secret_...`) → `SUPABASE_SERVICE_ROLE_KEY`
+3. Prefer the new secret key format. The legacy JWT **`service_role`** key still works but is deprecated; both can coexist until you disable the JWT keys in the dashboard. See [Understanding API keys](https://supabase.com/docs/guides/api/api-keys).
+4. Apply `supabase/migrations/20260719000000_create_skill_repository.sql` to that project before the repository will work.
+5. Never put a **publishable** (`sb_publishable_...`) or legacy **`anon`** key here — the repository needs elevated access that bypasses RLS. Never put `SUPABASE_SERVICE_ROLE_KEY` in Tauri / Infisical `local`.
 
 See [supabase-repository.md](./supabase-repository.md).
 
@@ -109,17 +117,21 @@ See [qdrant.md](./qdrant.md).
 
 OIDC tokens are minted at runtime by Vercel; do not store a long-lived skills.sh password in Infisical for the proxy.
 
-### `SKILLS_SH_TOKEN` (maintainer / no `vercel dev`)
+### `SKILLS_SH_TOKEN` — skip for daily work
 
-Only for local Tauri when you want to hit skills.sh **directly** instead of the proxy:
+**You do not need this for `npm run dev:local`.**
 
-1. Prefer day-to-day: `infisical run --env=dev -- npm run proxy:dev` + `infisical run --env=local -- npm run tauri:dev:local` so OIDC stays on the Backend.
-2. If you must bypass the proxy: obtain a short-lived Vercel OIDC token from a linked project (`vercel env pull` / platform token flow) and store it in Infisical `local` as `SKILLS_SH_TOKEN`.
-3. Rotate often; never commit exports. Do not put this in release builds or `prod`.
+That script runs local Backend (`vercel dev` + OIDC) and points Tauri at `http://127.0.0.1:3000`. skills.sh auth stays on the proxy; Tauri never holds a skills.sh credential.
 
-### LLM keys (task 4+)
+`SKILLS_SH_TOKEN` is an escape hatch only: if set in the Tauri process, Rust **bypasses** the Backend API and calls `https://skills.sh` with that bearer token. Use it only when debugging without `vercel dev`. Prefer not setting it. Do not put it in `prod` or release builds.
 
-When enrichment lands, add the chosen provider’s API key to Infisical `dev` / `prod` only. Prefer one env-driven chain documented in the enrichment task. Do not add LLM keys to `local`.
+### `GROQ_API_KEY` + `GOOGLE_GENERATIVE_AI_API_KEY` + `ENRICHMENT_MODEL_CHAIN`
+
+1. Create a [Groq](https://console.groq.com/) API key → `GROQ_API_KEY`.
+2. Create a [Google AI Studio](https://aistudio.google.com/apikey) key → `GOOGLE_GENERATIVE_AI_API_KEY`.
+3. Set `ENRICHMENT_MODEL_CHAIN` to the ordered fallback list, e.g. `groq/llama-3.1-8b-instant,gemini/gemini-2.5-flash-lite`.
+4. Store all three in Infisical **`dev`** (local enrich) and **`prod`** (if prod enrich / Backend needs them). Never in `local`.
+5. Run enrichment with `npm run enrich:local` so Infisical injects `dev`. Daily UI (`dev:local`) does not need LLM keys.
 
 ## Vercel sync
 
@@ -127,7 +139,7 @@ When enrichment lands, add the chosen provider’s API key to Infisical `dev` / 
 2. Map Infisical `prod` → Vercel Production; Infisical `dev` → Vercel Preview / Development.
 3. After changing secrets in Infisical, confirm the sync ran (or redeploy) so `process.env` on the Backend API sees the new values.
 
-Local inject pattern remains `infisical run --env=… -- <command>` — prefer that over writing `.env.local` files. If you must export for a one-off, keep the file gitignored and delete it after.
+Local scripts already call `infisical run` (see `package.json`: `dev:local`, `proxy:dev`, `tauri:dev`, `enrich:local`). Prefer those over writing `.env.local` files. If you must export for a one-off, keep the file gitignored and delete it after.
 
 ## Anti-patterns
 

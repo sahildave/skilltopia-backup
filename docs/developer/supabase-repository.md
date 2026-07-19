@@ -8,10 +8,11 @@ Apply `supabase/migrations/20260719000000_create_skill_repository.sql` to the Su
 
 ```text
 SUPABASE_URL=https://<project-ref>.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=<server-only-secret>
+# Prefer new secret key (sb_secret_...). Legacy JWT service_role still works.
+SUPABASE_SERVICE_ROLE_KEY=sb_secret_...
 ```
 
-The migration creates the `skill_metadata` and `skill_raw_files` tables and a private `raw-skills` Storage bucket. Both tables have RLS enabled without public policies, so public clients cannot read or write them. The repository uses the service-role key in trusted server-side code; never expose it through `VITE_*` or the Tauri bundle.
+The migration creates the `skill_metadata` and `skill_raw_files` tables and a private `raw-skills` Storage bucket. Both tables have RLS enabled without public policies, so public clients cannot read or write them. The repository uses an elevated **secret** key (`sb_secret_...`, env name `SUPABASE_SERVICE_ROLE_KEY`) in trusted server-side code; never expose it through `VITE_*` or the Tauri bundle. Do not use a publishable / `anon` key here — the repository must bypass RLS.
 
 ## Repository contract
 

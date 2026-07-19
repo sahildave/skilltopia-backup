@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   createModelsFromEnv,
+  maxEnrichedFromEnv,
+  MAX_ENRICHED,
   runEnrichmentPipeline,
 } from './enrichment-pipeline'
 
@@ -41,6 +43,14 @@ describe('enrichment pipeline policy', () => {
       'llama-3.1-8b-instant',
       'gemini-2.5-flash-lite',
     ])
+  })
+
+  it('reads MAX_ENRICHED from env and caps at the hard limit', () => {
+    expect(maxEnrichedFromEnv({ MAX_ENRICHED: '20' })).toBe(20)
+    expect(maxEnrichedFromEnv({ MAX_ENRICHED: '9999' })).toBe(MAX_ENRICHED)
+    expect(maxEnrichedFromEnv({ MAX_ENRICHED: '0' })).toBe(MAX_ENRICHED)
+    expect(maxEnrichedFromEnv({ MAX_ENRICHED: 'nope' })).toBe(MAX_ENRICHED)
+    expect(maxEnrichedFromEnv({})).toBe(MAX_ENRICHED)
   })
 
   it('skips existing seed records but re-enriches changed sync records', async () => {

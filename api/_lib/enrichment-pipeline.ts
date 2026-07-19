@@ -12,7 +12,7 @@ import {
 } from './supabase-repository'
 import { upsertSkillEmbedding } from './qdrant'
 
-export const MAX_ENRICHED = 500
+export const MAX_ENRICHED = 20
 type Repository = ReturnType<typeof createSupabaseRepositoryFromEnv>
 export type EnrichmentMode = 'seed' | 'sync'
 
@@ -26,6 +26,15 @@ export type EnrichmentPipelineOptions = {
   loadLeaderboard?: typeof fetchLeaderboard
   loadDetail?: typeof fetchSkillDetail
   sleep?: (milliseconds: number) => Promise<void>
+}
+
+/** Reads `MAX_ENRICHED` from env; invalid/missing → default; always capped at `MAX_ENRICHED`. */
+export function maxEnrichedFromEnv(environment = process.env): number {
+  const raw = environment.MAX_ENRICHED?.trim()
+  if (!raw) return MAX_ENRICHED
+  const parsed = Number.parseInt(raw, 10)
+  if (!Number.isFinite(parsed) || parsed < 1) return MAX_ENRICHED
+  return Math.min(parsed, MAX_ENRICHED)
 }
 
 export type EnrichmentRunResult = {
@@ -198,6 +207,7 @@ export async function runLocalEnrichment(
     repository: options.repository ?? createSupabaseRepositoryFromEnv(),
     models: options.models ?? createModelsFromEnv(),
     ...options,
+    maxEnriched: options.maxEnriched ?? maxEnrichedFromEnv(),
   })
 }
 
@@ -205,5 +215,9 @@ export async function runLocalEnrichment(
 export async function runEnrichmentSync(
   options: Omit<EnrichmentPipelineOptions, 'mode'>
 ): Promise<EnrichmentRunResult> {
-  return runEnrichmentPipeline({ ...options, mode: 'sync' })
+  return runEnrichmentPipeline({
+    ...options,
+    mode: 'sync',
+    maxEnriched: options.maxEnriched ?? maxEnrichedFromEnv(),
+  })
 }

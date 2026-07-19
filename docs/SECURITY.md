@@ -53,8 +53,10 @@ std::fs::write(user_input, data)
 ### Secrets
 
 - Never commit secrets to version control
-- Use `.env.local` (gitignored) for local secrets
-- Use GitHub Secrets for CI/CD
+- Use **Infisical** as the source of truth for Backend and local secrets (see [docs/developer/infisical.md](./developer/infisical.md))
+- Sync Infisical → Vercel for the Backend API; inject locally with `infisical run`
+- Do not put Backend secrets (`SUPABASE_*`, `QDRANT_*`, LLM keys) in the Tauri / desktop Infisical env
+- Use GitHub Secrets only for CI/CD that Infisical does not cover (e.g. Tauri signing keys)
 
 ### Dependency Audits
 

@@ -4,7 +4,7 @@ The Backend API and local enrichment scripts use `api/_lib/supabase-repository.t
 
 ## Setup
 
-Apply `supabase/migrations/20260719000000_create_skill_repository.sql` to the Supabase project. Configure these secrets only in the Backend API or the local enrichment process:
+Apply `supabase/migrations/20260719000000_create_skill_repository.sql` to the Supabase project. Store these keys in Infisical (`dev` / `prod` only — never the desktop `local` env) and sync to Vercel for the Backend API. See [infisical.md](./infisical.md) for how to obtain them and inject locally:
 
 ```text
 SUPABASE_URL=https://<project-ref>.supabase.co

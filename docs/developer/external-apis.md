@@ -71,54 +71,42 @@ The proxy is a **credential amplifier**: anyone who can hit your deployment URL 
    - `GET https://skills-explorer-six.vercel.app/api/skills?per_page=9999` → `400`
    - `GET https://skills-explorer-six.vercel.app/api/skills/search?q=react&limit=5`
    - Unknown query keys → `400`
-4. Forks / release builds: point Tauri at your own deploy:
-   ```bash
-   export SKILLS_PROXY_BASE_URL=https://skills-explorer-six.vercel.app
-   npm run tauri:dev
-   ```
-   (Replace the URL with your fork’s Vercel host. This repo’s default already uses `skills-explorer-six`.)
+4. Forks / release builds: point Tauri at your own deploy via Infisical `local`
+   (`SKILLS_PROXY_BASE_URL`) or the runtime default
+   `https://skills-explorer-six.vercel.app`. See [infisical.md](./infisical.md).
 
 ### Local-first development
 
 Dashboard skills load only through **Tauri** (Rust → Backend API). Chrome / `npm run dev` does **not** load the catalog — use `tauri:dev` (Vite HMR still applies to React).
 
+Secrets and config come from **Infisical** (see [infisical.md](./infisical.md)): Backend keys in `dev` / `prod`, desktop-safe keys in `local`.
+
 **1. Both local** (default day-to-day — app + Backend API on your machine):
 
 ```bash
-npm run dev:local
+infisical run --env=dev -- npm run proxy:dev          # Terminal A — Backend API :3000
+infisical run --env=local -- npm run tauri:dev:local   # Terminal B — Tauri → local proxy
 ```
 
-Runs `proxy:dev` and `tauri:dev:local` together via `concurrently`, with colored `proxy` / `tauri` log prefixes. Requires the Vercel CLI (`npx vercel`) and a linked project with OIDC Federation enabled. `vercel.json` sets an API-only `devCommand` so `vercel dev` does not start Vite (Tauri already owns `:1420`).
-
-To run them in separate terminals instead:
-
-```bash
-npm run proxy:dev          # Terminal A — Backend API :3000
-npm run tauri:dev:local    # Terminal B — Tauri → local proxy
-```
+Or wrap your usual `npm run dev:local` once both Infisical envs are wired the way you prefer. Requires the Vercel CLI (`npx vercel`) and a linked project with OIDC Federation enabled. `vercel.json` sets an API-only `devCommand` so `vercel dev` does not start Vite (Tauri already owns `:1420`).
 
 **2. Tauri local + Backend API (deployed)** — app local, proxy on Vercel (no `vercel dev`):
 
 ```bash
-npm run tauri:dev
+infisical run --env=local -- npm run tauri:dev
 ```
 
-Uses the Rust default `https://skills-explorer-six.vercel.app` (or set `SKILLS_PROXY_BASE_URL` for a fork).
+Uses Infisical `SKILLS_PROXY_BASE_URL` when set; otherwise the Rust default `https://skills-explorer-six.vercel.app`.
 
-### Local maintainer / Infisical (optional)
+### Local maintainer path
 
-For local development **without** `vercel dev`, inject a short-lived OIDC token as `SKILLS_SH_TOKEN`. When that env var is set, Rust calls `https://skills.sh` directly (maintainer path only — not for end users).
+For local development **without** `vercel dev`, store a short-lived OIDC token as `SKILLS_SH_TOKEN` in Infisical `local`. When that env var is set, Rust calls `https://skills.sh` directly (maintainer path only — not for end users). Prefer the local proxy + OIDC path above when possible.
 
 ```bash
-# Infisical (same habit as Next.js)
-infisical run -- npm run tauri:dev
-
-# Or Vercel CLI
-vercel link && vercel env pull
-# map VERCEL_OIDC_TOKEN → SKILLS_SH_TOKEN in your shell/Infisical
+infisical run --env=local -- npm run tauri:dev
 ```
 
-Never commit `.env.local` or Infisical exports.
+Never commit Infisical exports or checked-in `.env` files.
 
 ### Frontend hooks
 

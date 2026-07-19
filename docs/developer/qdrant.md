@@ -10,8 +10,9 @@ Qdrant API key.
 2. Open the cluster’s Inference tab and confirm that the selected model is
    labelled `Cost: Free`. New clusters have Inference enabled by default;
    enable it manually for older clusters.
-3. Create an API key and keep it in the Backend API or local enrichment
-   environment only.
+3. Create an API key and store it in Infisical (`dev` / `prod` only — never
+   the desktop `local` env). Sync to Vercel for the Backend API. See
+   [infisical.md](./infisical.md) for obtain + inject steps.
 
 The default model is `sentence-transformers/all-MiniLM-L6-v2`, a free dense
 model with 384 dimensions. The collection is created lazily on the first
@@ -20,6 +21,8 @@ distance. If an existing collection has a different vector size, the helper
 fails instead of silently writing incompatible points.
 
 ## Environment
+
+Store in Infisical Backend envs (`dev` / `prod`):
 
 ```bash
 QDRANT_URL=https://<cluster-host>

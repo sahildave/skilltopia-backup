@@ -1,0 +1,62 @@
+import type { SkillsShSkill } from '@/lib/tauri-bindings'
+
+/**
+ * Small offline catalog used until the first successful leaderboard refresh.
+ * Keep this list intentionally compact; the full catalog lives behind the API.
+ */
+export const skillsSeed: SkillsShSkill[] = [
+  {
+    id: 'vercel-labs/skills/find-skills',
+    slug: 'find-skills',
+    name: 'Find Skills',
+    source: 'vercel-labs/skills',
+    installs: 12800,
+    sourceType: 'github',
+    installUrl: 'https://github.com/vercel-labs/skills',
+    url: 'https://skills.sh/vercel-labs/skills/find-skills',
+  },
+  {
+    id: 'anthropics/skills/frontend-design',
+    slug: 'frontend-design',
+    name: 'Frontend Design',
+    source: 'anthropics/skills',
+    installs: 10400,
+    sourceType: 'github',
+    installUrl: 'https://github.com/anthropics/skills',
+    url: 'https://skills.sh/anthropics/skills/frontend-design',
+  },
+  {
+    id: 'vercel-labs/agent-skills/web-design-guidelines',
+    slug: 'web-design-guidelines',
+    name: 'Web Design Guidelines',
+    source: 'vercel-labs/agent-skills',
+    installs: 8700,
+    sourceType: 'github',
+    installUrl: 'https://github.com/vercel-labs/agent-skills',
+    url: 'https://skills.sh/vercel-labs/agent-skills/web-design-guidelines',
+  },
+  {
+    id: 'anthropics/skills/pdfs',
+    slug: 'pdfs',
+    name: 'PDFs',
+    source: 'anthropics/skills',
+    installs: 7100,
+    sourceType: 'github',
+    installUrl: 'https://github.com/anthropics/skills',
+    url: 'https://skills.sh/anthropics/skills/pdfs',
+  },
+  {
+    id: 'anthropics/skills/documents',
+    slug: 'documents',
+    name: 'Documents',
+    source: 'anthropics/skills',
+    installs: 6800,
+    sourceType: 'github',
+    installUrl: 'https://github.com/anthropics/skills',
+    url: 'https://skills.sh/anthropics/skills/documents',
+  },
+]
+
+export function getSeedForView(_view: string): SkillsShSkill[] {
+  return skillsSeed
+}

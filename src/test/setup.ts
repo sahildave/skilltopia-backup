@@ -43,6 +43,10 @@ vi.mock('@/lib/tauri-bindings', () => ({
     cleanupOldRecoveryFiles: vi
       .fn()
       .mockResolvedValue({ status: 'ok', data: 0 }),
+    fetchSkillsLeaderboard: vi
+      .fn()
+      .mockResolvedValue({ status: 'ok', data: [] }),
+    searchSkills: vi.fn().mockResolvedValue({ status: 'ok', data: [] }),
   },
   unwrapResult: vi.fn((result: { status: string; data?: unknown }) => {
     if (result.status === 'ok') return result.data

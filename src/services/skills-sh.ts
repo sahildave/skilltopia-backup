@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { getSeedForView } from '@/data/skills-seed'
 import { logger } from '@/lib/logger'
 import {
   commands,
@@ -13,6 +14,12 @@ export const skillsShQueryKeys = {
   search: (query: string, limit: number) =>
     [...skillsShQueryKeys.all, 'search', query, limit] as const,
 }
+
+export const DISCOVERY_VIEWS = [
+  { id: 'all-time', label: 'Top Installed' },
+  { id: 'trending', label: 'Trending' },
+  { id: 'hot', label: 'Hot' },
+] as const
 
 const LEADERBOARD_STALE_MS = 1000 * 60
 const SEARCH_STALE_MS = 1000 * 30
@@ -37,6 +44,8 @@ export function useSkillsLeaderboard(options?: {
       return skills
     },
     enabled,
+    initialData: () => getSeedForView(view),
+    initialDataUpdatedAt: 0,
     staleTime: LEADERBOARD_STALE_MS,
     gcTime: 1000 * 60 * 10,
   })

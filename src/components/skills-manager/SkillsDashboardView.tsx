@@ -1,13 +1,7 @@
 import { useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { openUrl } from '@tauri-apps/plugin-opener'
-import {
-  AlertCircle,
-  ExternalLink,
-  LayoutDashboard,
-  Search,
-  X,
-} from 'lucide-react'
+import { AlertCircle, ExternalLink, Search, X } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -21,7 +15,6 @@ import {
 } from '@/components/ui/card'
 import {
   Empty,
-  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
@@ -37,8 +30,11 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDebouncedValue } from '@/hooks/use-debounced-value'
 import type { SkillsShSkill } from '@/lib/tauri-bindings'
-import { cn } from '@/lib/utils'
-import { useSkillsLeaderboard, useSkillsSearch } from '@/services/skills-sh'
+import {
+  DISCOVERY_VIEWS,
+  useSkillsLeaderboard,
+  useSkillsSearch,
+} from '@/services/skills-sh'
 
 function formatInstalls(count: number): string {
   return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(count)
@@ -48,24 +44,21 @@ function SkillCard({
   skill,
   index,
   reduceMotion,
+  compact = false,
 }: {
   skill: SkillsShSkill
   index: number
   reduceMotion: boolean
+  compact?: boolean
 }) {
-  const handleOpen = () => {
-    void openUrl(skill.url)
-  }
-
   return (
     <motion.div
-      layout
       initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
       animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
       exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
       transition={
         reduceMotion
-          ? { duration: 0.15, ease: 'easeOut' }
+          ? { duration: 0.15 }
           : {
               type: 'spring',
               bounce: 0,
@@ -73,12 +66,13 @@ function SkillCard({
               delay: Math.min(index, 12) * 0.03,
             }
       }
+      className={compact ? 'w-72 shrink-0' : undefined}
     >
       <Card className="gap-4 py-4">
         <CardHeader className="px-4">
           <CardTitle className="flex items-start justify-between gap-2 text-sm">
             <span className="truncate text-balance">{skill.name}</span>
-            <Badge variant="secondary" className="tabular-nums shrink-0">
+            <Badge variant="secondary" className="shrink-0 tabular-nums">
               {formatInstalls(skill.installs)}
             </Badge>
           </CardTitle>
@@ -89,7 +83,7 @@ function SkillCard({
         <CardContent className="px-4">
           <div className="flex flex-wrap gap-1.5">
             <Badge variant="outline">{skill.sourceType}</Badge>
-            <Badge variant="outline" className="truncate max-w-full">
+            <Badge variant="outline" className="max-w-full truncate">
               {skill.slug}
             </Badge>
           </div>
@@ -98,11 +92,10 @@ function SkillCard({
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleOpen}
+            onClick={() => void openUrl(skill.url)}
             aria-label={`Open ${skill.name} on skills.sh`}
           >
-            <ExternalLink data-icon="inline-start" />
-            View
+            <ExternalLink data-icon="inline-start" /> View
           </Button>
         </CardFooter>
       </Card>
@@ -113,7 +106,7 @@ function SkillCard({
 function SkillsGridSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 9 }, (_, index) => (
+      {Array.from({ length: 3 }, (_, index) => (
         <Card key={index} className="gap-4 py-4">
           <CardHeader className="px-4">
             <Skeleton className="h-4 w-2/3" />
@@ -134,44 +127,133 @@ function SkillsGridSkeleton() {
   )
 }
 
+function errorMessage(error: unknown): string | null {
+  return error instanceof Error ? error.message : error ? String(error) : null
+}
+
+function DiscoveryRail({
+  view,
+  reduceMotion,
+}: {
+  view: (typeof DISCOVERY_VIEWS)[number]
+  reduceMotion: boolean
+}) {
+  const query = useSkillsLeaderboard({ view: view.id, perPage: 12 })
+  const skills = query.data ?? []
+  const error = errorMessage(query.error)
+
+  return (
+    <section
+      aria-labelledby={`rail-${view.id}`}
+      className="flex flex-col gap-3"
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <div>
+          <h2 id={`rail-${view.id}`} className="text-base font-semibold">
+            {view.label}
+          </h2>
+          <p className="text-muted-foreground text-xs">
+            {view.id === 'all-time'
+              ? 'Most installed across the catalog'
+              : `The ${view.id} leaderboard right now`}
+          </p>
+        </div>
+        <Badge variant="secondary" className="tabular-nums">
+          {skills.length}
+        </Badge>
+      </div>
+      {error ? (
+        <Alert variant="destructive">
+          <AlertCircle />
+          <AlertTitle>Refresh failed</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+      {query.isLoading && skills.length === 0 ? <SkillsGridSkeleton /> : null}
+      {skills.length > 0 ? (
+        <div className="flex gap-4 overflow-x-auto pb-2">
+          <AnimatePresence mode="popLayout">
+            {skills.map((skill, index) => (
+              <SkillCard
+                key={skill.id}
+                skill={skill}
+                index={index}
+                reduceMotion={reduceMotion}
+                compact
+              />
+            ))}
+          </AnimatePresence>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+function SearchResults({
+  query,
+  reduceMotion,
+}: {
+  query: ReturnType<typeof useSkillsSearch>
+  reduceMotion: boolean
+}) {
+  const skills = query.data ?? []
+  const error = errorMessage(query.error)
+  if (query.isLoading && skills.length === 0) return <SkillsGridSkeleton />
+  if (error && skills.length === 0)
+    return (
+      <Alert variant="destructive">
+        <AlertCircle />
+        <AlertTitle>Couldn’t load skills</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    )
+  if (skills.length === 0)
+    return (
+      <Empty className="border">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Search />
+          </EmptyMedia>
+          <EmptyTitle>No skills found</EmptyTitle>
+          <EmptyDescription>Try a different search term.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    )
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <AnimatePresence mode="popLayout">
+        {skills.map((skill, index) => (
+          <SkillCard
+            key={skill.id}
+            skill={skill}
+            index={index}
+            reduceMotion={reduceMotion}
+          />
+        ))}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 export function SkillsDashboardView() {
   const reduceMotion = useReducedMotion() ?? false
   const [searchInput, setSearchInput] = useState('')
   const debouncedQuery = useDebouncedValue(searchInput, 300)
   const isSearching = debouncedQuery.trim().length >= 2
-
-  const leaderboard = useSkillsLeaderboard({ enabled: !isSearching })
   const search = useSkillsSearch(debouncedQuery, { enabled: isSearching })
-
-  const activeQuery = isSearching ? search : leaderboard
-  const skills = activeQuery.data ?? []
-  const isLoading = activeQuery.isLoading || activeQuery.isFetching
-  const errorMessage =
-    activeQuery.error instanceof Error
-      ? activeQuery.error.message
-      : activeQuery.error
-        ? String(activeQuery.error)
-        : null
+  const hasSearchError = isSearching && Boolean(search.error)
 
   return (
     <div className="relative flex h-full flex-col">
-      <div
-        className={cn(
-          'bg-background/80 sticky top-0 z-10 flex flex-col gap-4 border-b p-6 backdrop-blur-md'
-        )}
-      >
+      <div className="bg-background/80 sticky top-0 z-10 flex flex-col gap-4 border-b p-6 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-semibold text-balance">Dashboard</h1>
-          {!isLoading && skills.length > 0 ? (
-            <Badge variant="secondary" className="tabular-nums">
-              {skills.length}
-            </Badge>
-          ) : null}
+          <Badge variant="outline">skills.sh</Badge>
         </div>
         <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
-          Browse the top skills on skills.sh. Search by name or description.
+          Discover popular skills, refreshed from the live catalog and available
+          offline from your last visit.
         </p>
-
         <InputGroup className="max-w-xl">
           <InputGroupAddon>
             <Search />
@@ -196,68 +278,27 @@ export function SkillsDashboardView() {
             </InputGroupAddon>
           ) : null}
         </InputGroup>
-
-        {errorMessage ? (
+        {hasSearchError ? (
           <Alert variant="destructive" className="max-w-xl">
             <AlertCircle />
-            <AlertTitle>Couldn’t load skills</AlertTitle>
-            <AlertDescription className="text-pretty">
-              {errorMessage}
-            </AlertDescription>
+            <AlertTitle>Couldn’t load search results</AlertTitle>
+            <AlertDescription>{errorMessage(search.error)}</AlertDescription>
           </Alert>
         ) : null}
       </div>
-
       <ScrollArea className="min-h-0 flex-1">
-        <div className="p-6">
-          {isLoading && skills.length === 0 ? <SkillsGridSkeleton /> : null}
-
-          {!isLoading && skills.length === 0 && !errorMessage ? (
-            <Empty className="border">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <LayoutDashboard />
-                </EmptyMedia>
-                <EmptyTitle>
-                  {isSearching ? 'No skills found' : 'No skills yet'}
-                </EmptyTitle>
-                <EmptyDescription>
-                  {isSearching
-                    ? 'Try a different search term, or clear the search to see the top skills.'
-                    : 'The catalog returned no results. Try again in a moment.'}
-                </EmptyDescription>
-              </EmptyHeader>
-              <EmptyContent>
-                {isSearching ? (
-                  <Button variant="outline" onClick={() => setSearchInput('')}>
-                    Clear search
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    onClick={() => void activeQuery.refetch()}
-                  >
-                    Retry
-                  </Button>
-                )}
-              </EmptyContent>
-            </Empty>
-          ) : null}
-
-          {skills.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <AnimatePresence mode="popLayout">
-                {skills.map((skill, index) => (
-                  <SkillCard
-                    key={skill.id}
-                    skill={skill}
-                    index={index}
-                    reduceMotion={reduceMotion}
-                  />
-                ))}
-              </AnimatePresence>
-            </div>
-          ) : null}
+        <div className="flex flex-col gap-10 p-6">
+          {isSearching ? (
+            <SearchResults query={search} reduceMotion={reduceMotion} />
+          ) : (
+            DISCOVERY_VIEWS.map(view => (
+              <DiscoveryRail
+                key={view.id}
+                view={view}
+                reduceMotion={reduceMotion}
+              />
+            ))
+          )}
         </div>
       </ScrollArea>
     </div>

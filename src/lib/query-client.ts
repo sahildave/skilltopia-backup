@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/react-query'
+import { hydrateQueryCache, persistQueryCache } from './query-persistence'
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,3 +19,6 @@ export const queryClient = new QueryClient({
     },
   },
 })
+
+hydrateQueryCache(queryClient)
+persistQueryCache(queryClient)

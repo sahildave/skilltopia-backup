@@ -4,7 +4,7 @@ import {
   maxEnrichedFromEnv,
   MAX_ENRICHED,
   runEnrichmentPipeline,
-} from './enrichment-pipeline'
+} from './enrichment-pipeline.js'
 
 function detail(hash: string) {
   return {
@@ -41,7 +41,7 @@ describe('enrichment pipeline policy', () => {
 
     expect(models.map(model => model.modelId)).toEqual([
       'openai/gpt-oss-20b',
-      'gemini-2.5-flash',
+      'gemini-3.1-flash-lite',
     ])
   })
 

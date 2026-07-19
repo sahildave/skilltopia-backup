@@ -6,8 +6,8 @@ const { getVercelOidcToken } = vi.hoisted(() => ({
 
 vi.mock('@vercel/oidc', () => ({ getVercelOidcToken }))
 
-import { GET as getSkills, POST as postSkills } from './skills'
-import { GET as searchSkills } from './skills/search'
+import { GET as getSkills, POST as postSkills } from './skills.js'
+import { GET as searchSkills } from './skills/search.js'
 
 describe('skills proxy routes', () => {
   beforeEach(() => {

@@ -4,7 +4,7 @@ import {
   estimateReadTimeMinutes,
   type RawSkillFile,
   type SkillEnrichmentRecord,
-} from './supabase-repository'
+} from './supabase-repository.js'
 
 function createClient() {
   const metadata = {

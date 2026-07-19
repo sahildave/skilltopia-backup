@@ -1,4 +1,4 @@
-import type { SimilarSkill } from './qdrant'
+import type { SimilarSkill } from './qdrant.js'
 
 export type SearchResult = {
   id: string

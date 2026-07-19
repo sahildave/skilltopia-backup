@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fetchLeaderboard, fetchSkillDetail } from './skills-catalog'
+import { fetchLeaderboard, fetchSkillDetail } from './skills-catalog.js'
 
 describe('skills catalog client', () => {
   it('loads leaderboard and detail response shapes', async () => {

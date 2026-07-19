@@ -3,7 +3,7 @@ import {
   parseSkillDetailQuery,
   parseSkillsLeaderboardQuery,
   parseSkillsSearchQuery,
-} from './query'
+} from './query.js'
 
 describe('parseSkillsLeaderboardQuery', () => {
   it('accepts allowed params and builds a cleaned query', () => {
@@ -132,13 +132,21 @@ describe('parseSkillsSearchQuery', () => {
 
 describe('parseSkillDetailQuery', () => {
   it('accepts and cleans a skill id', () => {
-    const result = parseSkillDetailQuery(
+    const twoPart = parseSkillDetailQuery(
       new URLSearchParams({ skill_id: 'owner/my-skill' })
     )
+    expect(twoPart.ok).toBe(true)
+    if (!twoPart.ok) return
+    expect(twoPart.query.toString()).toBe('skill_id=owner%2Fmy-skill')
 
-    expect(result.ok).toBe(true)
-    if (!result.ok) return
-    expect(result.query.toString()).toBe('skill_id=owner%2Fmy-skill')
+    const threePart = parseSkillDetailQuery(
+      new URLSearchParams({ skill_id: 'vercel-labs/skills/find-skills' })
+    )
+    expect(threePart.ok).toBe(true)
+    if (!threePart.ok) return
+    expect(threePart.query.get('skill_id')).toBe(
+      'vercel-labs/skills/find-skills'
+    )
   })
 
   it('rejects missing, malformed, and unknown detail params', () => {

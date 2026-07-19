@@ -67,7 +67,7 @@ Used by `npm run enrich:local` (Infisical `dev`) and any Backend enrich path tha
 | ------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GROQ_API_KEY`                 | **yes** | `@ai-sdk/groq` default. Primary free model.                                                                                                                             |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | **yes** | `@ai-sdk/google` default. Gemini fallback.                                                                                                                              |
-| `ENRICHMENT_MODEL_CHAIN`       | no      | Ordered `provider/model` list. Prefer Groq models that support structured outputs (`openai/gpt-oss-20b`). Default in code: `groq/openai/gpt-oss-20b,gemini/gemini-2.5-flash`. Rule-based is always last. |
+| `ENRICHMENT_MODEL_CHAIN`       | no      | Ordered `provider/model` list. Prefer Groq models that support structured outputs (`openai/gpt-oss-20b`). Default in code: `groq/openai/gpt-oss-20b,gemini/gemini-3.1-flash-lite`. Rule-based is always last. |
 | `MAX_ENRICHED`                 | no      | Config knob (capped at `500` in code); optional in Infisical                                                                                                            |
 | Enrich-route protect secret    | **yes** | Only if a secret-protected Backend enrich route is added                                                                                                                |
 
@@ -134,10 +134,10 @@ To exercise a **local** Backend (`vercel dev` on `:3000`), use `npm run dev:loca
 3. Set `ENRICHMENT_MODEL_CHAIN` to models that support structured JSON (AI SDK `generateObject`). Recommended:
 
 ```bash
-ENRICHMENT_MODEL_CHAIN=groq/openai/gpt-oss-20b,gemini/gemini-2.5-flash
+ENRICHMENT_MODEL_CHAIN=groq/openai/gpt-oss-20b,gemini/gemini-3.1-flash-lite
 ```
 
-`llama-3.1-8b-instant` on Groq does **not** support `json_schema` and will always fall through to rule-based.
+`llama-3.1-8b-instant` on Groq does **not** support `json_schema` and will always fall through to rule-based. Prefer Gemini 3.x (`gemini-3.1-flash-lite` / `gemini-3.5-flash`) — many new keys cannot call `gemini-2.5-*`.
 4. Store all three in Infisical **`dev`** (local enrich) and **`prod`** (if prod enrich / Backend needs them). Never in `local`.
 5. Run enrichment with `npm run enrich:local` so Infisical injects `dev`. Daily UI (`dev:local`) does not need LLM keys.
 

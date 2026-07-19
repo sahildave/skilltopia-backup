@@ -1,7 +1,7 @@
-import { enforceRateLimit, methodNotAllowed } from '../_lib/proxy'
-import { searchNearestSkills } from '../_lib/qdrant'
-import { parseSkillDetailQuery } from '../_lib/query'
-import { createSupabaseRepositoryFromEnv } from '../_lib/supabase-repository'
+import { enforceRateLimit, methodNotAllowed } from '../_lib/proxy.js'
+import { searchNearestSkills } from '../_lib/qdrant.js'
+import { parseSkillDetailQuery } from '../_lib/query.js'
+import { createSupabaseRepositoryFromEnv } from '../_lib/supabase-repository.js'
 
 export async function GET(request: Request): Promise<Response> {
   const limited = enforceRateLimit(request)

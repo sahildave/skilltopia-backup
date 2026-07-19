@@ -2,11 +2,11 @@ import {
   enforceRateLimit,
   methodNotAllowed,
   proxySkillsRequest,
-} from '../_lib/proxy'
-import { mergeHybridSearchResults } from '../_lib/hybrid-search'
-import { searchSkillsByText } from '../_lib/qdrant'
-import { createSupabaseRepositoryFromEnv } from '../_lib/supabase-repository'
-import { parseSkillsSearchQuery } from '../_lib/query'
+} from '../_lib/proxy.js'
+import { mergeHybridSearchResults } from '../_lib/hybrid-search.js'
+import { searchSkillsByText } from '../_lib/qdrant.js'
+import { createSupabaseRepositoryFromEnv } from '../_lib/supabase-repository.js'
+import { parseSkillsSearchQuery } from '../_lib/query.js'
 
 /**
  * Searches skills.sh keywords and merges semantic matches from the enriched

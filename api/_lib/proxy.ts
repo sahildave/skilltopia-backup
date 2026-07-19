@@ -1,5 +1,5 @@
 import { getVercelOidcToken } from '@vercel/oidc'
-import { clientIp, PROXY_RATE_LIMIT, proxyRateLimit } from './rate-limit'
+import { clientIp, PROXY_RATE_LIMIT, proxyRateLimit } from './rate-limit.js'
 
 const SKILLS_API_BASE = 'https://skills.sh/api/v1'
 

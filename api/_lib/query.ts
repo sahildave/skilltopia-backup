@@ -122,8 +122,11 @@ export function parseSkillDetailQuery(
 
   const skillId = params.get('skill_id')?.trim()
   if (!skillId) return invalid('skill_id is required')
-  if (skillId.length > 200 || !/^[^/\s]+\/[^/\s]+$/u.test(skillId)) {
-    return invalid('skill_id must use the owner/skill format')
+  // skills.sh ids are slash paths: owner/skill or owner/repo/skill
+  if (skillId.length > 200 || !/^[^/\s]+(?:\/[^/\s]+)+$/u.test(skillId)) {
+    return invalid(
+      'skill_id must be a slash-separated path (e.g. owner/repo/skill)'
+    )
   }
 
   const cleaned = new URLSearchParams()

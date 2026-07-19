@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mergeHybridSearchResults } from './hybrid-search'
+import { mergeHybridSearchResults } from './hybrid-search.js'
 
 describe('mergeHybridSearchResults', () => {
   it('keeps keyword results ahead of semantic results and removes duplicates', () => {

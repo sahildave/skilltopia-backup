@@ -2,8 +2,8 @@ import {
   enforceRateLimit,
   methodNotAllowed,
   proxySkillsRequest,
-} from './_lib/proxy'
-import { parseSkillsLeaderboardQuery } from './_lib/query'
+} from './_lib/proxy.js'
+import { parseSkillsLeaderboardQuery } from './_lib/query.js'
 
 /**
  * Proxies GET /api/v1/skills to skills.sh using Vercel OIDC.

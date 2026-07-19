@@ -17,13 +17,12 @@ Qdrant.
 Recommended chain (supports AI SDK `generateObject` / `json_schema`):
 
 ```bash
-ENRICHMENT_MODEL_CHAIN=groq/openai/gpt-oss-20b,gemini/gemini-2.5-flash
+ENRICHMENT_MODEL_CHAIN=groq/openai/gpt-oss-20b,gemini/gemini-3.1-flash-lite
 ```
 
-Do **not** use `groq/llama-3.1-8b-instant` here — Groq rejects `json_schema` on
-that model, so enrichment silently falls back to rule-based. Prefer
-`gemini-2.5-flash` over `gemini-2.5-flash-lite` if Lite returns 404 for your
-API key.
+Do **not** use `groq/llama-3.1-8b-instant` — Groq rejects `json_schema` on that
+model. Prefer `gemini-3.1-flash-lite` / `gemini-3.5-flash` over `gemini-2.5-*`
+(2.5 is blocked for many new API keys).
 
 Order is try-next-on-failure; **rule-based extraction is always last** in code.
 Skip a provider by omitting its API key. Also configure Supabase and Qdrant

@@ -3,7 +3,7 @@ import {
   distilledEnrichmentText,
   enrichWithModel,
   extractRuleBased,
-} from './enrichment'
+} from './enrichment.js'
 
 describe('rule-based enrichment', () => {
   it('produces usable required fields from a markdown skill', () => {

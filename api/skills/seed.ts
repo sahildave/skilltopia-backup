@@ -1,6 +1,6 @@
-import { enforceRateLimit, methodNotAllowed } from '../_lib/proxy'
-import { fetchLeaderboard } from '../_lib/skills-catalog'
-import { createSupabaseRepositoryFromEnv } from '../_lib/supabase-repository'
+import { enforceRateLimit, methodNotAllowed } from '../_lib/proxy.js'
+import { fetchLeaderboard } from '../_lib/skills-catalog.js'
+import { createSupabaseRepositoryFromEnv } from '../_lib/supabase-repository.js'
 
 const SEED_COUNT = 12
 

@@ -5,7 +5,7 @@ import {
   searchSkillsByText,
   searchNearestSkills,
   upsertSkillEmbedding,
-} from './qdrant'
+} from './qdrant.js'
 
 const config = {
   url: 'https://example.qdrant.io',

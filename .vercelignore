@@ -5,3 +5,4 @@ dist
 .git
 .vercel
 supabase/.temp
+**/*.test.ts

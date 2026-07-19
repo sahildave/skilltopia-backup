@@ -3,14 +3,14 @@ import { createGroq } from '@ai-sdk/groq'
 import { createOpenAI } from '@ai-sdk/openai'
 import type { LanguageModel } from 'ai'
 import { createHash } from 'node:crypto'
-import { distilledEnrichmentText, enrichWithModel } from './enrichment'
-import { fetchLeaderboard, fetchSkillDetail } from './skills-catalog'
+import { distilledEnrichmentText, enrichWithModel } from './enrichment.js'
+import { fetchLeaderboard, fetchSkillDetail } from './skills-catalog.js'
 import {
   createSupabaseRepositoryFromEnv,
   estimateReadTimeMinutes,
   type SkillSourceMetadata,
-} from './supabase-repository'
-import { upsertSkillEmbedding } from './qdrant'
+} from './supabase-repository.js'
+import { upsertSkillEmbedding } from './qdrant.js'
 
 export const MAX_ENRICHED = 500
 type Repository = ReturnType<typeof createSupabaseRepositoryFromEnv>
@@ -32,7 +32,7 @@ export type EnrichmentPipelineOptions = {
 
 /** Default chain uses Groq models that support json_schema (generateObject). */
 export const DEFAULT_ENRICHMENT_MODEL_CHAIN =
-  'groq/openai/gpt-oss-20b,gemini/gemini-2.5-flash'
+  'groq/openai/gpt-oss-20b,gemini/gemini-3.1-flash-lite'
 
 /** Reads `MAX_ENRICHED` from env; invalid/missing → default; always capped at `MAX_ENRICHED`. */
 export function maxEnrichedFromEnv(environment = process.env): number {
@@ -111,7 +111,7 @@ export function createModelsFromEnv(
           model: string
         ) => LanguageModel)
       providers.set(provider, factory)
-      models.push(factory(modelName || 'gemini-2.5-flash'))
+      models.push(factory(modelName || 'gemini-3.1-flash-lite'))
       continue
     }
 

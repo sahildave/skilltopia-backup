@@ -3,7 +3,7 @@ import { z } from 'zod'
 import type {
   EnrichmentRequired,
   SkillEnrichmentRecord,
-} from './supabase-repository'
+} from './supabase-repository.js'
 
 export type ExtractedEnrichment = {
   required: EnrichmentRequired
@@ -15,8 +15,10 @@ const enrichmentSchema = z.object({
   requires: z.array(z.string()),
   estimatedComplexity: z.string().min(1),
   bestFor: z.array(z.string()),
-  worksWith: z.array(z.string()).optional(),
-  outputs: z.array(z.string()).optional(),
+  // Groq json_schema requires every `properties` key to appear in `required`
+  // (no .optional()). Empty arrays mean "not present in the document".
+  worksWith: z.array(z.string()),
+  outputs: z.array(z.string()),
 })
 
 function cleanList(values: string[]): string[] {
@@ -116,15 +118,12 @@ export async function enrichWithModel(
         schema: enrichmentSchema,
         prompt,
       })
+      const { worksWith, outputs, ...required } = result.object
       return {
-        required: result.object,
+        required,
         optional: {
-          ...(result.object.worksWith?.length
-            ? { worksWith: result.object.worksWith }
-            : {}),
-          ...(result.object.outputs?.length
-            ? { outputs: result.object.outputs }
-            : {}),
+          ...(worksWith.length ? { worksWith } : {}),
+          ...(outputs.length ? { outputs } : {}),
           confidence: 'llm',
           modelId,
         },

@@ -1,6 +1,7 @@
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { PlaceholderGrid } from './PlaceholderGrid'
+import { SkillsDashboardView } from './SkillsDashboardView'
 import { SkillsLibraryView } from './SkillsLibraryView'
+import { PlaceholderGrid } from './PlaceholderGrid'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import type { SkillsNavId } from './types'
 
 interface SkillsContentProps {
@@ -13,15 +14,7 @@ export function SkillsContent({ active }: SkillsContentProps) {
   }
 
   if (active === 'dashboard') {
-    return (
-      <ScrollArea className="h-full">
-        <PlaceholderGrid
-          title="Dashboard"
-          description="Overview placeholders for skill health, recent installs, and sync status."
-          count={8}
-        />
-      </ScrollArea>
-    )
+    return <SkillsDashboardView />
   }
 
   if (active === 'install') {

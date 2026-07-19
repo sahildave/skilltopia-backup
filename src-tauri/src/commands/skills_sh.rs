@@ -1,0 +1,179 @@
+//! skills.sh catalog access via a server-side proxy (or local direct token for maintainers).
+//!
+//! Production: Tauri calls the public Vercel proxy; OIDC stays on the server.
+//! Local maintainer: set `SKILLS_SH_TOKEN` (e.g. via Infisical) to hit skills.sh directly.
+
+use serde::{Deserialize, Serialize};
+use specta::Type;
+
+const SKILLS_API_BASE: &str = "https://skills.sh/api/v1";
+
+/// Default public proxy base (no trailing slash). Override with `SKILLS_PROXY_BASE_URL`.
+/// Deploy the `api/` routes on Vercel and replace this with your deployment URL.
+const DEFAULT_PROXY_BASE_URL: &str = "https://skills-explorer.vercel.app";
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SkillsShSkill {
+    pub id: String,
+    pub slug: String,
+    pub name: String,
+    pub source: String,
+    pub installs: i32,
+    #[serde(rename = "sourceType")]
+    pub source_type: String,
+    #[serde(rename = "installUrl", default)]
+    pub install_url: Option<String>,
+    pub url: String,
+    #[serde(rename = "isDuplicate", default)]
+    pub is_duplicate: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SkillsLeaderboardResponse {
+    pub data: Vec<SkillsShSkill>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SkillsSearchResponse {
+    pub data: Vec<SkillsShSkill>,
+    #[serde(default)]
+    pub query: Option<String>,
+    #[serde(rename = "searchType", default)]
+    pub search_type: Option<String>,
+    #[serde(default)]
+    pub count: Option<i32>,
+}
+
+fn proxy_base_url() -> String {
+    std::env::var("SKILLS_PROXY_BASE_URL")
+        .ok()
+        .filter(|s| !s.trim().is_empty())
+        .or_else(|| option_env!("SKILLS_PROXY_BASE_URL").map(str::to_string))
+        .unwrap_or_else(|| DEFAULT_PROXY_BASE_URL.to_string())
+        .trim_end_matches('/')
+        .to_string()
+}
+
+fn direct_token() -> Option<String> {
+    std::env::var("SKILLS_SH_TOKEN")
+        .ok()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
+async fn get_json<T: for<'de> Deserialize<'de>>(path_and_query: &str) -> Result<T, String> {
+    let client = reqwest::Client::new();
+
+    let (url, auth_header) = if let Some(token) = direct_token() {
+        (
+            format!("{SKILLS_API_BASE}{path_and_query}"),
+            Some(format!("Bearer {token}")),
+        )
+    } else {
+        (format!("{}{path_and_query}", proxy_base_url()), None)
+    };
+
+    log::debug!("skills.sh request: {url}");
+
+    let mut request = client
+        .get(&url)
+        .header("Accept", "application/json")
+        .timeout(std::time::Duration::from_secs(30));
+
+    if let Some(auth) = auth_header {
+        request = request.header("Authorization", auth);
+    }
+
+    let response = request.send().await.map_err(|e| {
+        log::error!("skills.sh network error: {e}");
+        format!("Network error: {e}")
+    })?;
+
+    let status = response.status();
+    if !status.is_success() {
+        let body = response.text().await.unwrap_or_default();
+        let message = match status.as_u16() {
+            401 => "Unauthorized. The proxy OIDC token is missing or expired, or SKILLS_SH_TOKEN is invalid.".to_string(),
+            404 => "Skill not found.".to_string(),
+            429 => "Rate limit exceeded. Try again shortly.".to_string(),
+            503 => "skills.sh is temporarily unavailable. Retry with backoff.".to_string(),
+            _ => format!("API error ({status}): {body}"),
+        };
+        log::warn!("skills.sh HTTP {status}: {body}");
+        return Err(message);
+    }
+
+    response.json::<T>().await.map_err(|e| {
+        log::error!("skills.sh parse error: {e}");
+        format!("Parse error: {e}")
+    })
+}
+
+fn filter_duplicates(skills: Vec<SkillsShSkill>) -> Vec<SkillsShSkill> {
+    skills
+        .into_iter()
+        .filter(|s| s.is_duplicate != Some(true))
+        .collect()
+}
+
+/// Fetches the skills leaderboard (default: all-time, page 0, up to 500).
+#[tauri::command]
+#[specta::specta]
+pub async fn fetch_skills_leaderboard(
+    view: Option<String>,
+    page: Option<i32>,
+    per_page: Option<i32>,
+) -> Result<Vec<SkillsShSkill>, String> {
+    let view = view.unwrap_or_else(|| "all-time".to_string());
+    let page = page.unwrap_or(0).max(0);
+    let per_page = per_page.unwrap_or(500).clamp(1, 500);
+
+    let path = if direct_token().is_some() {
+        format!("/skills?view={view}&page={page}&per_page={per_page}")
+    } else {
+        format!("/api/skills?view={view}&page={page}&per_page={per_page}")
+    };
+
+    let response: SkillsLeaderboardResponse = get_json(&path).await?;
+    Ok(filter_duplicates(response.data))
+}
+
+/// Searches skills by name/description (min 2 characters on the API).
+#[tauri::command]
+#[specta::specta]
+pub async fn search_skills(q: String, limit: Option<i32>) -> Result<Vec<SkillsShSkill>, String> {
+    let trimmed = q.trim().to_string();
+    if trimmed.chars().count() < 2 {
+        return Err("Search query must be at least 2 characters.".to_string());
+    }
+
+    let limit = limit.unwrap_or(50).clamp(1, 200);
+    let encoded = urlencoding_encode(&trimmed);
+
+    let path = if direct_token().is_some() {
+        format!("/skills/search?q={encoded}&limit={limit}")
+    } else {
+        format!("/api/skills/search?q={encoded}&limit={limit}")
+    };
+
+    let response: SkillsSearchResponse = get_json(&path).await?;
+    Ok(filter_duplicates(response.data))
+}
+
+/// Minimal URL-encoding for query values (enough for search strings).
+fn urlencoding_encode(value: &str) -> String {
+    let mut out = String::with_capacity(value.len() * 3);
+    for b in value.bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(b as char);
+            }
+            b' ' => out.push('+'),
+            _ => {
+                use std::fmt::Write;
+                let _ = write!(out, "%{b:02X}");
+            }
+        }
+    }
+    out
+}

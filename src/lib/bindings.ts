@@ -142,6 +142,28 @@ async updateQuickPaneShortcut(shortcut: string | null) : Promise<Result<null, st
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * Fetches the skills leaderboard (default: all-time, page 0, up to 500).
+ */
+async fetchSkillsLeaderboard(view: string | null, page: number | null, perPage: number | null) : Promise<Result<SkillsShSkill[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("fetch_skills_leaderboard", { view, page, perPage }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Searches skills by name/description (min 2 characters on the API).
+ */
+async searchSkills(q: string, limit: number | null) : Promise<Result<SkillsShSkill[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("search_skills", { q, limit }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -195,6 +217,7 @@ export type RecoveryError =
  * JSON serialization/deserialization error
  */
 { type: "ParseError"; message: string }
+export type SkillsShSkill = { id: string; slug: string; name: string; source: string; installs: number; sourceType: string; installUrl?: string | null; url: string; isDuplicate?: boolean | null }
 
 /** tauri-specta globals **/
 

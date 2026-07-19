@@ -2,7 +2,7 @@
 
 Patterns for calling external HTTP APIs from Tauri applications.
 
-> **Note:** HTTP client dependencies are not installed in this app. Install `reqwest` (Rust) and optionally `tauri-plugin-keyring` (for token storage) when your app needs external API calls.
+> **Note:** This app uses `reqwest` (Rust) for outbound HTTP. Prefer Rust commands for production API access so credentials stay out of the WebView.
 
 ## Rust vs Frontend: When to Use Which
 
@@ -26,14 +26,78 @@ Patterns for calling external HTTP APIs from Tauri applications.
 - Rapid prototyping before moving to Rust
 - Third-party SDKs requiring browser context
 
+## skills.sh (Dashboard catalog)
+
+Official docs: [skills.sh API Reference](https://www.skills.sh/docs/api)
+
+The Dashboard tab loads the public skills catalog through a **server-side Vercel proxy**. End users never paste tokens. The Vercel project holds OIDC; the desktop app only talks to your proxy.
+
+```
+React (Dashboard) → TanStack Query → Tauri command (reqwest)
+  → Vercel /api/skills* (OIDC via @vercel/oidc)
+  → https://skills.sh/api/v1/*
+```
+
+### Endpoints used
+
+| App use                | Proxy route                                         | Upstream                    |
+| ---------------------- | --------------------------------------------------- | --------------------------- |
+| Default grid (top 500) | `GET /api/skills?view=all-time&page=0&per_page=500` | `GET /api/v1/skills`        |
+| Debounced search       | `GET /api/skills/search?q=…&limit=50`               | `GET /api/v1/skills/search` |
+
+Upstream auth: `Authorization: Bearer <Vercel OIDC token>`. Rate limit: 600 requests/minute per (team, project). Errors: `400`, `401`, `404`, `429`, `503` (see upstream docs).
+
+### Open-source security model
+
+- **Do not** ship Infisical secrets, OIDC tokens, or `VITE_*` API keys in the desktop binary.
+- **Do** deploy `api/` on Vercel, enable **OIDC Federation** on that project, and point the app at the deployment URL.
+- Proxy base URL resolution (Rust):
+  1. Runtime env `SKILLS_PROXY_BASE_URL` (highest priority)
+  2. Compile-time `SKILLS_PROXY_BASE_URL` if set when building
+  3. Default `https://skills-explorer.vercel.app` (change after you deploy)
+
+### Deploy the proxy
+
+1. Link and deploy this repo’s `api/` routes with Vercel (`vercel` / Git integration). `vercel.json` is configured for an API-focused deploy.
+2. In the Vercel project: **Settings → OIDC Federation → On**.
+3. Confirm:
+   - `GET https://<your-deployment>/api/skills?per_page=5`
+   - `GET https://<your-deployment>/api/skills/search?q=react&limit=5`
+4. Set `SKILLS_PROXY_BASE_URL` for local Tauri runs if the default URL is not yours:
+   ```bash
+   export SKILLS_PROXY_BASE_URL=https://your-deployment.vercel.app
+   npm run tauri:dev
+   ```
+
+### Local maintainer / Infisical (optional)
+
+For local development **without** `vercel dev`, inject a short-lived OIDC token as `SKILLS_SH_TOKEN`. When that env var is set, Rust calls `https://skills.sh` directly (maintainer path only — not for end users).
+
+```bash
+# Infisical (same habit as Next.js)
+infisical run -- npm run tauri:dev
+
+# Or Vercel CLI
+vercel link && vercel env pull
+# map VERCEL_OIDC_TOKEN → SKILLS_SH_TOKEN in your shell/Infisical
+```
+
+Never commit `.env.local` or Infisical exports.
+
+### Frontend hooks
+
+- Service: `src/services/skills-sh.ts` (`useSkillsLeaderboard`, `useSkillsSearch`)
+- Commands: `fetch_skills_leaderboard`, `search_skills` (tauri-specta)
+- Duplicate skills (`isDuplicate: true`) are filtered out in Rust before reaching the UI
+
 ## Setup
 
 ```bash
-# Rust HTTP client
-cd src-tauri && cargo add reqwest --features json,rustls-tls
+# Already in this project — shown for new apps:
+cd src-tauri && cargo add reqwest --features json,rustls
 ```
 
-For secure token storage, see the Authentication section below.
+For secure token storage on the **device** (user-owned secrets, not skills.sh), see the Authentication section below.
 
 ## Architecture Pattern
 
@@ -228,6 +292,7 @@ See [data-persistence.md](./data-persistence.md) for SQLite setup.
 | Task            | Pattern                                  |
 | --------------- | ---------------------------------------- |
 | Basic API call  | Rust command with reqwest                |
+| skills.sh       | Vercel proxy + OIDC (see section above)  |
 | Caching         | TanStack Query (frontend) or SQLite      |
 | Token storage   | `keyring` crate (OS keychain)            |
 | Type safety     | tauri-specta (same as local commands)    |

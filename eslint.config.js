@@ -100,6 +100,7 @@ export default tseslint.config(
       'node_modules/**',
       'src-tauri/target/**',
       'src-tauri/gen/**',
+      'api/**', // Vercel serverless proxy; not part of the Vite/Tauri TS project
       '*.config.js',
       '*.config.ts',
       'vite.config.ts',

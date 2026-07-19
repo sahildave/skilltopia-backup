@@ -10,9 +10,21 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+jscpd-report
+
+# Secrets / env (skills.sh OIDC, Infisical exports, vercel env pull)
+.env
+.env.*
+!.env.example
+!.env.*.example
 *.local
 *.local.*
-jscpd-report
+*.pem
+credentials.json
+**/credentials.json
+
+# Vercel CLI (`vercel link`) — project auth / org metadata
+.vercel
 
 # Editor directories and files
 .vscode/*

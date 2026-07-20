@@ -227,6 +227,12 @@ fn merge_skill(
     provider_id: &str,
     entry: SkillDirEntry,
 ) {
+    let uninstall_name = entry
+        .entry_path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or(&name)
+        .to_string();
     let skill_key = format!("global:{name}");
     let skill_path = ScannedSkillPath {
         path: normalize_path_for_serialization(&entry.entry_path),
@@ -247,6 +253,7 @@ fn merge_skill(
             skill_key,
             ScannedSkill {
                 name,
+                uninstall_name,
                 description,
                 scope: "global".into(),
                 provider_ids: vec![provider_id.to_string()],

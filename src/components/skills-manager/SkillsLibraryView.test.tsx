@@ -246,6 +246,38 @@ describe('SkillsLibraryView (local / mock)', () => {
       })
     })
   })
+
+  it('uninstalls by slug when the display name differs', async () => {
+    const user = userEvent.setup()
+    useInstalledScanStore.setState({
+      snapshot: {
+        ...MOCK_INSTALLED_SCAN,
+        skills: [
+          {
+            ...MOCK_INSTALLED_SCAN.skills[0],
+            name: 'Find Skills',
+            uninstallName: 'find-skills',
+          },
+        ],
+      },
+    })
+    render(<SkillsLibraryView />)
+
+    const skillCard = screen
+      .getByText('Find Skills')
+      .closest('[data-slot="card"]') as HTMLElement
+    await user.click(
+      within(skillCard).getByRole('button', { name: /skill actions/i })
+    )
+    await user.click(screen.getByRole('menuitem', { name: /uninstall/i }))
+    await user.click(screen.getByRole('button', { name: /yes, uninstall/i }))
+
+    await waitFor(() => {
+      expect(scanMock.uninstall).toHaveBeenCalledWith('find-skills', {
+        agentScope: 'all',
+      })
+    })
+  })
 })
 
 describe('SkillsSidebar providers', () => {

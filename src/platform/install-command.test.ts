@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import { MOCK_INSTALLED_SCAN } from './fixtures'
 import {
   buildSkillsAddArgs,
   buildSkillsInstallCommand,
   buildSkillsRemoveArgs,
   buildSkillsRemoveCommand,
+  installAgentTargetsFromScan,
   parseSkillInstallTarget,
 } from './install-command'
 
@@ -24,13 +26,40 @@ describe('parseSkillInstallTarget', () => {
   })
 })
 
+describe('installAgentTargetsFromScan', () => {
+  it('includes detected non-universal providers with a global skills dir', () => {
+    expect(installAgentTargetsFromScan(MOCK_INSTALLED_SCAN)).toEqual({
+      providerIds: ['claude-code'],
+    })
+  })
+
+  it('returns an empty list when no providers qualify', () => {
+    expect(
+      installAgentTargetsFromScan({
+        ...MOCK_INSTALLED_SCAN,
+        providers: [
+          {
+            id: 'cursor',
+            name: 'Cursor',
+            universal: true,
+            detected: true,
+            skillsDir: '/Users/mock/.cursor/skills',
+            skillsDirExists: true,
+            skillCount: 0,
+          },
+        ],
+      })
+    ).toEqual({ providerIds: [] })
+  })
+})
+
 describe('buildSkillsAddArgs', () => {
   const skill = {
     id: 'vercel-labs/agent-skills/find-skills',
     name: 'Find Skills',
   }
 
-  it('builds a non-interactive global install for all agents', () => {
+  it('builds a non-interactive global universal install without -a', () => {
     expect(buildSkillsAddArgs(skill, 'global')).toEqual([
       '--yes',
       'skills',
@@ -39,14 +68,14 @@ describe('buildSkillsAddArgs', () => {
       '--skill',
       'find-skills',
       '-y',
-      '-a',
-      '*',
       '-g',
     ])
   })
 
-  it('builds a non-interactive project install without -g', () => {
-    expect(buildSkillsAddArgs(skill, 'project')).toEqual([
+  it('builds a non-interactive global install for detected providers', () => {
+    expect(
+      buildSkillsAddArgs(skill, 'global', { providerIds: ['claude-code'] })
+    ).toEqual([
       '--yes',
       'skills',
       'add',
@@ -55,7 +84,24 @@ describe('buildSkillsAddArgs', () => {
       'find-skills',
       '-y',
       '-a',
-      '*',
+      'claude-code',
+      '-g',
+    ])
+  })
+
+  it('builds a non-interactive project install without -g', () => {
+    expect(
+      buildSkillsAddArgs(skill, 'project', { providerIds: ['claude-code'] })
+    ).toEqual([
+      '--yes',
+      'skills',
+      'add',
+      'vercel-labs/agent-skills',
+      '--skill',
+      'find-skills',
+      '-y',
+      '-a',
+      'claude-code',
     ])
   })
 })
@@ -127,15 +173,15 @@ describe('buildSkillsInstallCommand', () => {
     name: 'Find Skills',
   }
 
-  it('formats a pasteable npx global install command', () => {
+  it('formats a pasteable npx global universal install command', () => {
     expect(buildSkillsInstallCommand(skill, 'global')).toBe(
-      "npx --yes skills add vercel-labs/agent-skills --skill find-skills -y -a '*' -g"
+      'npx --yes skills add vercel-labs/agent-skills --skill find-skills -y -g'
     )
   })
 
   it('formats a pasteable npx project install command', () => {
     expect(buildSkillsInstallCommand(skill, 'project')).toBe(
-      "npx --yes skills add vercel-labs/agent-skills --skill find-skills -y -a '*'"
+      'npx --yes skills add vercel-labs/agent-skills --skill find-skills -y'
     )
   })
 })

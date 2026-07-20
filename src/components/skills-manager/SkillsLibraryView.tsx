@@ -51,6 +51,7 @@ import type {
   ScanWarning,
 } from '@/platform/types'
 import { UNIVERSAL_PROVIDER_ID } from '@/platform/types'
+import { panelRowSlideVariants } from '@/lib/animation'
 
 export function SkillsLibraryView() {
   if (!platform.hasLocalLibrary) {
@@ -318,7 +319,6 @@ function SkillCardGrid({
                 <CardTitle className="truncate text-sm">{skill.name}</CardTitle>
                 <SkillCardOverflowMenu
                   skill={skill}
-                  snapshot={snapshot}
                   providerFilter={providerFilter}
                   reduceMotion={reduceMotion}
                 />
@@ -354,12 +354,10 @@ function SkillCardGrid({
 
 function SkillCardOverflowMenu({
   skill,
-  snapshot,
   providerFilter,
   reduceMotion,
 }: {
   skill: ScannedSkill
-  snapshot: InstalledScanSnapshot
   providerFilter: ProviderFilterId
   reduceMotion: boolean
 }) {
@@ -369,12 +367,7 @@ function SkillCardOverflowMenu({
   const [uninstalling, setUninstalling] = useState(false)
   const copiesCommand = platform.copiesInstallCommand
   const rescan = useInstalledScanStore(state => state.rescan)
-
-  const confirmDescription = uninstallConfirmDescription(
-    providerFilter,
-    snapshot,
-    t
-  )
+  const rowVariants = panelRowSlideVariants(Boolean(reduceMotion))
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next)
@@ -386,7 +379,7 @@ function SkillCardOverflowMenu({
   const handleUninstall = async () => {
     setUninstalling(true)
     try {
-      await platform.uninstall(skill.name, {
+      await platform.uninstall(skill.uninstallName, {
         agentScope: uninstallAgentScopeFromFilter(providerFilter),
       })
       toast.success(
@@ -422,20 +415,6 @@ function SkillCardOverflowMenu({
     }
   }
 
-  const motionProps = reduceMotion
-    ? {
-        initial: { opacity: 0 },
-        animate: { opacity: 1 },
-        exit: { opacity: 0 },
-        transition: { duration: 0.15 },
-      }
-    : {
-        initial: { opacity: 0, x: 8 },
-        animate: { opacity: 1, x: 0 },
-        exit: { opacity: 0, x: -8 },
-        transition: { type: 'spring' as const, bounce: 0, duration: 0.25 },
-      }
-
   return (
     <DropdownMenu open={open} onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
@@ -450,49 +429,21 @@ function SkillCardOverflowMenu({
           <MoreHorizontal aria-hidden />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56 p-2">
-        <AnimatePresence mode="wait" initial={false}>
-          {confirming ? (
+      <DropdownMenuContent
+        align="end"
+        className="flex h-12 relative min-w-56 flex-col py-0.5"
+      >
+        <AnimatePresence custom={confirming} mode="popLayout" initial={false}>
+          {!confirming ? (
             <motion.div
-              key="confirm"
-              className="space-y-3 p-1"
-              {...motionProps}
+              key="delete"
+              custom={confirming}
+              variants={rowVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="absolute  inset-1"
             >
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-pretty">
-                  {t('skills.installed.uninstallConfirmTitle', {
-                    name: skill.name,
-                  })}
-                </p>
-                <p className="text-muted-foreground text-xs text-pretty">
-                  {confirmDescription}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  className="flex-1"
-                  disabled={uninstalling}
-                  onClick={() => void handleUninstall()}
-                >
-                  {t('skills.installed.uninstallYes')}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  disabled={uninstalling}
-                  onClick={() => setConfirming(false)}
-                >
-                  {t('skills.installed.uninstallCancel')}
-                </Button>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div key="menu" {...motionProps}>
               <DropdownMenuItem
                 variant="destructive"
                 disabled={uninstalling}
@@ -506,31 +457,42 @@ function SkillCardOverflowMenu({
                 {t('skills.installed.uninstall')}
               </DropdownMenuItem>
             </motion.div>
+          ) : (
+            <motion.div
+              key="confirm"
+              custom={confirming}
+              variants={rowVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="absolute inset-x-0 flex items-center gap-2"
+            >
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="flex-1"
+                disabled={uninstalling}
+                onClick={() => void handleUninstall()}
+              >
+                {t('skills.installed.uninstallYes')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                disabled={uninstalling}
+                onClick={() => setConfirming(false)}
+              >
+                {t('skills.installed.uninstallCancel')}
+              </Button>
+            </motion.div>
           )}
         </AnimatePresence>
       </DropdownMenuContent>
     </DropdownMenu>
   )
-}
-
-function uninstallConfirmDescription(
-  providerFilter: ProviderFilterId,
-  snapshot: InstalledScanSnapshot,
-  t: (key: string, options?: Record<string, string>) => string
-): string {
-  if (providerFilter === ALL_AGENTS_FILTER_ID) {
-    return t('skills.installed.uninstallConfirmAllAgents')
-  }
-  if (providerFilter === UNIVERSAL_PROVIDER_ID) {
-    return t('skills.installed.uninstallConfirmUniversal')
-  }
-  const model = buildProviderSidebarModel(snapshot)
-  const provider =
-    model.activeProviders.find(item => item.id === providerFilter) ??
-    model.inactiveProviders.find(item => item.id === providerFilter)
-  return t('skills.installed.uninstallConfirmProvider', {
-    provider: provider?.name ?? providerFilter,
-  })
 }
 
 function warningKey(warning: ScanWarning): string {

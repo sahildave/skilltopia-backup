@@ -61,6 +61,8 @@ export interface ScannedSkillPath {
 
 export interface ScannedSkill {
   name: string
+  /** Folder slug passed to `skills remove`, distinct from display name. */
+  uninstallName: string
   description: string
   scope: 'global'
   /** Provider ids plus {@link UNIVERSAL_PROVIDER_ID} when found in Universal. */

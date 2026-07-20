@@ -9,8 +9,9 @@ import {
 } from '@/lib/tauri-bindings'
 import {
   buildSkillsAddArgs,
-  InstallCancelledError,
   buildSkillsRemoveArgs,
+  installAgentTargetsFromScan,
+  InstallCancelledError,
 } from './install-command'
 import { skillEntriesFromScan, providersFromScan } from './scan-utils'
 import type {
@@ -36,6 +37,7 @@ function normalizeSnapshot(
     skills: snapshot.skills.map(skill => ({
       ...skill,
       scope: 'global',
+      uninstallName: skill.uninstallName,
       paths: skill.paths.map(path => ({
         path: path.path,
         originalPath: path.originalPath ?? undefined,
@@ -82,7 +84,12 @@ async function installSkillToDisk(
   scope: InstallScope
 ): Promise<void> {
   const cwd = scope === 'project' ? await pickProjectDirectory() : undefined
-  const args = buildSkillsAddArgs(skill, scope)
+  const snapshot = await ensureScan()
+  const args = buildSkillsAddArgs(
+    skill,
+    scope,
+    installAgentTargetsFromScan(snapshot)
+  )
   const output = await Command.create(
     'npx',
     args,

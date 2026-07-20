@@ -59,6 +59,7 @@ pub struct ScannedSkillPath {
 #[serde(rename_all = "camelCase")]
 pub struct ScannedSkill {
     pub name: String,
+    pub uninstall_name: String,
     pub description: String,
     pub scope: String,
     pub provider_ids: Vec<String>,

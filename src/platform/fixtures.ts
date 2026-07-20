@@ -40,6 +40,7 @@ export const MOCK_INSTALLED_SCAN: InstalledScanSnapshot = {
   skills: [
     {
       name: 'find-skills',
+      uninstallName: 'find-skills',
       description: 'Find and install agent skills',
       scope: 'global',
       providerIds: [UNIVERSAL_PROVIDER_ID, 'claude-code'],
@@ -50,6 +51,7 @@ export const MOCK_INSTALLED_SCAN: InstalledScanSnapshot = {
     },
     {
       name: 'frontend-design',
+      uninstallName: 'frontend-design',
       description: 'Create distinctive frontend interfaces',
       scope: 'global',
       providerIds: [UNIVERSAL_PROVIDER_ID],
@@ -57,6 +59,7 @@ export const MOCK_INSTALLED_SCAN: InstalledScanSnapshot = {
     },
     {
       name: 'code-review',
+      uninstallName: 'code-review',
       description: 'Review code for quality issues',
       scope: 'global',
       providerIds: ['claude-code'],
@@ -86,6 +89,7 @@ export const MOCK_UNIVERSAL_ONLY_SCAN: InstalledScanSnapshot = {
   skills: [
     {
       name: 'frontend-design',
+      uninstallName: 'frontend-design',
       description: 'Create distinctive frontend interfaces',
       scope: 'global',
       providerIds: [UNIVERSAL_PROVIDER_ID],
@@ -118,6 +122,7 @@ export const MOCK_PROVIDER_ONLY_SCAN: InstalledScanSnapshot = {
   skills: [
     {
       name: 'code-review',
+      uninstallName: 'code-review',
       description: 'Review code for quality issues',
       scope: 'global',
       providerIds: ['claude-code'],

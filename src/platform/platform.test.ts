@@ -112,7 +112,7 @@ describe('PlatformPort web', () => {
     )
 
     expect(writeText).toHaveBeenCalledWith(
-      "npx --yes skills add vercel-labs/agent-skills --skill find-skills -y -a '*' -g"
+      'npx --yes skills add vercel-labs/agent-skills --skill find-skills -y -g'
     )
   })
 

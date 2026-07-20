@@ -1,8 +1,26 @@
 import type {
   InstallableSkill,
+  InstalledScanSnapshot,
   InstallScope,
   UninstallAgentScope,
 } from './types'
+
+/** Non-universal detected providers to pass as `-a` flags to `skills add`. */
+export type InstallAgentTargets = {
+  providerIds: string[]
+}
+
+/** Detected non-universal providers that have a global skills directory. */
+export function installAgentTargetsFromScan(
+  snapshot: InstalledScanSnapshot
+): InstallAgentTargets {
+  return {
+    providerIds: snapshot.providers
+      .filter(p => p.detected && !p.universal && p.skillsDir !== null)
+      .map(p => p.id)
+      .sort(),
+  }
+}
 
 export class InstallCancelledError extends Error {
   constructor(message = 'Install cancelled') {
@@ -35,7 +53,8 @@ export function parseSkillInstallTarget(skillId: string): {
 /** Args for `npx` — non-interactive skills CLI install. */
 export function buildSkillsAddArgs(
   skill: InstallableSkill,
-  scope: InstallScope
+  scope: InstallScope,
+  targets: InstallAgentTargets = { providerIds: [] }
 ): string[] {
   const { source, skillName } = parseSkillInstallTarget(skill.id)
   const args = [
@@ -46,9 +65,10 @@ export function buildSkillsAddArgs(
     '--skill',
     skillName,
     '-y',
-    '-a',
-    '*',
   ]
+  for (const providerId of targets.providerIds) {
+    args.push('-a', providerId)
+  }
   if (scope === 'global') {
     args.push('-g')
   }
@@ -83,11 +103,13 @@ export function buildSkillsRemoveCommand(
 /** Pasteable shell command for web copy-install UX. */
 export function buildSkillsInstallCommand(
   skill: InstallableSkill,
-  scope: InstallScope
+  scope: InstallScope,
+  targets: InstallAgentTargets = { providerIds: [] }
 ): string {
-  return ['npx', ...buildSkillsAddArgs(skill, scope).map(shellQuoteArg)].join(
-    ' '
-  )
+  return [
+    'npx',
+    ...buildSkillsAddArgs(skill, scope, targets).map(shellQuoteArg),
+  ].join(' ')
 }
 
 function shellQuoteArg(arg: string): string {

@@ -28,6 +28,7 @@ Technical documentation for building and extending this app. These docs describe
 | Document                                   | Description                                         |
 | ------------------------------------------ | --------------------------------------------------- |
 | [Design System](../design/DESIGN.md)       | Canonical agent-facing visual and interaction rules |
+| [Design Sync](./design-sync.md)            | Keep DESIGN.md aligned with CSS; check/sync/watch   |
 | [UI Patterns](./ui-patterns.md)            | CSS architecture, shadcn/ui components              |
 | [Internationalization](./i18n-patterns.md) | Translation system, RTL support                     |
 | [Notifications](./notifications.md)        | Toast and native notifications                      |

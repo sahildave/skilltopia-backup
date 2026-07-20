@@ -22,7 +22,7 @@ src/
 └── theme-variables.css  # Shared theme variables (colors, radii)
 ```
 
-**Multi-window theming**: `theme-variables.css` is imported by both `App.css` and `quick-pane.css` so all windows share the same theme tokens. When adding new color variables, add them to `theme-variables.css`.
+**Multi-window theming**: `theme-variables.css` is imported by both `App.css` and `quick-pane.css` so all windows share the same theme tokens. When adding new color variables, add them to `theme-variables.css`. After Inspect or token changes, sync the agent contract with [design-sync.md](./design-sync.md).
 
 ### Structure
 

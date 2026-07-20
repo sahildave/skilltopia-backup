@@ -20,6 +20,8 @@ export interface InstallableSkill {
 
 export interface PlatformPort {
   hasLocalLibrary: boolean
+  /** When true, `install` copies a CLI command instead of writing to disk. */
+  copiesInstallCommand: boolean
   listInstalled(): Promise<SkillEntry[]>
   listProviders(): Promise<SkillProvider[]>
   install(skill: InstallableSkill, scope: InstallScope): Promise<void>

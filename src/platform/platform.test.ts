@@ -44,6 +44,24 @@ describe('PlatformPort web', () => {
     await expect(webPlatform.listInstalled()).resolves.toEqual([])
   })
 
+  it('copies a pasteable install command to the clipboard', async () => {
+    expect(webPlatform.copiesInstallCommand).toBe(true)
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+
+    await webPlatform.install(
+      { id: 'vercel-labs/agent-skills/find-skills', name: 'Find Skills' },
+      'global'
+    )
+
+    expect(writeText).toHaveBeenCalledWith(
+      "npx --yes skills add vercel-labs/agent-skills --skill find-skills -y -a '*' -g"
+    )
+  })
+
   it('opens external urls in a new tab', async () => {
     await webPlatform.openExternal('https://skills.sh')
     expect(window.open).toHaveBeenCalledWith(

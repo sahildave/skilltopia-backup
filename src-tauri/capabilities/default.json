@@ -41,6 +41,17 @@
         { "path": "$HOME/.agents/skills/**" }
       ]
     },
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "npx",
+          "cmd": "npx",
+          "args": true,
+          "sidecar": false
+        }
+      ]
+    },
     "log:default",
     "notification:default",
     "process:default",

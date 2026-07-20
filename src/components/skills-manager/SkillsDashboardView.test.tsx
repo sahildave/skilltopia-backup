@@ -51,4 +51,12 @@ describe('SkillsDashboardView', () => {
     expect(screen.getAllByText('Find Skills')).toHaveLength(3)
     expect(await screen.findAllByText('Refresh failed')).toHaveLength(1)
   })
+
+  it('shows install actions on skill cards', async () => {
+    render(<SkillsDashboardView />)
+
+    expect(
+      await screen.findAllByRole('button', { name: 'Install' })
+    ).not.toHaveLength(0)
+  })
 })

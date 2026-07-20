@@ -28,6 +28,7 @@ Guide to all Tauri plugins installed in this app, plus built-in features and gui
 | **notification**      | System notifications              | `@tauri-apps/plugin-notification`      |
 | **process**           | Exit/restart app                  | `@tauri-apps/plugin-process`           |
 | **os**                | OS information                    | `@tauri-apps/plugin-os`                |
+| **shell**             | Spawn child processes (skill install via `npx`) | `@tauri-apps/plugin-shell` |
 | **global-shortcut**   | System-wide keyboard shortcuts    | None (configured in Rust)              |
 | **updater**           | In-app updates                    | `@tauri-apps/plugin-updater`           |
 

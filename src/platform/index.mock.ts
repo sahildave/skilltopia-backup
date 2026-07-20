@@ -3,6 +3,7 @@ import { MOCK_INSTALLED_SKILLS } from './fixtures'
 
 export const platform: PlatformPort = {
   hasLocalLibrary: true,
+  copiesInstallCommand: false,
 
   async listInstalled() {
     return MOCK_INSTALLED_SKILLS

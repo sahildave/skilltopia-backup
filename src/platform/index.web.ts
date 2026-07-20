@@ -1,7 +1,9 @@
+import { buildSkillsInstallCommand } from './install-command'
 import type { PlatformPort } from './types'
 
 export const platform: PlatformPort = {
   hasLocalLibrary: false,
+  copiesInstallCommand: true,
 
   async listInstalled() {
     return []
@@ -11,8 +13,9 @@ export const platform: PlatformPort = {
     return []
   },
 
-  async install(_skill, _scope) {
-    // Web copy-command UX lands in task-4.
+  async install(skill, scope) {
+    const command = buildSkillsInstallCommand(skill, scope)
+    await navigator.clipboard.writeText(command)
   },
 
   async openExternal(url) {

@@ -8,3 +8,7 @@ export function isPermissionError(message: string): boolean {
     lower.includes('permission')
   )
 }
+
+export function isInstallCancelled(error: unknown): boolean {
+  return error instanceof Error && error.name === 'InstallCancelledError'
+}

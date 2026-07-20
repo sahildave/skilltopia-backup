@@ -15,10 +15,10 @@ In the Tauri app, install a skill to disk (**global** or **project**) via native
 
 ## Scope
 
-- [ ] Define install target paths and agent conventions (global vs project)
-- [ ] Implement `PlatformPort.install` on desktop adapter (Tauri fs/shell)
-- [ ] Permissions / error UX when scope or path fails
-- [ ] Wire Install button on desktop to real install (not stub)
+- [x] Define install target paths and agent conventions (global vs project)
+- [x] Implement `PlatformPort.install` on desktop adapter (Tauri fs/shell)
+- [x] Permissions / error UX when scope or path fails
+- [x] Wire Install button on desktop to real install (not stub)
 
 ## Out of scope
 

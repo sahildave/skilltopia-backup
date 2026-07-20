@@ -111,6 +111,22 @@
 
   "web.error.title": "Something went wrong",
   "web.error.reload": "Reload",
+  "web.shell.brand": "Skills Explorer",
+  "web.shell.tagline": "Browse and search agent skills in the browser",
   "skills.library.title": "Library",
-  "skills.library.webUnavailable": "Local skill library is available in the desktop app. Download Skills Explorer to browse and manage skills on disk."
+  "skills.library.webUnavailable": "Your local skill library lives on disk in the desktop app.",
+  "skills.library.getAppDescription": "Download Skills Explorer to browse installed skills and install them with one click.",
+  "skills.library.getApp": "Get the desktop app",
+  "skills.install.action": "Install",
+  "skills.install.global": "Install globally",
+  "skills.install.project": "Install to project…",
+  "skills.install.pickProject": "Choose project folder for skill install",
+  "skills.install.success": "Installed {{name}}",
+  "skills.install.failed": "Couldn’t install {{name}}",
+  "skills.install.permissionError": "Install blocked by permissions or shell scope. Check npx access and try again.",
+  "skills.install.copyAction": "Copy command",
+  "skills.install.copyGlobal": "Copy global install command",
+  "skills.install.copyProject": "Copy project install command",
+  "skills.install.copied": "Copied install command for {{name}}",
+  "skills.install.copyFailed": "Couldn’t copy install command for {{name}}"
 }

@@ -1,8 +1,7 @@
 import type { SkillsShSkill } from '@/catalog/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { ContinuousTabs } from '@/components/ui/continuous-tabs';
 import {
   Empty,
   EmptyDescription,
@@ -16,25 +15,44 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '@/components/ui/input-group';
-import { ProgressiveBlur } from '@/components/ui/progressive-blur';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner } from '@/components/ui/spinner';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import type { PageSlideDirection } from '@/lib/animation';
-import { pageSlideVariants } from '@/lib/animation';
-import { DISCOVERY_VIEWS, useSkillsLeaderboard, useSkillsSearch } from '@/services/skills-sh';
-import { AlertCircle, Search, X } from 'lucide-react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { cn } from '@/lib/utils';
+import {
+  DISCOVERY_VIEWS,
+  type DiscoveryViewId,
+  useSkillsLeaderboard,
+  useSkillsSearch,
+} from '@/services/skills-sh';
+import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
+import { AlertCircle, LayoutGrid, LayoutList, Search, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CatalogSkillCard } from './CatalogSkillCard';
-import { DiscoveryListView, type DiscoveryViewId } from './DiscoveryListView';
+import { CatalogSkillCard, CatalogSkillListRow } from './CatalogSkillCard';
 import { SkillDetailDialog } from './SkillDetailDialog';
 
-function SkillsGridSkeleton() {
+const LIST_PER_PAGE = 100;
+
+function errorMessage(error: unknown): string | null {
+  return error instanceof Error ? error.message : error ? String(error) : null;
+}
+
+function SkillsSkeleton({ layoutMode }: { layoutMode: 'grid' | 'list' }) {
+  if (layoutMode === 'list') {
+    return (
+      <div className="flex flex-col gap-3">
+        {Array.from({ length: 6 }, (_, index) => (
+          <Skeleton key={index} className="h-12 w-full" />
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 3 }, (_, index) => (
+      {Array.from({ length: 6 }, (_, index) => (
         <Card key={index} className="gap-4 py-4">
           <CardHeader className="px-4">
             <Skeleton className="h-4 w-2/3" />
@@ -55,99 +73,30 @@ function SkillsGridSkeleton() {
   );
 }
 
-function errorMessage(error: unknown): string | null {
-  return error instanceof Error ? error.message : error ? String(error) : null;
-}
-
-function DiscoveryRail({
-  view,
-  onOpen,
-  onShowMore,
-}: {
-  view: (typeof DISCOVERY_VIEWS)[number];
-  onOpen: (skill: SkillsShSkill) => void;
-  onShowMore: (viewId: DiscoveryViewId) => void;
-}) {
-  const { t } = useTranslation();
-  const query = useSkillsLeaderboard({ view: view.id, perPage: 12 });
-  const skills = query.data ?? [];
-  const error = errorMessage(query.error);
-
-  return (
-    <section
-      aria-labelledby={`rail-${view.id}`}
-      className="flex w-full min-w-0 max-w-full flex-col gap-3"
-    >
-      <div className="flex min-w-0 items-baseline justify-between gap-3 px-2">
-        <div className="flex min-w-0 flex-row items-baseline gap-2">
-          <h3 id={`rail-${view.id}`} className="shrink-0 text-lg">
-            {view.label}
-          </h3>
-          <p className="text-muted-foreground min-w-0 truncate text-xs">
-            {view.id === 'all-time'
-              ? t('skills.dashboard.rail.allTimeDescription')
-              : t('skills.dashboard.rail.currentDescription', {
-                  view: view.label,
-                })}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Badge variant="secondary" className="tabular-nums">
-            {skills.length}
-          </Badge>
-          {skills.length > 0 ? (
-            <Button variant="ghost" size="sm" onClick={() => onShowMore(view.id)}>
-              {t('skills.dashboard.showMore')}
-            </Button>
-          ) : null}
-        </div>
-      </div>
-      {error ? (
-        <Alert variant="destructive">
-          <AlertCircle />
-          <AlertTitle>{t('skills.dashboard.refreshFailed')}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
-      {query.isLoading && skills.length === 0 ? <SkillsGridSkeleton /> : null}
-      {skills.length > 0 ? (
-        <div className="relative -mx-6 min-w-0">
-          <div className="overflow-x-auto">
-            <div className="flex w-max gap-4 px-6 py-1">
-              {skills.map((skill) => (
-                <CatalogSkillCard key={skill.id} skill={skill} onOpen={onOpen} compact />
-              ))}
-            </div>
-          </div>
-          <ProgressiveBlur
-            direction="left"
-            blurIntensity={1}
-            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16"
-          />
-          <ProgressiveBlur
-            direction="right"
-            blurIntensity={1}
-            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16"
-          />
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function SearchResults({
-  query,
+function SkillsResults({
+  skills,
+  layoutMode,
+  isLoading,
+  error,
+  emptyTitle,
+  emptyDescription,
   onOpen,
 }: {
-  query: ReturnType<typeof useSkillsSearch>;
+  skills: SkillsShSkill[];
+  layoutMode: 'grid' | 'list';
+  isLoading: boolean;
+  error: string | null;
+  emptyTitle: string;
+  emptyDescription: string;
   onOpen: (skill: SkillsShSkill) => void;
 }) {
   const { t } = useTranslation();
-  const skills = query.data ?? [];
-  const error = errorMessage(query.error);
-  const isRefreshing = query.isFetching && skills.length > 0;
-  if (query.isLoading && skills.length === 0) return <SkillsGridSkeleton />;
-  if (error && skills.length === 0)
+
+  if (isLoading && skills.length === 0) {
+    return <SkillsSkeleton layoutMode={layoutMode} />;
+  }
+
+  if (error && skills.length === 0) {
     return (
       <Alert variant="destructive">
         <AlertCircle />
@@ -155,99 +104,171 @@ function SearchResults({
         <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
-  if (skills.length === 0)
+  }
+
+  if (skills.length === 0) {
     return (
       <Empty className="border">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <Search />
           </EmptyMedia>
-          <EmptyTitle>{t('skills.dashboard.noResultsTitle')}</EmptyTitle>
-          <EmptyDescription>{t('skills.dashboard.noResultsDescription')}</EmptyDescription>
+          <EmptyTitle>{emptyTitle}</EmptyTitle>
+          <EmptyDescription>{emptyDescription}</EmptyDescription>
         </EmptyHeader>
       </Empty>
     );
+  }
+
   return (
     <div className="flex flex-col gap-3">
-      {isRefreshing ? (
-        <p className="text-muted-foreground text-xs">{t('skills.dashboard.refreshing')}</p>
+      {error ? (
+        <Alert variant="destructive">
+          <AlertCircle />
+          <AlertTitle>{t('skills.dashboard.refreshFailed')}</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       ) : null}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {skills.map((skill) => (
-          <CatalogSkillCard key={skill.id} skill={skill} onOpen={onOpen} />
-        ))}
+      <div
+        data-testid="discovery-skill-container"
+        data-layout={layoutMode}
+        className={cn(
+          layoutMode === 'grid'
+            ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+            : 'flex flex-col',
+        )}
+      >
+        {skills.map((skill) =>
+          layoutMode === 'grid' ? (
+            <CatalogSkillCard key={skill.id} skill={skill} onOpen={onOpen} />
+          ) : (
+            <CatalogSkillListRow key={skill.id} skill={skill} onOpen={onOpen} />
+          ),
+        )}
       </div>
     </div>
   );
 }
 
-function ExploreRails({ onShowMore }: { onShowMore: (viewId: DiscoveryViewId) => void }) {
+export function SkillsDashboardView() {
   const { t } = useTranslation();
+  const [viewId, setViewId] = useState<DiscoveryViewId>('trending');
+  const layoutMode = useInstalledSkillsUiStore((state) => state.layoutMode);
+  const setLayoutMode = useInstalledSkillsUiStore((state) => state.setLayoutMode);
   const [searchInput, setSearchInput] = useState('');
   const debouncedQuery = useDebouncedValue(searchInput, 300);
   const isSearching = debouncedQuery.trim().length >= 2;
   const search = useSkillsSearch(debouncedQuery, { enabled: isSearching });
-  const hasSearchError = isSearching && Boolean(search.error);
+  const leaderboard = useSkillsLeaderboard({
+    view: viewId,
+    perPage: LIST_PER_PAGE,
+    enabled: !isSearching,
+  });
   const [selectedSkill, setSelectedSkill] = useState<SkillsShSkill | null>(null);
+
+  const activeQuery = isSearching ? search : leaderboard;
+  const skills = activeQuery.data ?? [];
+  const isRefreshing = activeQuery.isFetching && skills.length > 0;
+  const hasSearchError = isSearching && Boolean(search.error);
 
   return (
     <div className="relative flex h-full min-w-0 flex-col overflow-hidden">
-      <div className="app-material border-border sticky top-0 z-10 flex min-w-0 flex-row flex-wrap items-end justify-between gap-4 border-b p-8 pb-10">
-        <div className="flex min-w-0 flex-col items-start gap-3">
-          <div className="flex items-center gap-3">
+      <div className="app-material border-border sticky top-0 z-10 flex min-w-0 flex-col border-b">
+        <div className="flex min-w-0 flex-row flex-wrap items-end justify-between gap-4 p-8 pb-6">
+          <div className="flex min-w-0 flex-col items-start gap-3">
             <h1 className="text-2xl leading-none text-balance">{t('skills.dashboard.title')}</h1>
+            <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
+              {t('skills.dashboard.description')}
+            </p>
           </div>
-          <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
-            {t('skills.dashboard.description')}
-          </p>
-        </div>
-        <InputGroup className="w-full max-w-md shrink-0 rounded-xl">
-          <InputGroupAddon>
-            <Search />
-          </InputGroupAddon>
-          <InputGroupInput
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder={t('skills.dashboard.searchPlaceholder')}
-            aria-label={t('skills.dashboard.searchLabel')}
-            autoComplete="off"
-            spellCheck={false}
-          />
-          {searchInput ? (
-            <InputGroupAddon align="inline-end">
-              <InputGroupButton
-                size="icon-xs"
-                aria-label={t('skills.dashboard.clearSearch')}
-                onClick={() => setSearchInput('')}
-                className="app-pressable"
-              >
-                <X />
-              </InputGroupButton>
+          <InputGroup className="w-full max-w-md shrink-0 rounded-xl">
+            <InputGroupAddon>
+              <Search />
             </InputGroupAddon>
+            <InputGroupInput
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder={t('skills.dashboard.searchPlaceholder')}
+              aria-label={t('skills.dashboard.searchLabel')}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            {searchInput ? (
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  size="icon-xs"
+                  aria-label={t('skills.dashboard.clearSearch')}
+                  onClick={() => setSearchInput('')}
+                  className="app-pressable"
+                >
+                  <X />
+                </InputGroupButton>
+              </InputGroupAddon>
+            ) : null}
+          </InputGroup>
+          {hasSearchError ? (
+            <Alert variant="destructive" className="max-w-xl">
+              <AlertCircle />
+              <AlertTitle>{t('skills.dashboard.searchFailed')}</AlertTitle>
+              <AlertDescription>{errorMessage(search.error)}</AlertDescription>
+            </Alert>
           ) : null}
-        </InputGroup>
-        {hasSearchError ? (
-          <Alert variant="destructive" className="max-w-xl">
-            <AlertCircle />
-            <AlertTitle>{t('skills.dashboard.searchFailed')}</AlertTitle>
-            <AlertDescription>{errorMessage(search.error)}</AlertDescription>
-          </Alert>
-        ) : null}
+        </div>
+        <div className="flex min-w-0 flex-wrap items-center gap-3 px-8 pb-6">
+          <ContinuousTabs
+            value={viewId}
+            defaultActiveId="trending"
+            tabs={DISCOVERY_VIEWS.map((view) => ({
+              id: view.id,
+              label: view.label,
+            }))}
+            onChange={(id) => {
+              if (id === 'all-time' || id === 'trending' || id === 'hot') {
+                setViewId(id);
+              }
+            }}
+          />
+          {isRefreshing ? (
+            <Spinner
+              className="text-muted-foreground size-3.5"
+              aria-label={t('skills.dashboard.refreshing')}
+            />
+          ) : null}
+          <ContinuousTabs
+            className="ms-auto"
+            value={layoutMode}
+            defaultActiveId="grid"
+            tabs={[
+              {
+                id: 'list',
+                label: t('skills.installed.layoutList'),
+                icon: LayoutList,
+              },
+              {
+                id: 'grid',
+                label: t('skills.installed.layoutGrid'),
+                icon: LayoutGrid,
+              },
+            ]}
+            onChange={(id) => {
+              if (id === 'grid' || id === 'list') {
+                setLayoutMode(id);
+              }
+            }}
+          />
+        </div>
       </div>
       <ScrollArea className="min-h-0 min-w-0 flex-1">
         <div className="flex w-full min-w-0 max-w-full flex-col gap-6 px-6 py-4">
-          {isSearching ? (
-            <SearchResults query={search} onOpen={setSelectedSkill} />
-          ) : (
-            DISCOVERY_VIEWS.map((view) => (
-              <DiscoveryRail
-                key={view.id}
-                view={view}
-                onOpen={setSelectedSkill}
-                onShowMore={onShowMore}
-              />
-            ))
-          )}
+          <SkillsResults
+            skills={skills}
+            layoutMode={layoutMode}
+            isLoading={activeQuery.isLoading}
+            error={errorMessage(activeQuery.error)}
+            emptyTitle={t('skills.dashboard.noResultsTitle')}
+            emptyDescription={t('skills.dashboard.noResultsDescription')}
+            onOpen={setSelectedSkill}
+          />
         </div>
       </ScrollArea>
       <SkillDetailDialog
@@ -267,55 +288,6 @@ function ExploreRails({ onShowMore }: { onShowMore: (viewId: DiscoveryViewId) =>
           });
         }}
       />
-    </div>
-  );
-}
-
-export function SkillsDashboardView() {
-  const reduceMotion = useReducedMotion() ?? false;
-  const [selectedView, setSelectedView] = useState<DiscoveryViewId | null>(null);
-  const [direction, setDirection] = useState<PageSlideDirection>('forward');
-  const variants = pageSlideVariants(reduceMotion);
-
-  const openList = (viewId: DiscoveryViewId) => {
-    setDirection('forward');
-    setSelectedView(viewId);
-  };
-
-  const goBack = () => {
-    setDirection('back');
-    setSelectedView(null);
-  };
-
-  return (
-    <div className="relative h-full min-w-0 overflow-hidden">
-      <AnimatePresence mode="wait" custom={direction} initial={false}>
-        {selectedView ? (
-          <motion.div
-            key={`explore-list-${selectedView}`}
-            className="absolute inset-0 min-w-0 overflow-hidden"
-            custom={direction}
-            variants={variants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-          >
-            <DiscoveryListView viewId={selectedView} onBack={goBack} />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="explore-rails"
-            className="absolute inset-0 min-w-0 overflow-hidden"
-            custom={direction}
-            variants={variants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-          >
-            <ExploreRails onShowMore={openList} />
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

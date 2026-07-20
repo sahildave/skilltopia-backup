@@ -28,11 +28,6 @@ interface ContinuousTabsProps {
   className?: string;
 }
 
-const DEFAULT_TABS: ContinuousTabItem[] = [
-  { id: 'list', label: 'List' },
-  { id: 'grid', label: 'Grid' },
-];
-
 const PILL_TRANSITION = {
   type: 'spring' as const,
   stiffness: 380,
@@ -64,7 +59,7 @@ function TabContent({ tab }: { tab: ContinuousTabItem }) {
 }
 
 export function ContinuousTabs({
-  tabs = DEFAULT_TABS,
+  tabs = [],
   defaultActiveId = 'grid',
   value,
   onChange,

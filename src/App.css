@@ -4,6 +4,22 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Lustria */
+@font-face {
+  font-family: 'Lustria';
+  src: url('/fonts/Lustria-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('./fonts/Inter-VariableFont_opsz,wght.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+
 @layer base {
   :root {
     --app-corner-radius: 12px;
@@ -20,9 +36,27 @@
     cursor: default;
   }
 
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .serif-text {
+    font-family: 'Lustria', serif;
+    font-weight: 700; /* Uses the Bold variant for headings */
+    letter-spacing: -0.5px;
+  }
+
   body {
     @apply text-foreground;
-    font-family: -apple-system, 'Segoe UI', 'Roboto', sans-serif;
+    font-family:
+      'Inter',
+      system-ui,
+      -apple-system,
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     font-size: 16px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
@@ -38,6 +72,17 @@
     position: relative;
   }
 
+  .striped-background {
+    background-image: repeating-linear-gradient(
+      45deg,
+      #e1e1e1 0,
+      #e1e1e1 1px,
+      transparent 0,
+      transparent 50%
+    );
+    background-size: 10px 10px;
+    background-attachment: fixed;
+  }
   svg {
     color: inherit;
   }

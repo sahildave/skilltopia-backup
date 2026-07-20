@@ -352,14 +352,16 @@ export function SkillsDashboardView() {
   return (
     <div className="relative flex h-full flex-col">
       <div className="bg-background/80 sticky top-0 z-10 flex flex-col gap-4 border-b p-6 backdrop-blur-md">
+        <div className="flex flex-col items-start gap-1">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold text-balance">Dashboard</h1>
+          <h1 className="text-2xl font-semibold text-balance">Explore</h1>
           <Badge variant="outline">skills.sh</Badge>
         </div>
         <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
           Discover popular skills, refreshed from the live catalog and available
           offline from your last visit.
         </p>
+        </div>
         <InputGroup className="max-w-xl">
           <InputGroupAddon>
             <Search />

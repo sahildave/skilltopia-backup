@@ -221,6 +221,7 @@ export function SkillsDashboardView() {
             tabs={DISCOVERY_VIEWS.map((view) => ({
               id: view.id,
               label: view.label,
+              helpTooltip: t(`skills.dashboard.viewHelp.${view.id}`),
             }))}
             onChange={(id) => {
               if (id === 'all-time' || id === 'trending' || id === 'hot') {

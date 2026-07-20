@@ -33,6 +33,11 @@ describe('SkillsDashboardView', () => {
       'data-state',
       'on',
     );
+    expect(
+      screen.getByRole('button', {
+        name: 'Skills with sustained install growth over the past week.',
+      }),
+    ).toBeInTheDocument();
 
     await waitFor(() => {
       expect(catalog.fetchLeaderboard).toHaveBeenCalledWith('trending', 0, 100);
@@ -48,6 +53,17 @@ describe('SkillsDashboardView', () => {
     await waitFor(() => {
       expect(catalog.fetchLeaderboard).toHaveBeenCalledWith('hot', 0, 100);
     });
+
+    expect(
+      screen.queryByRole('button', {
+        name: 'Skills with sustained install growth over the past week.',
+      }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: 'Skills gaining the most installs in the last day or two.',
+      }),
+    ).toBeInTheDocument();
   });
 
   it('keeps seeded skills visible when a leaderboard refresh fails', async () => {

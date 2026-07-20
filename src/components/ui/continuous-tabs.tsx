@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import { LayoutGroup, motion, useReducedMotion } from 'motion/react';
 import { useId, useState, type ReactNode } from 'react';
 
+import { BadgeWithHelp } from '@/components/ui/badge-with-help';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +18,8 @@ export interface ContinuousTabItem {
    * Required when `label` is omitted (icon-only).
    */
   ariaLabel?: string;
+  /** Help tooltip shown via BadgeWithHelp only while this tab is active. */
+  helpTooltip?: string;
 }
 
 interface ContinuousTabsProps {
@@ -39,7 +42,7 @@ function tabAccessibleName(tab: ContinuousTabItem): string {
   return tab.ariaLabel ?? tab.label ?? tab.id;
 }
 
-function TabContent({ tab }: { tab: ContinuousTabItem }) {
+function TabContent({ tab, isActive }: { tab: ContinuousTabItem; isActive: boolean }) {
   const Icon = tab.icon;
   const showLabel = Boolean(tab.label);
   const nodes: ReactNode[] = [];
@@ -52,6 +55,15 @@ function TabContent({ tab }: { tab: ContinuousTabItem }) {
       <span key="label" className="text-sm font-medium">
         {tab.label}
       </span>,
+    );
+  }
+  if (isActive && tab.helpTooltip) {
+    nodes.push(
+      <BadgeWithHelp
+        key="help"
+        tooltip={tab.helpTooltip}
+        className="border-primary-foreground/25 bg-primary-foreground/15 text-primary-foreground"
+      />,
     );
   }
 
@@ -120,7 +132,7 @@ export function ContinuousTabs({
                   />
                 )
               ) : null}
-              <TabContent tab={tab} />
+              <TabContent tab={tab} isActive={isActive} />
             </ToggleGroupItem>
           );
         })}

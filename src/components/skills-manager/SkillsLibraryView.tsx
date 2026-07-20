@@ -2,12 +2,23 @@ import {
   AlertTriangle,
   FolderOpen,
   LoaderCircle,
+  MoreHorizontal,
   ShieldAlert,
+  Trash2,
 } from 'lucide-react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { platform } from '@platform'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { DESKTOP_APP_DOWNLOAD_URL } from '@/lib/desktop-download'
 import {
   Card,
@@ -29,6 +40,8 @@ import {
   contentWarningsForSelection,
   filterSkillsForSelection,
   providerTagsForSkill,
+  symlinkOriginalForSelection,
+  uninstallAgentScopeFromFilter,
   warningRevealProviderId,
   type ProviderFilterId,
 } from './installed-skills-model'
@@ -226,7 +239,10 @@ function LocalInstalledSkillsView() {
             {warnings.length > 0 ? (
               <div className="space-y-2">
                 {warnings.map(warning => (
-                  <ScanWarningBanner key={warningKey(warning)} warning={warning} />
+                  <ScanWarningBanner
+                    key={warningKey(warning)}
+                    warning={warning}
+                  />
                 ))}
               </div>
             ) : null}
@@ -246,7 +262,11 @@ function LocalInstalledSkillsView() {
             ) : null}
 
             {sections && sections.primary.length > 0 && snapshot ? (
-              <SkillCardGrid skills={sections.primary} snapshot={snapshot} />
+              <SkillCardGrid
+                skills={sections.primary}
+                snapshot={snapshot}
+                providerFilter={providerFilter}
+              />
             ) : null}
 
             {sections?.universalSection &&
@@ -259,6 +279,7 @@ function LocalInstalledSkillsView() {
                 <SkillCardGrid
                   skills={sections.universalSection}
                   snapshot={snapshot}
+                  providerFilter={providerFilter}
                 />
               </div>
             ) : null}
@@ -272,39 +293,244 @@ function LocalInstalledSkillsView() {
 function SkillCardGrid({
   skills,
   snapshot,
+  providerFilter,
 }: {
   skills: ScannedSkill[]
   snapshot: InstalledScanSnapshot
+  providerFilter: ProviderFilterId
 }) {
   const { t } = useTranslation()
+  const reduceMotion = useReducedMotion() ?? false
 
   return (
     <div className="grid grid-cols-3 gap-4">
-      {skills.map(skill => (
-        <Card key={skill.name} className="gap-4 py-4">
-          <CardHeader className="px-4">
-            <CardTitle className="truncate text-sm">{skill.name}</CardTitle>
-            <CardDescription className="line-clamp-2 text-pretty">
-              {skill.description}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-4">
-            <div className="flex flex-wrap gap-1.5">
-              {providerTagsForSkill(skill, snapshot).map(tag => (
-                <Badge key={tag} variant="outline">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-          <CardFooter className="text-muted-foreground justify-between border-t px-4 pt-4 text-xs">
-            <span>{skill.scope}</span>
-            <span>{t('skills.installed.cardInstalled')}</span>
-          </CardFooter>
-        </Card>
-      ))}
+      {skills.map(skill => {
+        const originalPath = symlinkOriginalForSelection(
+          skill,
+          snapshot,
+          providerFilter
+        )
+
+        return (
+          <Card key={skill.name} className="gap-4 py-4">
+            <CardHeader className="px-4">
+              <div className="flex items-start justify-between gap-2">
+                <CardTitle className="truncate text-sm">{skill.name}</CardTitle>
+                <SkillCardOverflowMenu
+                  skill={skill}
+                  snapshot={snapshot}
+                  providerFilter={providerFilter}
+                  reduceMotion={reduceMotion}
+                />
+              </div>
+              <CardDescription className="line-clamp-2 text-pretty">
+                {skill.description}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-4">
+              <div className="flex flex-wrap gap-1.5">
+                {providerTagsForSkill(skill, snapshot).map(tag => (
+                  <Badge key={tag} variant="outline">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+              {originalPath ? (
+                <p className="text-muted-foreground mt-2 text-xs text-pretty">
+                  Original at {originalPath}
+                </p>
+              ) : null}
+            </CardContent>
+            <CardFooter className="text-muted-foreground justify-between border-t px-4 pt-4 text-xs">
+              <span>{skill.scope}</span>
+              <span>{t('skills.installed.cardInstalled')}</span>
+            </CardFooter>
+          </Card>
+        )
+      })}
     </div>
   )
+}
+
+function SkillCardOverflowMenu({
+  skill,
+  snapshot,
+  providerFilter,
+  reduceMotion,
+}: {
+  skill: ScannedSkill
+  snapshot: InstalledScanSnapshot
+  providerFilter: ProviderFilterId
+  reduceMotion: boolean
+}) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const [confirming, setConfirming] = useState(false)
+  const [uninstalling, setUninstalling] = useState(false)
+  const copiesCommand = platform.copiesInstallCommand
+  const rescan = useInstalledScanStore(state => state.rescan)
+
+  const confirmDescription = uninstallConfirmDescription(
+    providerFilter,
+    snapshot,
+    t
+  )
+
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next)
+    if (!next) {
+      setConfirming(false)
+    }
+  }
+
+  const handleUninstall = async () => {
+    setUninstalling(true)
+    try {
+      await platform.uninstall(skill.name, {
+        agentScope: uninstallAgentScopeFromFilter(providerFilter),
+      })
+      toast.success(
+        t(
+          copiesCommand
+            ? 'skills.installed.uninstallCopied'
+            : 'skills.installed.uninstallSuccess',
+          { name: skill.name }
+        )
+      )
+      setOpen(false)
+      setConfirming(false)
+      await rescan()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (isPermissionError(message)) {
+        toast.error(t('skills.install.permissionError'), {
+          description: message,
+        })
+      } else {
+        toast.error(
+          t(
+            copiesCommand
+              ? 'skills.installed.uninstallCopyFailed'
+              : 'skills.installed.uninstallFailed',
+            { name: skill.name }
+          ),
+          { description: message }
+        )
+      }
+    } finally {
+      setUninstalling(false)
+    }
+  }
+
+  const motionProps = reduceMotion
+    ? {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        transition: { duration: 0.15 },
+      }
+    : {
+        initial: { opacity: 0, x: 8 },
+        animate: { opacity: 1, x: 0 },
+        exit: { opacity: 0, x: -8 },
+        transition: { type: 'spring' as const, bounce: 0, duration: 0.25 },
+      }
+
+  return (
+    <DropdownMenu open={open} onOpenChange={handleOpenChange}>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="shrink-0"
+          aria-label={t('skills.installed.overflowMenu')}
+          disabled={uninstalling}
+        >
+          <MoreHorizontal aria-hidden />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56 p-2">
+        <AnimatePresence mode="wait" initial={false}>
+          {confirming ? (
+            <motion.div
+              key="confirm"
+              className="space-y-3 p-1"
+              {...motionProps}
+            >
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-pretty">
+                  {t('skills.installed.uninstallConfirmTitle', {
+                    name: skill.name,
+                  })}
+                </p>
+                <p className="text-muted-foreground text-xs text-pretty">
+                  {confirmDescription}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  className="flex-1"
+                  disabled={uninstalling}
+                  onClick={() => void handleUninstall()}
+                >
+                  {t('skills.installed.uninstallYes')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  disabled={uninstalling}
+                  onClick={() => setConfirming(false)}
+                >
+                  {t('skills.installed.uninstallCancel')}
+                </Button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div key="menu" {...motionProps}>
+              <DropdownMenuItem
+                variant="destructive"
+                disabled={uninstalling}
+                onSelect={event => {
+                  event.preventDefault()
+                  setConfirming(true)
+                  setOpen(true)
+                }}
+              >
+                <Trash2 aria-hidden />
+                {t('skills.installed.uninstall')}
+              </DropdownMenuItem>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function uninstallConfirmDescription(
+  providerFilter: ProviderFilterId,
+  snapshot: InstalledScanSnapshot,
+  t: (key: string, options?: Record<string, string>) => string
+): string {
+  if (providerFilter === ALL_AGENTS_FILTER_ID) {
+    return t('skills.installed.uninstallConfirmAllAgents')
+  }
+  if (providerFilter === UNIVERSAL_PROVIDER_ID) {
+    return t('skills.installed.uninstallConfirmUniversal')
+  }
+  const model = buildProviderSidebarModel(snapshot)
+  const provider =
+    model.activeProviders.find(item => item.id === providerFilter) ??
+    model.inactiveProviders.find(item => item.id === providerFilter)
+  return t('skills.installed.uninstallConfirmProvider', {
+    provider: provider?.name ?? providerFilter,
+  })
 }
 
 function warningKey(warning: ScanWarning): string {

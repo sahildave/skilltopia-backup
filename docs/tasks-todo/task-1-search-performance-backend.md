@@ -11,10 +11,10 @@ Cut hybrid search latency from ~4–5s to ~3–3.5s with no API contract change.
 
 Live measurements on production deploy:
 
-| Route | Latency |
-|---|---|
+| Route                             | Latency   |
+| --------------------------------- | --------- |
 | `GET /api/skills` (keyword proxy) | ~0.6–0.8s |
-| `GET /api/skills/search` (hybrid) | ~4–5s |
+| `GET /api/skills/search` (hybrid) | ~4–5s     |
 
 The search handler in `api/skills/search.ts` runs skills.sh → Qdrant inference → Supabase **sequentially**. Qdrant Cloud Inference dominates (~3–4s). `ensureQdrantCollection()` adds an extra round-trip on every query.
 

@@ -72,8 +72,8 @@ describe('providerTagsForSkill', () => {
     expect(skill).toBeDefined()
     if (!skill) return
     expect(providerTagsForSkill(skill, MOCK_INSTALLED_SCAN)).toEqual([
-      '[Universal]',
-      '[Claude Code]',
+      'Universal',
+      'Claude Code',
     ])
   })
 })
@@ -173,7 +173,9 @@ describe('contentWarningsForSelection', () => {
     )
     expect(universalWarning).toBeDefined()
     if (!universalWarning) return
-    expect(warningRevealProviderId(universalWarning)).toBe(UNIVERSAL_PROVIDER_ID)
+    expect(warningRevealProviderId(universalWarning)).toBe(
+      UNIVERSAL_PROVIDER_ID
+    )
 
     const missingDir = MOCK_EMPTY_SCAN.warnings.find(
       w => w.code === 'skills_dir_missing'

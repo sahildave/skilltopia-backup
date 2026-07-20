@@ -37,6 +37,10 @@ export const platform: PlatformPort = {
     // Mock install succeeds without touching disk.
   },
 
+  async uninstall(_skillName, _options) {
+    // Mock uninstall succeeds without touching disk.
+  },
+
   async openExternal(url) {
     window.open(url, '_blank', 'noopener,noreferrer')
   },

@@ -7,7 +7,11 @@ import {
   unwrapResult,
   type InstalledScanSnapshot as RustInstalledScanSnapshot,
 } from '@/lib/tauri-bindings'
-import { buildSkillsAddArgs, InstallCancelledError } from './install-command'
+import {
+  buildSkillsAddArgs,
+  InstallCancelledError,
+  buildSkillsRemoveArgs,
+} from './install-command'
 import { skillEntriesFromScan, providersFromScan } from './scan-utils'
 import type {
   InstallableSkill,
@@ -16,6 +20,7 @@ import type {
   PlatformPort,
   SkillEntry,
   SkillProvider,
+  UninstallOptions,
 } from './types'
 
 let cachedScan: InstalledScanSnapshot | null = null
@@ -31,6 +36,10 @@ function normalizeSnapshot(
     skills: snapshot.skills.map(skill => ({
       ...skill,
       scope: 'global',
+      paths: skill.paths.map(path => ({
+        path: path.path,
+        originalPath: path.originalPath ?? undefined,
+      })),
     })),
     warnings: snapshot.warnings.map(warning => ({
       code: warning.code,
@@ -92,6 +101,25 @@ async function installSkillToDisk(
   }
 }
 
+async function uninstallSkillFromDisk(
+  skillName: string,
+  options: UninstallOptions
+): Promise<void> {
+  const args = buildSkillsRemoveArgs(skillName, options.agentScope)
+  const output = await Command.create('npx', args).execute()
+
+  if (output.code !== 0) {
+    const detail = [output.stderr, output.stdout]
+      .map(part => part.trim())
+      .filter(Boolean)
+      .join('\n')
+    throw new Error(
+      detail ||
+        `Skill uninstall failed (exit ${String(output.code ?? 'unknown')})`
+    )
+  }
+}
+
 export const platform: PlatformPort = {
   hasLocalLibrary: true,
   copiesInstallCommand: false,
@@ -112,6 +140,8 @@ export const platform: PlatformPort = {
   },
 
   install: installSkillToDisk,
+
+  uninstall: uninstallSkillFromDisk,
 
   async openExternal(url) {
     await openUrl(url)

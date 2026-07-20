@@ -47,6 +47,14 @@ pub struct ScannedProvider {
     pub skill_count: u32,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ScannedSkillPath {
+    pub path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub original_path: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ScannedSkill {
@@ -54,7 +62,7 @@ pub struct ScannedSkill {
     pub description: String,
     pub scope: String,
     pub provider_ids: Vec<String>,
-    pub paths: Vec<String>,
+    pub paths: Vec<ScannedSkillPath>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

@@ -41,11 +41,11 @@ Add an **Uninstall** action to each installed skill card in the Library view. Th
 
 ### Agent scoping (product rules)
 
-| Sidebar filter | CLI behavior |
-|---|---|
-| All agents | `skills remove {name} -g -y -a '*'` — confirm copy says removes from **all** agents |
-| Specific provider | `skills remove {name} -g -y -a {providerId}` |
-| Universal | `skills remove {name} -g -y` (canonical `.agents/skills`) |
+| Sidebar filter    | CLI behavior                                                                        |
+| ----------------- | ----------------------------------------------------------------------------------- |
+| All agents        | `skills remove {name} -g -y -a '*'` — confirm copy says removes from **all** agents |
+| Specific provider | `skills remove {name} -g -y -a {providerId}`                                        |
+| Universal         | `skills remove {name} -g -y` (canonical `.agents/skills`)                           |
 
 - [ ] Pass current `providerFilter` from `useInstalledSkillsUiStore` into the card/menu handler.
 

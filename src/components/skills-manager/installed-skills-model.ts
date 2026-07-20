@@ -5,6 +5,7 @@ import type {
   ScannedSkill,
   ScanWarning,
   ScanWarningCode,
+  UninstallAgentScope,
 } from '@/platform/types'
 import { UNIVERSAL_PROVIDER_ID } from '@/platform/types'
 
@@ -132,10 +133,45 @@ function warningsFor(
   return snapshot.warnings.filter(warning => warning.providerId === providerId)
 }
 
-/** Benign when a provider is detected but has no direct skills (e.g. symlink-only). */
+/** Benign when a provider is detected but has no valid global skills. */
 const SIDEBAR_SUPPRESSED_WARNING_CODES = new Set<ScanWarningCode>([
   'provider_empty',
 ])
+
+function skillsDirForSelection(
+  snapshot: InstalledScanSnapshot,
+  selection: ProviderFilterId
+): string | null {
+  if (selection === UNIVERSAL_PROVIDER_ID) {
+    return snapshot.universal.skillsDir || null
+  }
+  const provider = snapshot.providers.find(p => p.id === selection)
+  return provider?.skillsDir ?? null
+}
+
+/** Resolved symlink target for the current filter, when applicable. */
+export function symlinkOriginalForSelection(
+  skill: ScannedSkill,
+  snapshot: InstalledScanSnapshot,
+  selection: ProviderFilterId
+): string | null {
+  const skillsDir =
+    selection === ALL_AGENTS_FILTER_ID
+      ? null
+      : skillsDirForSelection(snapshot, selection)
+
+  for (const entry of skill.paths) {
+    if (!entry.originalPath) continue
+    if (selection === ALL_AGENTS_FILTER_ID) {
+      return entry.originalPath
+    }
+    if (skillsDir && entry.path.startsWith(skillsDir)) {
+      return entry.originalPath
+    }
+  }
+
+  return null
+}
 
 /** Warnings that warrant a content-area banner. */
 export function isBannerWarning(
@@ -271,4 +307,12 @@ export function contentWarningsForSelection(
     warnings = snapshot.warnings.filter(w => w.providerId === selection)
   }
   return warnings.filter(w => isBannerWarning(w, selection))
+}
+
+export function uninstallAgentScopeFromFilter(
+  filter: ProviderFilterId
+): UninstallAgentScope {
+  if (filter === ALL_AGENTS_FILTER_ID) return 'all'
+  if (filter === UNIVERSAL_PROVIDER_ID) return 'universal'
+  return { providerId: filter }
 }

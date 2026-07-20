@@ -53,14 +53,20 @@ export interface ScannedProvider {
   skillCount: number
 }
 
+export interface ScannedSkillPath {
+  path: string
+  /** Resolved target when `path` is a symlink to the skill directory. */
+  originalPath?: string
+}
+
 export interface ScannedSkill {
   name: string
   description: string
   scope: 'global'
   /** Provider ids plus {@link UNIVERSAL_PROVIDER_ID} when found in Universal. */
   providerIds: string[]
-  /** Absolute normalized source paths (all copies after dedupe). */
-  paths: string[]
+  /** Source paths (all copies after dedupe). */
+  paths: ScannedSkillPath[]
 }
 
 export interface InstalledScanSnapshot {
@@ -74,6 +80,13 @@ export interface InstalledScanSnapshot {
   providers: ScannedProvider[]
   skills: ScannedSkill[]
   warnings: ScanWarning[]
+}
+
+/** Agent scope for `skills remove` (maps from Installed Skills sidebar filter). */
+export type UninstallAgentScope = 'all' | 'universal' | { providerId: string }
+
+export interface UninstallOptions {
+  agentScope: UninstallAgentScope
 }
 
 export interface PlatformPort {
@@ -92,5 +105,6 @@ export interface PlatformPort {
   listInstalled(): Promise<SkillEntry[]>
   listProviders(): Promise<SkillProvider[]>
   install(skill: InstallableSkill, scope: InstallScope): Promise<void>
+  uninstall(skillName: string, options: UninstallOptions): Promise<void>
   openExternal(url: string): Promise<void>
 }

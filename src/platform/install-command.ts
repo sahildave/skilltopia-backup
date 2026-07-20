@@ -1,4 +1,8 @@
-import type { InstallableSkill, InstallScope } from './types'
+import type {
+  InstallableSkill,
+  InstallScope,
+  UninstallAgentScope,
+} from './types'
 
 export class InstallCancelledError extends Error {
   constructor(message = 'Install cancelled') {
@@ -49,6 +53,31 @@ export function buildSkillsAddArgs(
     args.push('-g')
   }
   return args
+}
+
+/** Args for `npx` — non-interactive skills CLI remove. */
+export function buildSkillsRemoveArgs(
+  skillName: string,
+  agentScope: UninstallAgentScope
+): string[] {
+  const args = ['--yes', 'skills', 'remove', skillName, '-g', '-y']
+  if (agentScope === 'all') {
+    args.push('-a', '*')
+  } else if (agentScope !== 'universal') {
+    args.push('-a', agentScope.providerId)
+  }
+  return args
+}
+
+/** Pasteable shell command for web copy-remove UX. */
+export function buildSkillsRemoveCommand(
+  skillName: string,
+  agentScope: UninstallAgentScope
+): string {
+  return [
+    'npx',
+    ...buildSkillsRemoveArgs(skillName, agentScope).map(shellQuoteArg),
+  ].join(' ')
 }
 
 /** Pasteable shell command for web copy-install UX. */

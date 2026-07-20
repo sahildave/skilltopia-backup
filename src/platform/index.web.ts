@@ -1,4 +1,7 @@
-import { buildSkillsInstallCommand } from './install-command'
+import {
+  buildSkillsInstallCommand,
+  buildSkillsRemoveCommand,
+} from './install-command'
 import { EMPTY_INSTALLED_SCAN } from './scan-utils'
 import type { PlatformPort } from './types'
 
@@ -28,6 +31,11 @@ export const platform: PlatformPort = {
 
   async install(skill, scope) {
     const command = buildSkillsInstallCommand(skill, scope)
+    await navigator.clipboard.writeText(command)
+  },
+
+  async uninstall(skillName, options) {
+    const command = buildSkillsRemoveCommand(skillName, options.agentScope)
     await navigator.clipboard.writeText(command)
   },
 

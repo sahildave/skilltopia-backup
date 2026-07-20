@@ -13,7 +13,7 @@ use super::paths::{
 };
 use super::types::{
     InstalledScanSnapshot, ProviderRegistrySourceMeta, ScanWarning, ScanWarningCode,
-    ScannedProvider, ScannedSkill, UniversalScanInfo, UNIVERSAL_PROVIDER_ID,
+    ScannedProvider, ScannedSkill, ScannedSkillPath, UniversalScanInfo, UNIVERSAL_PROVIDER_ID,
 };
 
 #[derive(Debug, Clone)]
@@ -99,12 +99,44 @@ fn unix_secs_to_rfc3339(secs: u64) -> String {
     format!("{y:04}-{m:02}-{d:02}T{hour:02}:{min:02}:{sec:02}Z")
 }
 
-/// Real directory entries only — symlinks are not children of the skills folder.
-fn is_real_skill_dir(path: &Path) -> bool {
+struct SkillDirEntry {
+    /// Path as listed in the skills folder (may be a symlink).
+    entry_path: PathBuf,
+    /// Directory containing `SKILL.md` (follows symlinks).
+    content_root: PathBuf,
+    /// Normalized resolved target when `entry_path` is a symlink.
+    original_path: Option<PathBuf>,
+}
+
+fn resolve_symlink_target(link: &Path, target: &Path) -> Option<PathBuf> {
+    if target.is_absolute() {
+        Some(target.to_path_buf())
+    } else {
+        link.parent().map(|parent| parent.join(target))
+    }
+}
+
+/// Accept real directories and directory symlinks in a skills folder.
+fn classify_skill_entry(path: &Path) -> Option<SkillDirEntry> {
     match fs::symlink_metadata(path) {
-        Ok(meta) if meta.file_type().is_symlink() => false,
-        Ok(meta) if meta.is_dir() => true,
-        _ => false,
+        Ok(meta) if meta.file_type().is_symlink() => {
+            let target = fs::read_link(path).ok()?;
+            let resolved = resolve_symlink_target(path, &target)?;
+            if !fs::metadata(&resolved).ok()?.is_dir() {
+                return None;
+            }
+            Some(SkillDirEntry {
+                entry_path: path.to_path_buf(),
+                content_root: resolved.clone(),
+                original_path: Some(resolved),
+            })
+        }
+        Ok(meta) if meta.is_dir() => Some(SkillDirEntry {
+            entry_path: path.to_path_buf(),
+            content_root: path.to_path_buf(),
+            original_path: None,
+        }),
+        _ => None,
     }
 }
 
@@ -113,7 +145,7 @@ fn is_hidden_dir_name(name: &str) -> bool {
 }
 
 struct DirScanOutcome {
-    skills: Vec<(String, String, PathBuf)>,
+    skills: Vec<(String, String, SkillDirEntry)>,
     warnings: Vec<ScanWarning>,
 }
 
@@ -137,20 +169,24 @@ fn scan_skills_dir(
         let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
             continue;
         };
-        if is_hidden_dir_name(name) || !is_real_skill_dir(&path) {
+        if is_hidden_dir_name(name) {
             continue;
         }
 
-        let skill_md = path.join("SKILL.md");
+        let Some(entry) = classify_skill_entry(&path) else {
+            continue;
+        };
+
+        let skill_md = entry.content_root.join("SKILL.md");
         let Ok(raw) = fs::read_to_string(&skill_md) else {
             warnings.push(ScanWarning {
                 code: ScanWarningCode::EntrySkipped,
                 message: format!(
                     "Missing SKILL.md in {}",
-                    normalize_path_for_serialization(&path)
+                    normalize_path_for_serialization(&entry.entry_path)
                 ),
                 provider_id: provider_id_for_warnings.map(str::to_string),
-                path: Some(normalize_path_for_serialization(&path)),
+                path: Some(normalize_path_for_serialization(&entry.entry_path)),
             });
             continue;
         };
@@ -160,10 +196,10 @@ fn scan_skills_dir(
                 code: ScanWarningCode::EntrySkipped,
                 message: format!(
                     "Invalid SKILL.md frontmatter in {}",
-                    normalize_path_for_serialization(&path)
+                    normalize_path_for_serialization(&entry.entry_path)
                 ),
                 provider_id: provider_id_for_warnings.map(str::to_string),
-                path: Some(normalize_path_for_serialization(&path)),
+                path: Some(normalize_path_for_serialization(&entry.entry_path)),
             });
             continue;
         };
@@ -173,12 +209,12 @@ fn scan_skills_dir(
                 code: ScanWarningCode::EntrySkipped,
                 message: format!("Skipped internal skill '{}'", parsed.name),
                 provider_id: provider_id_for_warnings.map(str::to_string),
-                path: Some(normalize_path_for_serialization(&path)),
+                path: Some(normalize_path_for_serialization(&entry.entry_path)),
             });
             continue;
         }
 
-        skills.push((parsed.name, parsed.description, path));
+        skills.push((parsed.name, parsed.description, entry));
     }
 
     DirScanOutcome { skills, warnings }
@@ -189,16 +225,22 @@ fn merge_skill(
     name: String,
     description: String,
     provider_id: &str,
-    path: PathBuf,
+    entry: SkillDirEntry,
 ) {
     let skill_key = format!("global:{name}");
-    let normalized_path = normalize_path_for_serialization(&path);
+    let skill_path = ScannedSkillPath {
+        path: normalize_path_for_serialization(&entry.entry_path),
+        original_path: entry
+            .original_path
+            .as_ref()
+            .map(|p| normalize_path_for_serialization(p)),
+    };
     if let Some(existing) = map.get_mut(&skill_key) {
         if !existing.provider_ids.iter().any(|id| id == provider_id) {
             existing.provider_ids.push(provider_id.to_string());
         }
-        if !existing.paths.iter().any(|p| p == &normalized_path) {
-            existing.paths.push(normalized_path);
+        if !existing.paths.iter().any(|p| p.path == skill_path.path) {
+            existing.paths.push(skill_path);
         }
     } else {
         map.insert(
@@ -208,7 +250,7 @@ fn merge_skill(
                 description,
                 scope: "global".into(),
                 provider_ids: vec![provider_id.to_string()],
-                paths: vec![normalized_path],
+                paths: vec![skill_path],
             },
         );
     }
@@ -487,7 +529,7 @@ mod tests {
 
     #[test]
     #[cfg(unix)]
-    fn ignores_symlink_skill_directories() {
+    fn includes_symlink_skill_directories() {
         use std::os::unix::fs::symlink;
 
         let home = temp_home("symlink");
@@ -498,8 +540,14 @@ mod tests {
         symlink(&real, universal.join("linked-skill")).unwrap();
 
         let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
-        assert!(!snapshot.skills.iter().any(|s| s.name == "linked-skill"));
-        assert_eq!(snapshot.universal.skill_count, 0);
+        let linked = snapshot
+            .skills
+            .iter()
+            .find(|s| s.name == "linked-skill")
+            .expect("linked-skill");
+        assert_eq!(snapshot.universal.skill_count, 1);
+        assert_eq!(linked.paths.len(), 1);
+        assert!(linked.paths[0].original_path.is_some());
     }
 
     #[test]
@@ -518,7 +566,7 @@ mod tests {
 
     #[test]
     #[cfg(unix)]
-    fn provider_skill_count_excludes_symlinks() {
+    fn provider_skill_count_includes_symlinks() {
         use std::os::unix::fs::symlink;
 
         let home = temp_home("provider-symlink");
@@ -535,9 +583,15 @@ mod tests {
             .iter()
             .find(|p| p.id == "codebuddy")
             .expect("codebuddy detected");
-        assert_eq!(codebuddy.skill_count, 0);
-        assert!(!snapshot.skills.iter().any(|s| s.name == "linked-skill"));
-        assert!(snapshot.warnings.iter().any(|w| {
+        assert_eq!(codebuddy.skill_count, 1);
+        let linked = snapshot
+            .skills
+            .iter()
+            .find(|s| s.name == "linked-skill")
+            .expect("linked-skill");
+        assert!(linked.provider_ids.contains(&"codebuddy".to_string()));
+        assert!(linked.paths.iter().any(|p| p.original_path.is_some()));
+        assert!(!snapshot.warnings.iter().any(|w| {
             w.code == ScanWarningCode::ProviderEmpty
                 && w.provider_id.as_deref() == Some("codebuddy")
         }));

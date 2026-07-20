@@ -6,13 +6,20 @@ import {
   Download,
   LayoutDashboard,
   Layers,
+  Search,
   Settings,
   Sparkles,
+  X,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { platform } from '@platform'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '@/components/ui/input-group'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import { useInstalledScanStore } from '@/store/installed-scan-store'
@@ -52,17 +59,31 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
     state => state.setProviderFilter
   )
   const [inactiveOpen, setInactiveOpen] = useState(false)
-  const [inactiveQuery, setInactiveQuery] = useState('')
+  const [providerQuery, setProviderQuery] = useState('')
 
   const model =
     platform.hasLocalLibrary && snapshot
       ? buildProviderSidebarModel(snapshot)
       : null
 
-  const inactiveFiltered =
-    model?.inactiveProviders.filter(item =>
-      item.name.toLowerCase().includes(inactiveQuery.trim().toLowerCase())
-    ) ?? []
+  const query = providerQuery.trim().toLowerCase()
+  const matchesQuery = (name: string) =>
+    !query || name.toLowerCase().includes(query)
+
+  const allAgentsLabel = t('skills.installed.allAgents')
+  const universalLabel = t('skills.installed.universal')
+  const showAllAgents = matchesQuery(allAgentsLabel)
+  const showUniversal = model ? matchesQuery(universalLabel) : false
+  const filteredActiveProviders =
+    model?.activeProviders.filter(item => matchesQuery(item.name)) ?? []
+  const filteredInactiveProviders =
+    model?.inactiveProviders.filter(item => matchesQuery(item.name)) ?? []
+  const hasProviderMatches =
+    showAllAgents ||
+    showUniversal ||
+    filteredActiveProviders.length > 0 ||
+    filteredInactiveProviders.length > 0
+  const inactiveExpanded = inactiveOpen || query.length > 0
 
   return (
     <div className="flex h-full flex-col bg-muted/40">
@@ -102,7 +123,7 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
               {isActive ? (
                 <span
                   aria-hidden
-                  className="bg-primary absolute inset-y-1 start-0 w-0.5 rounded-full"
+                  className="bg-primary absolute inset-y-1 inset-s-0 w-0.5 rounded-full"
                 />
               ) : null}
               <Icon className="size-4 shrink-0" />
@@ -121,29 +142,61 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
                 </p>
               </div>
 
-              <ProviderRow
-                id={ALL_AGENTS_FILTER_ID}
-                name={t('skills.installed.allAgents')}
-                skillCount={model.allAgentsCount}
-                selected={providerFilter === ALL_AGENTS_FILTER_ID}
-                onSelect={setProviderFilter}
-                icon={Sparkles}
-                installedTabActive={active === 'library'}
-                onEnsureInstalledTab={() => onSelect('library')}
-              />
+              <div className="mb-2 px-2">
+                <InputGroup className="h-8">
+                  <InputGroupAddon>
+                    <Search className="size-3.5" />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    value={providerQuery}
+                    onChange={event => setProviderQuery(event.target.value)}
+                    placeholder={t('skills.installed.searchProviders')}
+                    className="text-xs"
+                    aria-label={t('skills.installed.searchProviders')}
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                  {providerQuery ? (
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupButton
+                        size="icon-xs"
+                        aria-label={t('skills.installed.clearProviderSearch')}
+                        onClick={() => setProviderQuery('')}
+                      >
+                        <X />
+                      </InputGroupButton>
+                    </InputGroupAddon>
+                  ) : null}
+                </InputGroup>
+              </div>
 
-              <ProviderRow
-                item={{
-                  ...model.universal,
-                  name: t('skills.installed.universal'),
-                }}
-                selected={providerFilter === model.universal.id}
-                onSelect={setProviderFilter}
-                installedTabActive={active === 'library'}
-                onEnsureInstalledTab={() => onSelect('library')}
-              />
+              {showAllAgents ? (
+                <ProviderRow
+                  id={ALL_AGENTS_FILTER_ID}
+                  name={allAgentsLabel}
+                  skillCount={model.allAgentsCount}
+                  selected={providerFilter === ALL_AGENTS_FILTER_ID}
+                  onSelect={setProviderFilter}
+                  icon={Sparkles}
+                  installedTabActive={active === 'library'}
+                  onEnsureInstalledTab={() => onSelect('library')}
+                />
+              ) : null}
 
-              {model.activeProviders.map(item => (
+              {showUniversal ? (
+                <ProviderRow
+                  item={{
+                    ...model.universal,
+                    name: universalLabel,
+                  }}
+                  selected={providerFilter === model.universal.id}
+                  onSelect={setProviderFilter}
+                  installedTabActive={active === 'library'}
+                  onEnsureInstalledTab={() => onSelect('library')}
+                />
+              ) : null}
+
+              {filteredActiveProviders.map(item => (
                 <ProviderRow
                   key={item.id}
                   item={item}
@@ -153,53 +206,59 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
                   onEnsureInstalledTab={() => onSelect('library')}
                 />
               ))}
-            </div>
 
-            <div className="mt-3 shrink-0 pb-2">
-              <button
-                type="button"
-                className="text-muted-foreground hover:text-foreground flex w-full items-center gap-1.5 px-3 py-1"
-                onClick={() => setInactiveOpen(open => !open)}
-                aria-expanded={inactiveOpen}
-              >
-                <ChevronDown
-                  className={cn(
-                    'size-3.5 shrink-0 transition-transform',
-                    !inactiveOpen && '-rotate-90'
-                  )}
-                />
-                <span className="truncate text-xs font-medium uppercase">
-                  {t('skills.installed.inactiveProviders')}
-                </span>
-                <span className="bg-muted ms-auto rounded-md px-1.5 py-0.5 text-xs tabular-nums">
-                  {model.inactiveProviders.length}
-                </span>
-              </button>
+              {query.length > 0 && !hasProviderMatches ? (
+                <p className="text-muted-foreground px-3 py-2 text-xs">
+                  {t('skills.installed.noMatchingProviders')}
+                </p>
+              ) : null}
 
-              {inactiveOpen ? (
-                <div className="mt-1 space-y-1 px-2">
-                  <Input
-                    value={inactiveQuery}
-                    onChange={event => setInactiveQuery(event.target.value)}
-                    placeholder={t('skills.installed.searchProviders')}
-                    className="h-8 text-xs"
-                    aria-label={t('skills.installed.searchProviders')}
-                  />
-                  {inactiveFiltered.map(item => (
-                    <ProviderRow
-                      key={item.id}
-                      item={item}
-                      selected={providerFilter === item.id}
-                      onSelect={setProviderFilter}
-                      installedTabActive={active === 'library'}
-                      onEnsureInstalledTab={() => onSelect('library')}
-                      compact
+              {filteredInactiveProviders.length > 0 || !query ? (
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground flex w-full items-center gap-1.5 px-3 py-1"
+                    onClick={() => setInactiveOpen(open => !open)}
+                    aria-expanded={inactiveExpanded}
+                  >
+                    <ChevronDown
+                      className={cn(
+                        'size-3.5 shrink-0 transition-transform',
+                        !inactiveExpanded && '-rotate-90'
+                      )}
                     />
-                  ))}
-                  {inactiveFiltered.length === 0 ? (
-                    <p className="text-muted-foreground px-1 py-2 text-xs">
-                      {t('skills.installed.noMatchingProviders')}
-                    </p>
+                    <span className="truncate text-xs font-medium uppercase">
+                      {t('skills.installed.inactiveProviders')}
+                    </span>
+                    <span className="bg-muted ms-auto rounded-md px-1.5 py-0.5 text-xs tabular-nums">
+                      {query
+                        ? filteredInactiveProviders.length
+                        : model.inactiveProviders.length}
+                    </span>
+                  </button>
+
+                  {inactiveExpanded ? (
+                    <div className="mt-1 space-y-1 px-2">
+                      {(query
+                        ? filteredInactiveProviders
+                        : model.inactiveProviders
+                      ).map(item => (
+                        <ProviderRow
+                          key={item.id}
+                          item={item}
+                          selected={providerFilter === item.id}
+                          onSelect={setProviderFilter}
+                          installedTabActive={active === 'library'}
+                          onEnsureInstalledTab={() => onSelect('library')}
+                          compact
+                        />
+                      ))}
+                      {query && filteredInactiveProviders.length === 0 ? (
+                        <p className="text-muted-foreground px-1 py-2 text-xs">
+                          {t('skills.installed.noMatchingProviders')}
+                        </p>
+                      ) : null}
+                    </div>
                   ) : null}
                 </div>
               ) : null}
@@ -269,7 +328,7 @@ function ProviderRow(props: {
       {selected ? (
         <span
           aria-hidden
-          className="bg-primary absolute inset-y-1 start-0 w-0.5 rounded-full"
+          className="bg-primary absolute inset-y-1 inset-s-0 w-0.5 rounded-full"
         />
       ) : null}
       {Icon ? <Icon className="size-4 shrink-0" /> : null}

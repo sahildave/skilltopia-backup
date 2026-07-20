@@ -56,6 +56,12 @@ describe('PlatformPort mock', () => {
       )
     ).resolves.toBeUndefined()
   })
+
+  it('accepts mocked uninstall without throwing', async () => {
+    await expect(
+      mockPlatform.uninstall('find-skills', { agentScope: 'all' })
+    ).resolves.toBeUndefined()
+  })
 })
 
 describe('PlatformPort web', () => {
@@ -107,6 +113,20 @@ describe('PlatformPort web', () => {
 
     expect(writeText).toHaveBeenCalledWith(
       "npx --yes skills add vercel-labs/agent-skills --skill find-skills -y -a '*' -g"
+    )
+  })
+
+  it('copies a pasteable remove command to the clipboard', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+
+    await webPlatform.uninstall('find-skills', { agentScope: 'all' })
+
+    expect(writeText).toHaveBeenCalledWith(
+      "npx --yes skills remove find-skills -g -y -a '*'"
     )
   })
 

@@ -9,7 +9,7 @@ export function skillEntriesFromScan(
       name: skill.name,
       isDirectory: true,
       isFile: false,
-      isSymlink: false,
+      isSymlink: skill.paths.some(entry => entry.originalPath !== undefined),
     }))
     .sort((a, b) => a.name.localeCompare(b.name))
 }

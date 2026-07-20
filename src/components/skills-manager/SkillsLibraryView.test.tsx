@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@/test/test-utils'
+import { render, screen, waitFor, within } from '@/test/test-utils'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DESKTOP_APP_DOWNLOAD_URL } from '@/lib/desktop-download'
@@ -16,6 +16,7 @@ const scanMock = vi.hoisted(() => ({
   scanInstalled: vi.fn(),
   revealProviderSkillsDir: vi.fn(),
   openExternal: vi.fn(),
+  uninstall: vi.fn(),
 }))
 
 vi.mock('@platform', () => ({
@@ -32,6 +33,7 @@ vi.mock('@platform', () => ({
     listInstalled: vi.fn(),
     listProviders: vi.fn(),
     install: vi.fn(),
+    uninstall: (...args: unknown[]) => scanMock.uninstall(...args),
     openExternal: (...args: unknown[]) => scanMock.openExternal(...args),
   },
 }))
@@ -67,6 +69,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     scanMock.scanInstalled.mockResolvedValue(MOCK_INSTALLED_SCAN)
     scanMock.getInstalledScan.mockResolvedValue(MOCK_INSTALLED_SCAN)
     scanMock.revealProviderSkillsDir.mockResolvedValue(true)
+    scanMock.uninstall.mockResolvedValue(undefined)
     useInstalledScanStore.setState({
       snapshot: MOCK_INSTALLED_SCAN,
       error: null,
@@ -82,8 +85,8 @@ describe('SkillsLibraryView (local / mock)', () => {
     render(<SkillsLibraryView />)
 
     expect(screen.getByText('find-skills')).toBeInTheDocument()
-    expect(screen.getAllByText('[Universal]').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('[Claude Code]').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Universal').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Claude Code').length).toBeGreaterThan(0)
 
     const findSkillsCard = screen
       .getByText('find-skills')
@@ -108,7 +111,9 @@ describe('SkillsLibraryView (local / mock)', () => {
   it('disables reveal when the selected provider directory is missing', async () => {
     const user = userEvent.setup()
     useInstalledScanStore.setState({ snapshot: MOCK_EMPTY_SCAN })
-    useInstalledSkillsUiStore.setState({ providerFilter: UNIVERSAL_PROVIDER_ID })
+    useInstalledSkillsUiStore.setState({
+      providerFilter: UNIVERSAL_PROVIDER_ID,
+    })
     render(<SkillsLibraryView />)
 
     expect(screen.getByTitle(/directory is missing/i)).toBeDisabled()
@@ -145,9 +150,13 @@ describe('SkillsLibraryView (local / mock)', () => {
     expect(
       screen.getByRole('switch', { name: /show all universal/i })
     ).toBeChecked()
-    await user.click(
-      screen.getAllByRole('button', { name: /Claude Code/i })[0]!
-    )
+    const claudeCodeButton = screen.getAllByRole('button', {
+      name: /Claude Code/i,
+    })[0]
+    if (!claudeCodeButton) {
+      throw new Error('Expected Claude Code sidebar button')
+    }
+    await user.click(claudeCodeButton)
     expect(useInstalledSkillsUiStore.getState().showAllUniversal).toBe(false)
   })
 
@@ -179,6 +188,64 @@ describe('SkillsLibraryView (local / mock)', () => {
     expect(screen.getByText('find-skills')).toBeInTheDocument()
     expect(screen.getByText(/refreshing/i)).toBeInTheDocument()
   })
+
+  it('opens overflow, confirms uninstall, calls platform, and rescans', async () => {
+    const user = userEvent.setup()
+    const rescanSpy = vi.spyOn(useInstalledScanStore.getState(), 'rescan')
+    render(<SkillsLibraryView />)
+
+    const findSkillsCard = screen
+      .getByText('find-skills')
+      .closest('[data-slot="card"]') as HTMLElement
+    expect(findSkillsCard).toBeTruthy()
+
+    await user.click(
+      within(findSkillsCard).getByRole('button', { name: /skill actions/i })
+    )
+    await user.click(screen.getByRole('menuitem', { name: /uninstall/i }))
+    await waitFor(() => {
+      expect(
+        screen.getByText(/this removes the skill from all agents/i)
+      ).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /yes, uninstall/i }))
+
+    await waitFor(() => {
+      expect(scanMock.uninstall).toHaveBeenCalledWith('find-skills', {
+        agentScope: 'all',
+      })
+    })
+    expect(rescanSpy).toHaveBeenCalled()
+    rescanSpy.mockRestore()
+  })
+
+  it('scopes uninstall to the selected provider', async () => {
+    const user = userEvent.setup()
+    useInstalledSkillsUiStore.setState({ providerFilter: 'claude-code' })
+    render(<SkillsLibraryView />)
+
+    const codeReviewCard = screen
+      .getByText('code-review')
+      .closest('[data-slot="card"]') as HTMLElement
+    await user.click(
+      within(codeReviewCard).getByRole('button', { name: /skill actions/i })
+    )
+    await user.click(screen.getByRole('menuitem', { name: /uninstall/i }))
+    await waitFor(() => {
+      expect(
+        screen.getByText(/this removes the skill from claude code/i)
+      ).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole('button', { name: /yes, uninstall/i }))
+
+    await waitFor(() => {
+      expect(scanMock.uninstall).toHaveBeenCalledWith('code-review', {
+        agentScope: { providerId: 'claude-code' },
+      })
+    })
+  })
 })
 
 describe('SkillsSidebar providers', () => {
@@ -201,6 +268,7 @@ describe('SkillsSidebar providers', () => {
     render(<SkillsSidebar active="library" onSelect={onSelect} />)
 
     expect(screen.getByText('Installed Skills')).toBeInTheDocument()
+    expect(screen.getByLabelText(/search providers/i)).toBeInTheDocument()
     expect(screen.getByText('All Agents')).toBeInTheDocument()
     expect(screen.getByText('Universal')).toBeInTheDocument()
     expect(screen.getByText('Claude Code')).toBeInTheDocument()
@@ -212,10 +280,29 @@ describe('SkillsSidebar providers', () => {
     expect(universal).toHaveTextContent('2')
 
     await user.click(screen.getByText('Other providers'))
-    expect(screen.getByLabelText(/search providers/i)).toBeInTheDocument()
     expect(screen.getByText('Cursor')).toBeInTheDocument()
     const cursorRow = screen.getByText('Cursor').closest('button')
     expect(cursorRow).toHaveTextContent('0')
+  })
+
+  it('filters active and inactive providers from the top search field', async () => {
+    const user = userEvent.setup()
+    render(<SkillsSidebar active="library" onSelect={vi.fn()} />)
+
+    await user.type(screen.getByLabelText(/search providers/i), 'claude')
+
+    expect(screen.queryByText('All Agents')).not.toBeInTheDocument()
+    expect(screen.queryByText('Universal')).not.toBeInTheDocument()
+    expect(screen.getByText('Claude Code')).toBeInTheDocument()
+    expect(screen.queryByText('Cursor')).not.toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole('button', { name: /clear provider search/i })
+    )
+
+    expect(screen.getByText('All Agents')).toBeInTheDocument()
+    expect(screen.getByText('Universal')).toBeInTheDocument()
+    expect(screen.getByText('Claude Code')).toBeInTheDocument()
   })
 
   it('selects a provider from the in-memory snapshot without scanning', async () => {

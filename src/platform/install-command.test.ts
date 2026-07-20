@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   buildSkillsAddArgs,
   buildSkillsInstallCommand,
+  buildSkillsRemoveArgs,
+  buildSkillsRemoveCommand,
   parseSkillInstallTarget,
 } from './install-command'
 
@@ -55,6 +57,67 @@ describe('buildSkillsAddArgs', () => {
       '-a',
       '*',
     ])
+  })
+})
+
+describe('buildSkillsRemoveArgs', () => {
+  it('builds a non-interactive global remove for all agents', () => {
+    expect(buildSkillsRemoveArgs('find-skills', 'all')).toEqual([
+      '--yes',
+      'skills',
+      'remove',
+      'find-skills',
+      '-g',
+      '-y',
+      '-a',
+      '*',
+    ])
+  })
+
+  it('builds a non-interactive global remove for one provider', () => {
+    expect(
+      buildSkillsRemoveArgs('find-skills', { providerId: 'claude-code' })
+    ).toEqual([
+      '--yes',
+      'skills',
+      'remove',
+      'find-skills',
+      '-g',
+      '-y',
+      '-a',
+      'claude-code',
+    ])
+  })
+
+  it('builds a non-interactive universal remove without -a', () => {
+    expect(buildSkillsRemoveArgs('find-skills', 'universal')).toEqual([
+      '--yes',
+      'skills',
+      'remove',
+      'find-skills',
+      '-g',
+      '-y',
+    ])
+  })
+})
+
+describe('buildSkillsRemoveCommand', () => {
+  it('formats a pasteable npx all-agents remove command', () => {
+    expect(buildSkillsRemoveCommand('find-skills', 'all')).toBe(
+      "npx --yes skills remove find-skills -g -y -a '*'"
+    )
+  })
+
+  it('formats a pasteable npx provider remove command', () => {
+    expect(
+      buildSkillsRemoveCommand('find-skills', { providerId: 'claude-code' })
+    ).toBe('npx --yes skills remove find-skills -g -y -a claude-code')
+  })
+
+  it('formats a pasteable npx universal remove command', () => {
+    expect(buildSkillsRemoveCommand('find-skills', 'universal')).toBe(
+      'npx --yes skills remove find-skills -g -y'
+    )
   })
 })
 

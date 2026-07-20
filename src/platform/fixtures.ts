@@ -44,8 +44,8 @@ export const MOCK_INSTALLED_SCAN: InstalledScanSnapshot = {
       scope: 'global',
       providerIds: [UNIVERSAL_PROVIDER_ID, 'claude-code'],
       paths: [
-        '/Users/mock/.agents/skills/find-skills',
-        '/Users/mock/.claude/skills/find-skills',
+        { path: '/Users/mock/.agents/skills/find-skills' },
+        { path: '/Users/mock/.claude/skills/find-skills' },
       ],
     },
     {
@@ -53,14 +53,14 @@ export const MOCK_INSTALLED_SCAN: InstalledScanSnapshot = {
       description: 'Create distinctive frontend interfaces',
       scope: 'global',
       providerIds: [UNIVERSAL_PROVIDER_ID],
-      paths: ['/Users/mock/.agents/skills/frontend-design'],
+      paths: [{ path: '/Users/mock/.agents/skills/frontend-design' }],
     },
     {
       name: 'code-review',
       description: 'Review code for quality issues',
       scope: 'global',
       providerIds: ['claude-code'],
-      paths: ['/Users/mock/.claude/skills/code-review'],
+      paths: [{ path: '/Users/mock/.claude/skills/code-review' }],
     },
   ],
   warnings: [
@@ -89,7 +89,7 @@ export const MOCK_UNIVERSAL_ONLY_SCAN: InstalledScanSnapshot = {
       description: 'Create distinctive frontend interfaces',
       scope: 'global',
       providerIds: [UNIVERSAL_PROVIDER_ID],
-      paths: ['/Users/mock/.agents/skills/frontend-design'],
+      paths: [{ path: '/Users/mock/.agents/skills/frontend-design' }],
     },
   ],
   warnings: [],
@@ -121,7 +121,7 @@ export const MOCK_PROVIDER_ONLY_SCAN: InstalledScanSnapshot = {
       description: 'Review code for quality issues',
       scope: 'global',
       providerIds: ['claude-code'],
-      paths: ['/Users/mock/.claude/skills/code-review'],
+      paths: [{ path: '/Users/mock/.claude/skills/code-review' }],
     },
   ],
   warnings: [

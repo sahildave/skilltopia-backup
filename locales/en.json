@@ -178,6 +178,8 @@
   "skills.installed.scanFailedTitle": "Scan failed",
   "skills.installed.scanFailedBody": "Installed skills could not be scanned. The raw error is shown below.",
   "skills.installed.cardInstalled": "Installed",
+  "skills.installed.layoutList": "List",
+  "skills.installed.layoutGrid": "Grid",
   "skills.installed.overflowMenu": "Skill actions",
   "skills.installed.uninstall": "Uninstall",
   "skills.installed.uninstallConfirmTitle": "Uninstall {{name}}?",

@@ -71,6 +71,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     useInstalledSkillsUiStore.setState({
       providerFilter: ALL_AGENTS_FILTER_ID,
       showAllUniversal: false,
+      layoutMode: 'grid',
     });
   });
 
@@ -84,6 +85,35 @@ describe('SkillsLibraryView (local / mock)', () => {
     const findSkillsCard = screen.getByText('find-skills').closest('[data-slot="card"]');
     expect(findSkillsCard).toBeTruthy();
     expect(findSkillsCard?.textContent).not.toMatch(/\/Users\/mock/);
+    expect(screen.queryByText(/Original at/i)).not.toBeInTheDocument();
+  });
+
+  it('switches installed skills from grid cards to compact list rows', async () => {
+    const user = userEvent.setup();
+    render(<SkillsLibraryView />);
+
+    const grid = screen.getByTestId('skill-card-container');
+    expect(grid).toHaveAttribute('data-layout', 'grid');
+    expect(screen.getByText('find-skills').closest('[data-slot="card"]')).toBeTruthy();
+
+    await user.click(screen.getByRole('radio', { name: 'List' }));
+
+    expect(useInstalledSkillsUiStore.getState().layoutMode).toBe('list');
+    const list = screen.getByTestId('skill-card-container');
+    expect(list).toHaveAttribute('data-layout', 'list');
+    const listRow = screen.getByText('find-skills').closest('[data-slot="skill-list-row"]');
+    expect(listRow).toBeTruthy();
+    expect(listRow?.textContent).not.toMatch(/\/Users\/mock/);
+    expect(screen.getByText('find-skills').closest('[data-slot="card"]')).toBeNull();
+    expect(screen.queryByText(/Original at/i)).not.toBeInTheDocument();
+  });
+
+  it('restores list layout from the session UI store', () => {
+    useInstalledSkillsUiStore.setState({ layoutMode: 'list' });
+    render(<SkillsLibraryView />);
+
+    expect(screen.getByTestId('skill-card-container')).toHaveAttribute('data-layout', 'list');
+    expect(screen.getByText('find-skills').closest('[data-slot="skill-list-row"]')).toBeTruthy();
   });
 
   it('filters to a provider’s direct skills and reveals the path', async () => {
@@ -269,6 +299,7 @@ describe('SkillsSidebar providers', () => {
     useInstalledSkillsUiStore.setState({
       providerFilter: ALL_AGENTS_FILTER_ID,
       showAllUniversal: false,
+      layoutMode: 'grid',
     });
   });
 
@@ -277,7 +308,7 @@ describe('SkillsSidebar providers', () => {
     const onSelect = vi.fn();
     render(<SkillsSidebar active="installed" onSelect={onSelect} />);
 
-    expect(screen.getByText('Installed Skills')).toBeInTheDocument();
+    expect(screen.getByText('Installed')).toBeInTheDocument();
     expect(screen.getByLabelText(/search providers/i)).toBeInTheDocument();
     expect(screen.getByText('All Agents')).toBeInTheDocument();
     expect(screen.getByText('Universal')).toBeInTheDocument();

@@ -119,9 +119,16 @@ function SkillCard({
 }) {
   const { t } = useTranslation();
 
+  // <Button variant="outline" size="sm" onClick={() => onOpen(skill)}>
+  //           {t('skills.dashboard.details')}
+  //         </Button>
+
   return (
     <div className={compact ? 'w-75 shrink-0' : undefined}>
-      <Card className="gap-4 py-4">
+      <Card
+        className="gap-4 py-4 hover:ring-5 hover:ring-primary/20 hover:outline-0.5 hover:outline-primary/80"
+        onClick={() => onOpen(skill)}
+      >
         <CardHeader className="px-4">
           <CardTitle className="flex items-start justify-between gap-2 text-base">
             <span className="truncate text-balance line-clamp-1">{skill.name}</span>
@@ -141,9 +148,7 @@ function SkillCard({
         </CardContent>
         <CardFooter className="justify-end gap-1 border-t px-4 pt-4">
           <SkillInstallMenu skill={skill} />
-          <Button variant="outline" size="sm" onClick={() => onOpen(skill)}>
-            {t('skills.dashboard.details')}
-          </Button>
+
           <Button
             variant="ghost"
             size="sm"
@@ -205,7 +210,7 @@ function DiscoveryRail({
     <section aria-labelledby={`rail-${view.id}`} className="flex flex-col gap-3">
       <div className="flex items-baseline px-2 justify-between gap-3">
         <div className="flex flex-row justify-baseline items-baseline gap-2">
-          <h3 id={`rail-${view.id}`} className="text-lg">
+          <h3 id={`rail-${view.id}`} className="text-sm uppercase tracking-widest">
             {view.label}
           </h3>
           <p className="text-muted-foreground text-xs">

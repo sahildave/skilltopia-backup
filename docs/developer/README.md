@@ -7,6 +7,7 @@ Technical documentation for building and extending this app. These docs describe
 | Document                                      | Description                                             |
 | --------------------------------------------- | ------------------------------------------------------- |
 | [Architecture Guide](./architecture-guide.md) | High-level overview, mental models, system architecture |
+| [Web and Desktop](./web-and-desktop.md)       | Dual client: TARGET, ports, scripts, anti-patterns      |
 | [Rust Architecture](./rust-architecture.md)   | Rust module organization and patterns                   |
 | [State Management](./state-management.md)     | Three-layer state onion, Zustand, TanStack Query        |
 | [Error Handling](./error-handling.md)         | Error propagation, user feedback, retry patterns        |

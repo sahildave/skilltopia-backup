@@ -9,11 +9,11 @@ Document dual-client architecture so agents do not invent CORS, monorepos, or Ta
 
 ## Scope
 
-- [ ] Add `docs/developer/web-and-desktop.md`
-- [ ] Link from `docs/developer/README.md`
-- [ ] Update `docs/developer/external-apis.md` (web same-origin + Tauri Rust; no CORS)
-- [ ] Document script matrix, TARGET, ports, shells
-- [ ] **Required: “What would break / how we avoid it”:**
+- [x] Add `docs/developer/web-and-desktop.md`
+- [x] Link from `docs/developer/README.md`
+- [x] Update `docs/developer/external-apis.md` (web same-origin + Tauri Rust; no CORS)
+- [x] Document script matrix, TARGET, ports, shells
+- [x] **Required: “What would break / how we avoid it”:**
   - Desktop React `fetch(https://deploy/api/…)` → CORS → CatalogPort desktop → Tauri commands
   - Shared UI importing `@tauri-apps/*` → Tauri in web bundle → `@platform` / `@catalog` aliases only
   - Dynamic `import('@tauri-apps/…')` still emits chunks → not enough → web graph must not reference desktop adapter
@@ -22,7 +22,7 @@ Document dual-client architecture so agents do not invent CORS, monorepos, or Ta
   - Branching on `isTauri` / platform name → port methods / capabilities
   - Backend secrets in `VITE_*` or Tauri binary → forbidden
   - Backend proxy inside `dev:all` → not our workflow
-- [ ] Point epic `task-x-web-desktop-dual-client` at this doc
+- [x] Point epic `task-x-web-desktop-dual-client` at this doc
 
 ## Done when
 

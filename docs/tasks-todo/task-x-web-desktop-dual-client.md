@@ -29,7 +29,7 @@ Run **two apps** from one repo and one shared React skills UI: a **Tauri desktop
 
 ## Child tasks
 
-- [ ] task-1 — architecture + anti-pattern docs
+- [x] task-1 — architecture + anti-pattern docs
 - [ ] task-2 — dual-client foundation (ports, shells, scripts, Chrome-first, mock)
 - [ ] task-3 — Vercel same-origin deploy + CI no-Tauri-in-web-bundle
 - [ ] task-4 — shippable web MVP (Library CTA + copy command)
@@ -46,6 +46,6 @@ Run **two apps** from one repo and one shared React skills UI: a **Tauri desktop
 
 ## References
 
+- **Architecture (agents):** [`docs/developer/web-and-desktop.md`](../developer/web-and-desktop.md) — TARGET, ports, script matrix, anti-patterns (task-1)
 - `docs/tasks.md`
-- `docs/developer/external-apis.md`
-- `docs/developer/web-and-desktop.md` (task-1)
+- [`docs/developer/external-apis.md`](../developer/external-apis.md) — Backend access, same-origin web, no CORS

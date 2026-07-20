@@ -1,41 +1,54 @@
 # External APIs
 
-Patterns for calling external HTTP APIs from Tauri applications.
+Patterns for calling HTTP APIs from this app’s **two clients** (Tauri desktop and browser web) and from the **Backend API**.
 
-> **Note:** This app uses `reqwest` (Rust) for outbound HTTP. Prefer Rust commands for production API access so credentials stay out of the WebView.
+> **Dual client:** Web and desktop share UI but reach the Backend differently. See [web-and-desktop.md](./web-and-desktop.md). Do not add CORS on `/api/*`.
+
+## Who talks to what
+
+| Caller                         | Path to Backend API                                      | CORS? |
+| ------------------------------ | -------------------------------------------------------- | ----- |
+| **Web** (browser)              | Same-origin relative `/api/…` (prod: one Vercel project; dev: Vite proxy) | N/A — same origin |
+| **Desktop** (Tauri WebView)    | React → CatalogPort → Tauri command → Rust `reqwest` → absolute Backend URL | N/A — Rust outbound |
+| **Backend** (`api/` on Vercel) | OIDC / secrets → skills.sh, Supabase, Qdrant             | Server-side |
+
+**Hard rules**
+
+- **No browser CORS** headers on `/api/*`. Same-origin web only. Wildcard CORS would amplify abuse of the OIDC-backed proxy.
+- **Desktop catalog** must not `fetch(https://deploy/api/…)` from React — that hits CORS and bypasses CatalogPort. Use Tauri commands.
+- **Web catalog** must use relative `/api`, never a hardcoded absolute Backend URL in the browser (dev: Vite `server.proxy['/api']`).
+- **Secrets** stay on the Backend (Infisical `dev`/`prod`). Never `VITE_*` or the Tauri binary. See [infisical.md](./infisical.md).
 
 ## Rust vs Frontend: When to Use Which
 
-**Default recommendation: Use Rust backend (reqwest)**
+| Approach                         | Pros                                           | Cons / when not |
+| -------------------------------- | ---------------------------------------------- | --------------- |
+| Rust `reqwest` (desktop CatalogPort) | No CORS, secrets stay out of WebView        | Desktop path only |
+| Browser `fetch('/api/…')` (web CatalogPort) | Same-origin; no client secrets            | Web path only; never absolute Backend URL |
+| Frontend `fetch` to third-party hosts | Familiar                                  | CORS + exposed keys — avoid for skills.sh / Backend secrets |
 
-| Approach         | Pros                                           | Cons                            |
-| ---------------- | ---------------------------------------------- | ------------------------------- |
-| Rust (reqwest)   | CORS bypass, secure token storage, type safety | More code per endpoint          |
-| Frontend (fetch) | Less boilerplate, familiar API                 | CORS restrictions, exposed keys |
+### Use Rust `reqwest` For (desktop CatalogPort)
 
-### Use Rust Backend For
+- Catalog and any authenticated or secret-bearing calls from the desktop app
+- Calls that need local caching to SQLite / device storage
 
-- All authenticated API calls (keeps tokens out of WebView)
-- APIs with CORS restrictions (desktop apps bypass CORS from Rust)
-- Calls requiring response caching to local storage
-- Production applications
+### Use browser `fetch` For (web CatalogPort)
 
-### Use Frontend Fetch For
+- Catalog via CatalogPort → relative `/api/…` only
+- Public third-party SDKs that require browser context (not our Backend secrets)
 
-- Public APIs with no authentication
-- Rapid prototyping before moving to Rust
-- Third-party SDKs requiring browser context
+Shared UI must not choose the transport — import `@catalog` / `@platform` only ([web-and-desktop.md](./web-and-desktop.md)).
 
 ## skills.sh (Dashboard catalog)
 
 Official docs: [skills.sh API Reference](https://www.skills.sh/docs/api)
 
-The Dashboard tab loads the public skills catalog through a **server-side Vercel proxy**. End users never paste tokens. The Vercel project holds OIDC; the desktop app only talks to your proxy.
+The Dashboard tab loads the public skills catalog through the **Backend API** (`api/` on Vercel). End users never paste tokens. The Vercel project holds OIDC; clients never hold skills.sh credentials.
 
 ```
-React (Dashboard) → TanStack Query → Tauri command (reqwest)
-  → Vercel /api/skills* (OIDC via @vercel/oidc)
-  → https://skills.sh/api/v1/*
+Web:     React → CatalogPort → fetch('/api/skills*')     → Backend (same origin)
+Desktop: React → CatalogPort → Tauri → reqwest            → Backend (absolute URL)
+Backend: /api/skills* (OIDC via @vercel/oidc)             → https://skills.sh/api/v1/*
 ```
 
 ### Endpoints used
@@ -51,9 +64,9 @@ Upstream auth: `Authorization: Bearer <Vercel OIDC token>`. Upstream rate limit:
 
 The proxy is a **credential amplifier**: anyone who can hit your deployment URL shares your project’s OIDC quota. Each distributor should deploy their own Vercel project + OIDC Federation and set `SKILLS_PROXY_BASE_URL` to that deployment — do not rely on a shared public default in production forks.
 
-- **Do not** ship Infisical secrets, OIDC tokens, or `VITE_*` API keys in the desktop binary.
-- **Do not** add browser CORS on `/api/*` (Tauri/Rust bypasses CORS; wildcard CORS only helps browser abuse).
-- **Do** deploy `api/` on Vercel, enable **OIDC Federation** on that project, and point the app at the deployment URL.
+- **Do not** ship Infisical secrets, OIDC tokens, or `VITE_*` API keys in the desktop binary or web bundle.
+- **Do not** add browser CORS on `/api/*` (web is same-origin; Tauri/Rust bypasses CORS; wildcard CORS only helps browser abuse).
+- **Do** deploy static web + `api/` on **one** Vercel project (same-origin `/api/*`), enable **OIDC Federation**, and point desktop Rust at that deployment URL.
 - Proxy hardening (in `api/`):
   - **Query allowlist** — `/api/skills` allows only `view` (`all-time` \| `trending` \| `hot`), `page` (≥ 0), `per_page` (1–500). `/api/skills/search` allows only `q` (min 2 chars), `limit` (1–200), optional `owner`. Unknown keys → `400`.
   - **In-memory IP rate limit** — fixed window, 60 req/min per client IP (`x-forwarded-for` / `x-real-ip`). Best-effort across Fluid Compute instances; not a substitute for Vercel Firewall/WAF rules on `/api/*` if you need harder abuse protection.
@@ -77,11 +90,11 @@ The proxy is a **credential amplifier**: anyone who can hit your deployment URL 
 
 ### Local-first development
 
-Dashboard skills load only through **Tauri** (Rust → Backend API). Chrome / `npm run dev` does **not** load the catalog — use `tauri:dev` (Vite HMR still applies to React).
+Dual-client script matrix (`dev:web`, `dev:mock`, `dev:all`, TARGET) lives in [web-and-desktop.md](./web-and-desktop.md). Below: **desktop + Backend** paths that work today.
 
 Secrets and config come from **Infisical** (see [infisical.md](./infisical.md)): Backend keys in `dev` / `prod`, desktop-safe keys in `local`.
 
-**1. Tauri local + Backend API (deployed)** — default day-to-day (`npm run dev:local`):
+**1. Tauri local + Backend API (deployed)** — desktop day-to-day (`npm run dev:local`):
 
 ```bash
 npm run dev:local
@@ -90,7 +103,7 @@ npm run dev:local
 
 Uses Infisical `SKILLS_PROXY_BASE_URL` when set; otherwise the Rust default `https://skills-explorer-six.vercel.app`.
 
-**2. Both local** (optional — app + Backend API on your machine):
+**2. Both local** (optional — desktop + Backend API on your machine; **not** part of `dev:all`):
 
 ```bash
 npm run dev:local:proxy
@@ -109,9 +122,9 @@ Never commit Infisical exports or checked-in `.env` files.
 
 ### Frontend hooks
 
-- Service: `src/services/skills-sh.ts` (`useSkillsLeaderboard`, `useSkillsSearch`)
-- Commands: `fetch_skills_leaderboard`, `search_skills` (tauri-specta)
-- Duplicate skills (`isDuplicate: true`) are filtered out in Rust before reaching the UI
+- Service: `src/services/skills-sh.ts` (`useSkillsLeaderboard`, `useSkillsSearch`) — will call `@catalog` after task-2
+- Desktop commands today: `fetch_skills_leaderboard`, `search_skills` (tauri-specta)
+- Duplicate skills (`isDuplicate: true`) are filtered out in Rust before reaching the UI (desktop path)
 
 The search route returns one ranked list: keyword matches precede semantic-only
 matches, duplicate IDs are removed, and exact/high-install matches receive a
@@ -129,10 +142,12 @@ For secure token storage on the **device** (user-owned secrets, not skills.sh), 
 
 ## Architecture Pattern
 
-Follow the same pattern as local data: Tauri commands wrap API calls, TanStack Query provides caching.
+TanStack Query at the UI; transport behind **CatalogPort** (build-time adapter).
 
 ```
-React Component → TanStack Query → Tauri Command (reqwest) → External API
+React → TanStack Query → @catalog (CatalogPort)
+  web:     fetch('/api/…')
+  desktop: Tauri command (reqwest) → Backend URL
 ```
 
 ### Rust Command
@@ -319,10 +334,12 @@ See [data-persistence.md](./data-persistence.md) for SQLite setup.
 
 | Task            | Pattern                                  |
 | --------------- | ---------------------------------------- |
-| Basic API call  | Rust command with reqwest                |
-| skills.sh       | Vercel proxy + OIDC (see section above)  |
+| Catalog (web)   | CatalogPort → relative `/api` (no CORS)  |
+| Catalog (desktop) | CatalogPort → Tauri → reqwest → Backend |
+| skills.sh       | Backend API + OIDC (see section above)   |
 | Caching         | TanStack Query (frontend) or SQLite      |
 | Token storage   | `keyring` crate (OS keychain)            |
-| Type safety     | tauri-specta (same as local commands)    |
+| Type safety     | tauri-specta (desktop commands)          |
 | Error handling  | Result types, see error-handling.md      |
 | Offline support | Cache to SQLite, fallback on network err |
+| Dual-client rules | [web-and-desktop.md](./web-and-desktop.md) |

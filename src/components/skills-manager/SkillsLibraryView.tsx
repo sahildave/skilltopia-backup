@@ -381,6 +381,7 @@ function SkillCardOverflowMenu({
     try {
       await platform.uninstall(skill.uninstallName, {
         agentScope: uninstallAgentScopeFromFilter(providerFilter),
+        providerIds: skill.providerIds,
       })
       toast.success(
         t(

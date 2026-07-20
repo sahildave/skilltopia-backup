@@ -89,6 +89,7 @@ export type UninstallAgentScope = 'all' | 'universal' | { providerId: string }
 
 export interface UninstallOptions {
   agentScope: UninstallAgentScope
+  providerIds?: string[]
 }
 
 export interface PlatformPort {

@@ -35,7 +35,7 @@ export const platform: PlatformPort = {
   },
 
   async uninstall(skillName, options) {
-    const command = buildSkillsRemoveCommand(skillName, options.agentScope)
+    const command = buildSkillsRemoveCommand(skillName, options)
     await navigator.clipboard.writeText(command)
   },
 

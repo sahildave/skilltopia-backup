@@ -126,7 +126,7 @@ describe('PlatformPort web', () => {
     await webPlatform.uninstall('find-skills', { agentScope: 'all' })
 
     expect(writeText).toHaveBeenCalledWith(
-      "npx --yes skills remove find-skills -g -y -a '*'"
+      "npx --yes skills remove find-skills -g -y -a '*' && rm -rf ~/.agents/skills/find-skills"
     )
   })
 

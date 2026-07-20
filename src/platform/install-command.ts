@@ -2,8 +2,9 @@ import type {
   InstallableSkill,
   InstalledScanSnapshot,
   InstallScope,
-  UninstallAgentScope,
+  UninstallOptions,
 } from './types'
+import { UNIVERSAL_PROVIDER_ID } from './types'
 
 /** Non-universal detected providers to pass as `-a` flags to `skills add`. */
 export interface InstallAgentTargets {
@@ -70,13 +71,22 @@ export function buildSkillsAddArgs(
 /** Args for `npx` — non-interactive skills CLI remove. */
 export function buildSkillsRemoveArgs(
   skillName: string,
-  agentScope: UninstallAgentScope
+  options: UninstallOptions
 ): string[] {
   const args = ['--yes', 'skills', 'remove', skillName, '-g', '-y']
-  if (agentScope === 'all') {
-    args.push('-a', '*')
-  } else if (agentScope !== 'universal') {
-    args.push('-a', agentScope.providerId)
+  if (options.agentScope === 'all') {
+    const providerIds = uninstallProviderIds(options)
+    if (providerIds.length > 0) {
+      for (const pid of providerIds) {
+        args.push('-a', pid)
+      }
+    } else if (options.providerIds) {
+      return args
+    } else {
+      args.push('-a', '*')
+    }
+  } else if (options.agentScope !== 'universal') {
+    args.push('-a', options.agentScope.providerId)
   }
   return args
 }
@@ -84,12 +94,32 @@ export function buildSkillsRemoveArgs(
 /** Pasteable shell command for web copy-remove UX. */
 export function buildSkillsRemoveCommand(
   skillName: string,
-  agentScope: UninstallAgentScope
+  options: UninstallOptions
 ): string {
-  return [
+  const cleanupCommand =
+    options.agentScope === 'all'
+      ? buildUniversalCleanupCommand(skillName)
+      : null
+  if (
+    options.agentScope === 'all' &&
+    options.providerIds &&
+    options.providerIds.length > 0
+  ) {
+    const removeCommands = uninstallProviderIds(options).map(pid =>
+      [
+        'npx',
+        ...buildSkillsRemoveArgs(skillName, {
+          agentScope: { providerId: pid },
+        }).map(shellQuoteArg),
+      ].join(' ')
+    )
+    return [...removeCommands, cleanupCommand].filter(Boolean).join(' && ')
+  }
+  const removeCommand = [
     'npx',
-    ...buildSkillsRemoveArgs(skillName, agentScope).map(shellQuoteArg),
+    ...buildSkillsRemoveArgs(skillName, options).map(shellQuoteArg),
   ].join(' ')
+  return [removeCommand, cleanupCommand].filter(Boolean).join(' && ')
 }
 
 /** Pasteable shell command for web copy-install UX. */
@@ -107,4 +137,20 @@ export function buildSkillsInstallCommand(
 function shellQuoteArg(arg: string): string {
   if (/^[A-Za-z0-9_./:=@%+-]+$/.test(arg)) return arg
   return `'${arg.replaceAll("'", `'\\''`)}'`
+}
+
+function buildUniversalCleanupCommand(skillName: string): string {
+  if (
+    skillName.length === 0 ||
+    skillName === '.' ||
+    skillName === '..' ||
+    skillName.includes('/')
+  ) {
+    throw new Error('Skill folder name must be a single path segment')
+  }
+  return `rm -rf ~/.agents/skills/${shellQuoteArg(skillName)}`
+}
+
+function uninstallProviderIds(options: UninstallOptions): string[] {
+  return (options.providerIds ?? []).filter(id => id !== UNIVERSAL_PROVIDER_ID)
 }

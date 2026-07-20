@@ -108,7 +108,18 @@ describe('buildSkillsAddArgs', () => {
 
 describe('buildSkillsRemoveArgs', () => {
   it('builds a non-interactive global remove for all agents', () => {
-    expect(buildSkillsRemoveArgs('find-skills', 'all')).toEqual([
+    expect(buildSkillsRemoveArgs('find-skills', { agentScope: 'all' })).toEqual(
+      ['--yes', 'skills', 'remove', 'find-skills', '-g', '-y', '-a', '*']
+    )
+  })
+
+  it('builds a non-interactive global remove for all agents using providerIds', () => {
+    expect(
+      buildSkillsRemoveArgs('find-skills', {
+        agentScope: 'all',
+        providerIds: ['claude-code', 'cursor'],
+      })
+    ).toEqual([
       '--yes',
       'skills',
       'remove',
@@ -116,13 +127,35 @@ describe('buildSkillsRemoveArgs', () => {
       '-g',
       '-y',
       '-a',
-      '*',
+      'claude-code',
+      '-a',
+      'cursor',
+    ])
+  })
+
+  it('excludes the synthetic universal provider from all-agent remove args', () => {
+    expect(
+      buildSkillsRemoveArgs('find-skills', {
+        agentScope: 'all',
+        providerIds: ['universal', 'claude-code'],
+      })
+    ).toEqual([
+      '--yes',
+      'skills',
+      'remove',
+      'find-skills',
+      '-g',
+      '-y',
+      '-a',
+      'claude-code',
     ])
   })
 
   it('builds a non-interactive global remove for one provider', () => {
     expect(
-      buildSkillsRemoveArgs('find-skills', { providerId: 'claude-code' })
+      buildSkillsRemoveArgs('find-skills', {
+        agentScope: { providerId: 'claude-code' },
+      })
     ).toEqual([
       '--yes',
       'skills',
@@ -136,34 +169,53 @@ describe('buildSkillsRemoveArgs', () => {
   })
 
   it('builds a non-interactive universal remove without -a', () => {
-    expect(buildSkillsRemoveArgs('find-skills', 'universal')).toEqual([
-      '--yes',
-      'skills',
-      'remove',
-      'find-skills',
-      '-g',
-      '-y',
-    ])
+    expect(
+      buildSkillsRemoveArgs('find-skills', { agentScope: 'universal' })
+    ).toEqual(['--yes', 'skills', 'remove', 'find-skills', '-g', '-y'])
   })
 })
 
 describe('buildSkillsRemoveCommand', () => {
   it('formats a pasteable npx all-agents remove command', () => {
-    expect(buildSkillsRemoveCommand('find-skills', 'all')).toBe(
-      "npx --yes skills remove find-skills -g -y -a '*'"
+    expect(buildSkillsRemoveCommand('find-skills', { agentScope: 'all' })).toBe(
+      "npx --yes skills remove find-skills -g -y -a '*' && rm -rf ~/.agents/skills/find-skills"
+    )
+  })
+
+  it('formats a pasteable npx all-agents remove command chaining multiple providerIds', () => {
+    expect(
+      buildSkillsRemoveCommand('find-skills', {
+        agentScope: 'all',
+        providerIds: ['claude-code', 'cursor'],
+      })
+    ).toBe(
+      'npx --yes skills remove find-skills -g -y -a claude-code && npx --yes skills remove find-skills -g -y -a cursor && rm -rf ~/.agents/skills/find-skills'
+    )
+  })
+
+  it('formats all-agents remove with real providers plus universal cleanup', () => {
+    expect(
+      buildSkillsRemoveCommand('find-skills', {
+        agentScope: 'all',
+        providerIds: ['universal', 'claude-code'],
+      })
+    ).toBe(
+      'npx --yes skills remove find-skills -g -y -a claude-code && rm -rf ~/.agents/skills/find-skills'
     )
   })
 
   it('formats a pasteable npx provider remove command', () => {
     expect(
-      buildSkillsRemoveCommand('find-skills', { providerId: 'claude-code' })
+      buildSkillsRemoveCommand('find-skills', {
+        agentScope: { providerId: 'claude-code' },
+      })
     ).toBe('npx --yes skills remove find-skills -g -y -a claude-code')
   })
 
   it('formats a pasteable npx universal remove command', () => {
-    expect(buildSkillsRemoveCommand('find-skills', 'universal')).toBe(
-      'npx --yes skills remove find-skills -g -y'
-    )
+    expect(
+      buildSkillsRemoveCommand('find-skills', { agentScope: 'universal' })
+    ).toBe('npx --yes skills remove find-skills -g -y')
   })
 })
 

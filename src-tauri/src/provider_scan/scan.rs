@@ -3,7 +3,7 @@
 use crate::utils::platform::normalize_path_for_serialization;
 use std::collections::BTreeMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::frontmatter::parse_skill_md;
@@ -421,6 +421,65 @@ pub fn resolve_provider_skills_dir(
     ))
 }
 
+fn validate_skill_dir_name(uninstall_name: &str) -> Result<(), String> {
+    let path = Path::new(uninstall_name);
+    let mut components = path.components();
+    let Some(Component::Normal(name)) = components.next() else {
+        return Err("Skill folder name must be a single path segment".into());
+    };
+    if components.next().is_some() || name.is_empty() {
+        return Err("Skill folder name must be a single path segment".into());
+    }
+    if uninstall_name == "." || uninstall_name == ".." {
+        return Err("Skill folder name cannot be a relative path marker".into());
+    }
+    Ok(())
+}
+
+/// Delete one skill folder from the Universal `~/.agents/skills` cache.
+/// Returns false when the skill folder is already missing.
+pub fn delete_universal_skill_dir(uninstall_name: &str, ctx: &ScanContext) -> Result<bool, String> {
+    validate_skill_dir_name(uninstall_name)?;
+
+    let universal_dir = universal_skills_dir(&ctx.probe);
+    let target = universal_dir.join(uninstall_name);
+    let metadata = match fs::symlink_metadata(&target) {
+        Ok(metadata) => metadata,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(e) => {
+            return Err(format!(
+                "Failed to inspect Universal skill folder '{}': {e}",
+                normalize_path_for_serialization(&target)
+            ));
+        }
+    };
+
+    if metadata.file_type().is_symlink() || metadata.is_file() {
+        fs::remove_file(&target).map_err(|e| {
+            format!(
+                "Failed to delete Universal skill link '{}': {e}",
+                normalize_path_for_serialization(&target)
+            )
+        })?;
+        return Ok(true);
+    }
+
+    if !metadata.is_dir() {
+        return Err(format!(
+            "Universal skill path is not a directory: {}",
+            normalize_path_for_serialization(&target)
+        ));
+    }
+
+    fs::remove_dir_all(&target).map_err(|e| {
+        format!(
+            "Failed to delete Universal skill folder '{}': {e}",
+            normalize_path_for_serialization(&target)
+        )
+    })?;
+    Ok(true)
+}
+
 /// Reveal a skills directory in the system file manager. Returns false when missing.
 pub fn reveal_skills_dir(path: &Path) -> Result<bool, String> {
     if !path.exists() {
@@ -658,5 +717,41 @@ mod tests {
             .expect("claude");
         assert_eq!(claude.skill_count, 0);
         assert_eq!(snapshot.universal.skill_count, 1);
+    }
+
+    #[test]
+    fn deletes_universal_skill_dir_by_single_folder_name() {
+        let home = temp_home("delete-universal");
+        let universal = home.join(".agents/skills");
+        write_skill(&universal, "find-skills", "find-skills", "Find skills");
+
+        assert!(delete_universal_skill_dir("find-skills", &scan_ctx(&home)).unwrap());
+        assert!(!universal.join("find-skills").exists());
+        assert!(!delete_universal_skill_dir("find-skills", &scan_ctx(&home)).unwrap());
+    }
+
+    #[test]
+    fn rejects_universal_delete_path_traversal() {
+        let home = temp_home("delete-traversal");
+        let err = delete_universal_skill_dir("../outside", &scan_ctx(&home)).unwrap_err();
+
+        assert!(err.contains("single path segment"));
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn deletes_universal_skill_symlink_without_following_target() {
+        use std::os::unix::fs::symlink;
+
+        let home = temp_home("delete-symlink");
+        let universal = home.join(".agents/skills");
+        fs::create_dir_all(&universal).unwrap();
+        let real = home.join("real-skill");
+        write_skill(&home, "real-skill", "linked-skill", "Via symlink");
+        symlink(&real, universal.join("linked-skill")).unwrap();
+
+        assert!(delete_universal_skill_dir("linked-skill", &scan_ctx(&home)).unwrap());
+        assert!(!universal.join("linked-skill").exists());
+        assert!(real.exists());
     }
 }

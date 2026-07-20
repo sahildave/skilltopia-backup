@@ -14,6 +14,7 @@ import {
   InstallCancelledError,
 } from './install-command'
 import { skillEntriesFromScan, providersFromScan } from './scan-utils'
+import { UNIVERSAL_PROVIDER_ID } from './types'
 import type {
   InstallableSkill,
   InstalledScanSnapshot,
@@ -112,7 +113,37 @@ async function uninstallSkillFromDisk(
   skillName: string,
   options: UninstallOptions
 ): Promise<void> {
-  const args = buildSkillsRemoveArgs(skillName, options.agentScope)
+  if (
+    options.agentScope === 'all' &&
+    options.providerIds &&
+    options.providerIds.length > 0
+  ) {
+    const providerIds = options.providerIds.filter(
+      providerId => providerId !== UNIVERSAL_PROVIDER_ID
+    )
+    for (const providerId of providerIds) {
+      const args = buildSkillsRemoveArgs(skillName, {
+        agentScope: { providerId },
+      })
+      const output = await Command.create('npx', args).execute()
+      if (output.code !== 0) {
+        const detail = [output.stderr, output.stdout]
+          .map(part => part.trim())
+          .filter(Boolean)
+          .join('\n')
+        throw new Error(
+          detail ||
+            `Skill uninstall failed for ${providerId} (exit ${String(
+              output.code ?? 'unknown'
+            )})`
+        )
+      }
+    }
+    unwrapResult(await commands.deleteUniversalSkill(skillName))
+    return
+  }
+
+  const args = buildSkillsRemoveArgs(skillName, options)
   const output = await Command.create('npx', args).execute()
 
   if (output.code !== 0) {
@@ -124,6 +155,10 @@ async function uninstallSkillFromDisk(
       detail ||
         `Skill uninstall failed (exit ${String(output.code ?? 'unknown')})`
     )
+  }
+
+  if (options.agentScope === 'all') {
+    unwrapResult(await commands.deleteUniversalSkill(skillName))
   }
 }
 

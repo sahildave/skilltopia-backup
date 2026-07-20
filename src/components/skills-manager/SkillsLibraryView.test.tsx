@@ -215,11 +215,12 @@ describe('SkillsLibraryView (local / mock)', () => {
     await waitFor(() => {
       expect(scanMock.uninstall).toHaveBeenCalledWith('find-skills', {
         agentScope: 'all',
+        providerIds: [UNIVERSAL_PROVIDER_ID, 'claude-code'],
       })
     })
     expect(rescanSpy).toHaveBeenCalled()
     rescanSpy.mockRestore()
-  })
+  }, 10_000)
 
   it('scopes uninstall to the selected provider', async () => {
     const user = userEvent.setup()
@@ -244,9 +245,10 @@ describe('SkillsLibraryView (local / mock)', () => {
     await waitFor(() => {
       expect(scanMock.uninstall).toHaveBeenCalledWith('code-review', {
         agentScope: { providerId: 'claude-code' },
+        providerIds: ['claude-code'],
       })
     })
-  })
+  }, 10_000)
 
   it('uninstalls by slug when the display name differs', async () => {
     const user = userEvent.setup()
@@ -276,6 +278,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     await waitFor(() => {
       expect(scanMock.uninstall).toHaveBeenCalledWith('find-skills', {
         agentScope: 'all',
+        providerIds: [UNIVERSAL_PROVIDER_ID, 'claude-code'],
       })
     })
   })

@@ -198,6 +198,18 @@ async revealProviderSkillsDir(providerId: string) : Promise<Result<boolean, stri
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * Delete one skill folder from the Universal `~/.agents/skills` cache.
+ * Returns `false` when the folder is already missing.
+ */
+async deleteUniversalSkill(uninstallName: string) : Promise<Result<boolean, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("delete_universal_skill", { uninstallName }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 

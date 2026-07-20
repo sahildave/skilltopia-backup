@@ -1,8 +1,8 @@
 //! Tauri commands for installed-skill scanning and reveal.
 
 use crate::provider_scan::{
-    resolve_provider_skills_dir, reveal_skills_dir, scan_installed, InstalledScanSnapshot,
-    ScanContext,
+    delete_universal_skill_dir, resolve_provider_skills_dir, reveal_skills_dir, scan_installed,
+    InstalledScanSnapshot, ScanContext,
 };
 
 /// Scan global provider + Universal skill directories into one normalized snapshot.
@@ -22,4 +22,12 @@ pub fn reveal_provider_skills_dir(provider_id: String) -> Result<bool, String> {
         return Ok(false);
     };
     reveal_skills_dir(&path)
+}
+
+/// Delete one skill folder from the Universal `~/.agents/skills` cache.
+/// Returns `false` when the folder is already missing.
+#[tauri::command]
+#[specta::specta]
+pub fn delete_universal_skill(uninstall_name: String) -> Result<bool, String> {
+    delete_universal_skill_dir(&uninstall_name, &ScanContext::from_environment())
 }

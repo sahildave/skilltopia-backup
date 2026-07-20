@@ -1,7 +1,9 @@
 use tauri_specta::{collect_commands, Builder};
 
 pub fn generate_bindings() -> Builder<tauri::Wry> {
-    use crate::commands::{notifications, preferences, quick_pane, recovery, skills_sh};
+    use crate::commands::{
+        notifications, preferences, provider_scan, quick_pane, recovery, skills_sh,
+    };
 
     Builder::<tauri::Wry>::new().commands(collect_commands![
         preferences::greet,
@@ -19,6 +21,9 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         skills_sh::fetch_skills_leaderboard,
         skills_sh::search_skills,
         skills_sh::fetch_skill_detail,
+        provider_scan::scan_installed_skills,
+        provider_scan::reveal_provider_skills_dir,
+        provider_scan::delete_universal_skill,
     ])
 }
 

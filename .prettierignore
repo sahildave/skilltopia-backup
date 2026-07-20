@@ -18,6 +18,8 @@ vite.config.ts
 package-lock.json
 .git/
 src/lib/bindings.ts
+src/providers/registry.json
+src/providers/upstream/
 
 # Logs
 *.log

@@ -6,6 +6,7 @@
 
 mod bindings;
 mod commands;
+mod provider_scan;
 mod types;
 mod utils;
 

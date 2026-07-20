@@ -49,23 +49,30 @@ Build-time adapters — not runtime `if (isTauri)` branching for catalog/platfor
 
 `TARGET` values: `web` \| `desktop` \| `mock`. Vite `resolve.alias` picks the file. Shared UI and services import **only** these aliases.
 
-### PlatformPort (Phase-1 — do not expand without a new task)
+### PlatformPort
 
 - `hasLocalLibrary`
 - `copiesInstallCommand`
-- `listInstalled()`
-- `listProviders()`
+- `getInstalledScan()` / `scanInstalled()` — normalized global scan snapshot
+- `revealProviderSkillsDir(providerId)` — Finder/Explorer reveal (no rescan)
+- `listInstalled()` / `listProviders()` — derived from the in-memory snapshot
 - `install(skill, scope: 'global' \| 'project')`
 - `openExternal(url)`
+
+Desktop scanning runs in Rust (`scan_installed_skills`) over the vendored
+provider registry: Universal (`~/.agents/skills`) plus each detected provider’s
+direct global skills directory. Shared UI must not import `@tauri-apps/*`.
 
 ### Desktop skill install paths
 
 Desktop `platform.install` runs `npx skills add` (shell plugin). Conventions:
 
-| Scope     | CLI flags                       | Typical on-disk location                                         |
-| --------- | ------------------------------- | ---------------------------------------------------------------- |
-| `global`  | `-g -a '*' -y`                  | Agent global dirs (Library reads `~/.agents/skills`)             |
-| `project` | `-a '*' -y` after folder picker | `<chosen-project>/.agents/skills` (and other agent project dirs) |
+| Scope     | CLI flags                                                       | Typical on-disk location                                          |
+| --------- | --------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `global`  | `-g -y` plus `-a <id>` per detected non-universal provider only | Universal (`~/.agents/skills`) and symlinks for detected agents   |
+| `project` | `-y` plus `-a <id>` per detected non-universal provider only    | `<chosen-project>/.agents/skills` and detected agent project dirs |
+
+Desktop install reads the cached provider scan and never passes `-a '*'`, so undetected registry agents do not get new folders. Universal agents (Cursor, Codex, etc.) read from `~/.agents/skills` and do not need an explicit `-a` flag. Web `install` copies a universal-only command (no scan available).
 
 Skill ids are `owner/repo/skill` → CLI source `owner/repo` + `--skill skill`. Web `install` copies a pasteable `npx skills add …` command (`copiesInstallCommand: true`). Desktop runs the same args via the shell plugin. Shared UI must not import `@tauri-apps/*`; only `index.desktop.ts` may.
 

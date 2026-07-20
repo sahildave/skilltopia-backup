@@ -1,0 +1,1879 @@
+{
+  "source": {
+    "repositoryUrl": "https://github.com/vercel-labs/skills",
+    "commit": "777599e1159e401b11ce4c8a57c20f09a8f1596e",
+    "license": "MIT",
+    "attribution": "Provider definitions derived from vercel-labs/skills (MIT). See source.repositoryUrl and source.commit.",
+    "agentsTsPath": "src/agents.ts"
+  },
+  "providers": [
+    {
+      "id": "adal",
+      "displayName": "AdaL",
+      "skillsDir": ".adal/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".adal/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".adal"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aider-desk",
+      "displayName": "AiderDesk",
+      "skillsDir": ".aider-desk/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".aider-desk/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".aider-desk"
+          }
+        ]
+      }
+    },
+    {
+      "id": "amp",
+      "displayName": "Amp",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "configHome",
+          "path": "agents/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "configHome",
+            "path": "amp"
+          }
+        ]
+      }
+    },
+    {
+      "id": "antigravity",
+      "displayName": "Antigravity",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".gemini/antigravity/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".gemini/antigravity"
+          }
+        ]
+      }
+    },
+    {
+      "id": "antigravity-cli",
+      "displayName": "Antigravity CLI",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".gemini/antigravity-cli/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".gemini/antigravity-cli"
+          }
+        ]
+      }
+    },
+    {
+      "id": "astrbot",
+      "displayName": "AstrBot",
+      "skillsDir": "data/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".astrbot/data/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "cwd",
+            "path": "data/skills"
+          },
+          {
+            "base": "home",
+            "path": ".astrbot"
+          }
+        ]
+      }
+    },
+    {
+      "id": "augment",
+      "displayName": "Augment",
+      "skillsDir": ".augment/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".augment/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".augment"
+          }
+        ]
+      }
+    },
+    {
+      "id": "autohand-code",
+      "displayName": "Autohand Code CLI",
+      "skillsDir": ".autohand/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "envHome",
+          "env": "AUTOHAND_HOME",
+          "defaultPath": ".autohand",
+          "path": "skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "envHome",
+            "env": "AUTOHAND_HOME",
+            "defaultPath": ".autohand"
+          }
+        ]
+      }
+    },
+    {
+      "id": "bob",
+      "displayName": "IBM Bob",
+      "skillsDir": ".bob/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".bob/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".bob"
+          }
+        ]
+      }
+    },
+    {
+      "id": "claude-code",
+      "displayName": "Claude Code",
+      "skillsDir": ".claude/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "envHome",
+          "env": "CLAUDE_CONFIG_DIR",
+          "defaultPath": ".claude",
+          "path": "skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "envHome",
+            "env": "CLAUDE_CONFIG_DIR",
+            "defaultPath": ".claude"
+          }
+        ]
+      }
+    },
+    {
+      "id": "cline",
+      "displayName": "Cline",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".agents/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".cline"
+          }
+        ]
+      }
+    },
+    {
+      "id": "codearts-agent",
+      "displayName": "CodeArts Agent",
+      "skillsDir": ".codeartsdoer/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".codeartsdoer/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".codeartsdoer"
+          }
+        ]
+      }
+    },
+    {
+      "id": "codebuddy",
+      "displayName": "CodeBuddy",
+      "skillsDir": ".codebuddy/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".codebuddy/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "cwd",
+            "path": ".codebuddy"
+          },
+          {
+            "base": "home",
+            "path": ".codebuddy"
+          }
+        ]
+      }
+    },
+    {
+      "id": "codemaker",
+      "displayName": "Codemaker",
+      "skillsDir": ".codemaker/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".codemaker/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".codemaker"
+          }
+        ]
+      }
+    },
+    {
+      "id": "codestudio",
+      "displayName": "Code Studio",
+      "skillsDir": ".codestudio/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".codestudio/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".codestudio"
+          }
+        ]
+      }
+    },
+    {
+      "id": "codex",
+      "displayName": "Codex",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "envHome",
+          "env": "CODEX_HOME",
+          "defaultPath": ".codex",
+          "path": "skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "envHome",
+            "env": "CODEX_HOME",
+            "defaultPath": ".codex"
+          },
+          {
+            "base": "absolute",
+            "path": "/etc/codex"
+          }
+        ]
+      }
+    },
+    {
+      "id": "command-code",
+      "displayName": "Command Code",
+      "skillsDir": ".commandcode/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".commandcode/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".commandcode"
+          }
+        ]
+      }
+    },
+    {
+      "id": "continue",
+      "displayName": "Continue",
+      "skillsDir": ".continue/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".continue/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "cwd",
+            "path": ".continue"
+          },
+          {
+            "base": "home",
+            "path": ".continue"
+          }
+        ]
+      }
+    },
+    {
+      "id": "cortex",
+      "displayName": "Cortex Code",
+      "skillsDir": ".cortex/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".snowflake/cortex/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".snowflake/cortex"
+          }
+        ]
+      }
+    },
+    {
+      "id": "crush",
+      "displayName": "Crush",
+      "skillsDir": ".crush/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".config/crush/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".config/crush"
+          }
+        ]
+      }
+    },
+    {
+      "id": "cursor",
+      "displayName": "Cursor",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".cursor/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".cursor"
+          }
+        ]
+      }
+    },
+    {
+      "id": "deepagents",
+      "displayName": "Deep Agents",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".deepagents/agent/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".deepagents"
+          }
+        ]
+      }
+    },
+    {
+      "id": "devin",
+      "displayName": "Devin for Terminal",
+      "skillsDir": ".devin/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "configHome",
+          "path": "devin/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "configHome",
+            "path": "devin"
+          }
+        ]
+      }
+    },
+    {
+      "id": "dexto",
+      "displayName": "Dexto",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": false,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".agents/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".dexto"
+          }
+        ]
+      }
+    },
+    {
+      "id": "droid",
+      "displayName": "Droid",
+      "skillsDir": ".factory/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".factory/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".factory"
+          }
+        ]
+      }
+    },
+    {
+      "id": "eve",
+      "displayName": "Eve",
+      "skillsDir": "agent/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "none"
+      },
+      "detection": {
+        "type": "special",
+        "name": "eve-installed"
+      }
+    },
+    {
+      "id": "firebender",
+      "displayName": "Firebender",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": false,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".firebender/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".firebender"
+          }
+        ]
+      }
+    },
+    {
+      "id": "forgecode",
+      "displayName": "ForgeCode",
+      "skillsDir": ".forge/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".forge/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".forge"
+          }
+        ]
+      }
+    },
+    {
+      "id": "gemini-cli",
+      "displayName": "Gemini CLI",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".gemini/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".gemini"
+          }
+        ]
+      }
+    },
+    {
+      "id": "github-copilot",
+      "displayName": "GitHub Copilot",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".copilot/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".copilot"
+          }
+        ]
+      }
+    },
+    {
+      "id": "goose",
+      "displayName": "Goose",
+      "skillsDir": ".goose/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "configHome",
+          "path": "goose/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "configHome",
+            "path": "goose"
+          }
+        ]
+      }
+    },
+    {
+      "id": "hermes-agent",
+      "displayName": "Hermes Agent",
+      "skillsDir": ".hermes/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "envHome",
+          "env": "HERMES_HOME",
+          "defaultPath": ".hermes",
+          "path": "skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "envHome",
+            "env": "HERMES_HOME",
+            "defaultPath": ".hermes"
+          }
+        ]
+      }
+    },
+    {
+      "id": "iflow-cli",
+      "displayName": "iFlow CLI",
+      "skillsDir": ".iflow/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".iflow/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".iflow"
+          }
+        ]
+      }
+    },
+    {
+      "id": "inference-sh",
+      "displayName": "inference.sh",
+      "skillsDir": ".inferencesh/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".inferencesh/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".inferencesh"
+          }
+        ]
+      }
+    },
+    {
+      "id": "jazz",
+      "displayName": "Jazz",
+      "skillsDir": ".jazz/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".jazz/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".jazz"
+          },
+          {
+            "base": "cwd",
+            "path": ".jazz"
+          }
+        ]
+      }
+    },
+    {
+      "id": "junie",
+      "displayName": "Junie",
+      "skillsDir": ".junie/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".junie/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".junie"
+          }
+        ]
+      }
+    },
+    {
+      "id": "kilo",
+      "displayName": "Kilo Code",
+      "skillsDir": ".kilocode/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".kilocode/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".kilocode"
+          }
+        ]
+      }
+    },
+    {
+      "id": "kimi-code-cli",
+      "displayName": "Kimi Code CLI",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".agents/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".kimi-code"
+          },
+          {
+            "base": "home",
+            "path": ".kimi"
+          }
+        ]
+      }
+    },
+    {
+      "id": "kiro-cli",
+      "displayName": "Kiro CLI",
+      "skillsDir": ".kiro/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".kiro/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".kiro"
+          }
+        ]
+      }
+    },
+    {
+      "id": "kode",
+      "displayName": "Kode",
+      "skillsDir": ".kode/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".kode/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".kode"
+          }
+        ]
+      }
+    },
+    {
+      "id": "lingma",
+      "displayName": "Lingma",
+      "skillsDir": ".lingma/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".lingma/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".lingma"
+          }
+        ]
+      }
+    },
+    {
+      "id": "loaf",
+      "displayName": "Loaf",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": false,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".agents/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".loaf"
+          }
+        ]
+      }
+    },
+    {
+      "id": "mcpjam",
+      "displayName": "MCPJam",
+      "skillsDir": ".mcpjam/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".mcpjam/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".mcpjam"
+          }
+        ]
+      }
+    },
+    {
+      "id": "mistral-vibe",
+      "displayName": "Mistral Vibe",
+      "skillsDir": ".vibe/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "envHome",
+          "env": "VIBE_HOME",
+          "defaultPath": ".vibe",
+          "path": "skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "envHome",
+            "env": "VIBE_HOME",
+            "defaultPath": ".vibe"
+          }
+        ]
+      }
+    },
+    {
+      "id": "moxby",
+      "displayName": "Moxby",
+      "skillsDir": ".moxby/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".moxby/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".moxby"
+          }
+        ]
+      }
+    },
+    {
+      "id": "mux",
+      "displayName": "Mux",
+      "skillsDir": ".mux/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".mux/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".mux"
+          }
+        ]
+      }
+    },
+    {
+      "id": "neovate",
+      "displayName": "Neovate",
+      "skillsDir": ".neovate/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".neovate/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".neovate"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ona",
+      "displayName": "Ona",
+      "skillsDir": ".ona/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".ona/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".ona"
+          }
+        ]
+      }
+    },
+    {
+      "id": "openclaw",
+      "displayName": "OpenClaw",
+      "skillsDir": "skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "special",
+        "name": "openclaw-skills-dir"
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".openclaw"
+          },
+          {
+            "base": "home",
+            "path": ".clawdbot"
+          },
+          {
+            "base": "home",
+            "path": ".moltbot"
+          }
+        ]
+      }
+    },
+    {
+      "id": "opencode",
+      "displayName": "OpenCode",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "configHome",
+          "path": "opencode/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "configHome",
+            "path": "opencode"
+          }
+        ]
+      }
+    },
+    {
+      "id": "openhands",
+      "displayName": "OpenHands",
+      "skillsDir": ".openhands/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".openhands/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".openhands"
+          }
+        ]
+      }
+    },
+    {
+      "id": "pi",
+      "displayName": "Pi",
+      "skillsDir": ".pi/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".pi/agent/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".pi/agent"
+          }
+        ]
+      }
+    },
+    {
+      "id": "pochi",
+      "displayName": "Pochi",
+      "skillsDir": ".pochi/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".pochi/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".pochi"
+          }
+        ]
+      }
+    },
+    {
+      "id": "promptscript",
+      "displayName": "PromptScript",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": false,
+      "globalSkillsDir": {
+        "type": "none"
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "cwd",
+            "path": ".promptscript"
+          },
+          {
+            "base": "cwd",
+            "path": "promptscript.yaml"
+          }
+        ]
+      }
+    },
+    {
+      "id": "qoder",
+      "displayName": "Qoder",
+      "skillsDir": ".qoder/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".qoder/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".qoder"
+          }
+        ]
+      }
+    },
+    {
+      "id": "qoder-cn",
+      "displayName": "Qoder CN",
+      "skillsDir": ".qoder/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".qoder-cn/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".qoder-cn"
+          }
+        ]
+      }
+    },
+    {
+      "id": "qwen-code",
+      "displayName": "Qwen Code",
+      "skillsDir": ".qwen/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".qwen/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".qwen"
+          }
+        ]
+      }
+    },
+    {
+      "id": "reasonix",
+      "displayName": "Reasonix",
+      "skillsDir": ".reasonix/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".reasonix/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".reasonix"
+          }
+        ]
+      }
+    },
+    {
+      "id": "replit",
+      "displayName": "Replit",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": false,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "configHome",
+          "path": "agents/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "cwd",
+            "path": ".replit"
+          }
+        ]
+      }
+    },
+    {
+      "id": "roo",
+      "displayName": "Roo Code",
+      "skillsDir": ".roo/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".roo/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".roo"
+          }
+        ]
+      }
+    },
+    {
+      "id": "rovodev",
+      "displayName": "Rovo Dev",
+      "skillsDir": ".rovodev/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".rovodev/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".rovodev"
+          }
+        ]
+      }
+    },
+    {
+      "id": "tabnine-cli",
+      "displayName": "Tabnine CLI",
+      "skillsDir": ".tabnine/agent/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".tabnine/agent/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".tabnine"
+          }
+        ]
+      }
+    },
+    {
+      "id": "terramind",
+      "displayName": "Terramind",
+      "skillsDir": ".terramind/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".terramind/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".terramind"
+          }
+        ]
+      }
+    },
+    {
+      "id": "tinycloud",
+      "displayName": "Tinycloud",
+      "skillsDir": ".tinycloud/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".tinycloud/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".tinycloud"
+          }
+        ]
+      }
+    },
+    {
+      "id": "trae",
+      "displayName": "Trae",
+      "skillsDir": ".trae/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".trae/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".trae"
+          }
+        ]
+      }
+    },
+    {
+      "id": "trae-cn",
+      "displayName": "Trae CN",
+      "skillsDir": ".trae/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".trae-cn/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".trae-cn"
+          }
+        ]
+      }
+    },
+    {
+      "id": "universal",
+      "displayName": "Universal",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": false,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "configHome",
+          "path": "agents/skills"
+        }
+      },
+      "detection": {
+        "type": "never"
+      }
+    },
+    {
+      "id": "warp",
+      "displayName": "Warp",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".agents/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".warp"
+          }
+        ]
+      }
+    },
+    {
+      "id": "windsurf",
+      "displayName": "Windsurf",
+      "skillsDir": ".windsurf/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".codeium/windsurf/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".codeium/windsurf"
+          }
+        ]
+      }
+    },
+    {
+      "id": "zcode",
+      "displayName": "ZCode",
+      "skillsDir": ".zcode/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".zcode/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".zcode"
+          },
+          {
+            "base": "absolute",
+            "path": "/Applications/ZCode.app"
+          }
+        ]
+      }
+    },
+    {
+      "id": "zed",
+      "displayName": "Zed",
+      "skillsDir": ".agents/skills",
+      "universal": true,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".agents/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "configHome",
+            "path": "zed"
+          },
+          {
+            "base": "env",
+            "env": "APPDATA",
+            "path": "Zed",
+            "optional": true
+          },
+          {
+            "base": "env",
+            "env": "FLATPAK_XDG_CONFIG_HOME",
+            "path": "zed",
+            "optional": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "zencoder",
+      "displayName": "Zencoder",
+      "skillsDir": ".zencoder/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".zencoder/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".zencoder"
+          }
+        ]
+      }
+    },
+    {
+      "id": "zenflow",
+      "displayName": "Zenflow",
+      "skillsDir": ".zencoder/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".zencoder/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".zencoder"
+          }
+        ]
+      }
+    }
+  ]
+}

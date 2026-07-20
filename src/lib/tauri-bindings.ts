@@ -24,13 +24,20 @@
 export { commands, type Result } from './bindings'
 export type {
   AppPreferences,
+  InstalledScanSnapshot,
   JsonValue,
+  ProviderRegistrySourceMeta,
   RecoveryError,
-  SkillsShSkill,
+  RelatedSkill,
+  ScanWarning,
+  ScanWarningCode,
+  ScannedProvider,
+  ScannedSkill,
   SkillDetailData,
   SkillEnrichment,
   SkillEnrichmentRequired,
-  RelatedSkill,
+  SkillsShSkill,
+  UniversalScanInfo,
 } from './bindings'
 
 /**

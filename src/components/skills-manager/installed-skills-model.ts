@@ -210,8 +210,24 @@ function providerHasDirectSkills(provider: ScannedProvider): boolean {
   return provider.skillCount > 0;
 }
 
+/**
+ * True when the provider owns a skills directory distinct from Universal.
+ * Agents like Cline share `~/.agents/skills` and must not get a sidebar row.
+ */
+function hasDistinctSkillsDir(
+  provider: ScannedProvider,
+  universalSkillsDir: string,
+): boolean {
+  return (
+    provider.skillsDir != null &&
+    provider.skillsDir !== '' &&
+    provider.skillsDir !== universalSkillsDir
+  );
+}
+
 /** Build sidebar rows from the scan snapshot + full registry. */
 export function buildProviderSidebarModel(snapshot: InstalledScanSnapshot): ProviderSidebarModel {
+  const universalSkillsDir = snapshot.universal.skillsDir;
   const filledProviderIds = new Set(
     snapshot.providers.filter((p) => p.detected && providerHasDirectSkills(p)).map((p) => p.id),
   );
@@ -231,13 +247,25 @@ export function buildProviderSidebarModel(snapshot: InstalledScanSnapshot): Prov
   };
 
   const activeProviders = snapshot.providers
-    .filter((p) => p.detected && !p.universal && providerHasDirectSkills(p))
+    .filter(
+      (p) =>
+        p.detected &&
+        !p.universal &&
+        providerHasDirectSkills(p) &&
+        hasDistinctSkillsDir(p, universalSkillsDir),
+    )
     .map((p) => scannedProviderItem(p, snapshot, true))
     .sort(sortProvidersByCountThenName);
 
-  // Detected universal-registry agents (e.g. Cursor) still appear as providers.
+  // Detected universal-registry agents with their own dir (e.g. Cursor) still appear.
   const detectedUniversalAgents = snapshot.providers
-    .filter((p) => p.detected && p.universal && providerHasDirectSkills(p))
+    .filter(
+      (p) =>
+        p.detected &&
+        p.universal &&
+        providerHasDirectSkills(p) &&
+        hasDistinctSkillsDir(p, universalSkillsDir),
+    )
     .map((p) => scannedProviderItem(p, snapshot, true))
     .sort(sortProvidersByCountThenName);
 

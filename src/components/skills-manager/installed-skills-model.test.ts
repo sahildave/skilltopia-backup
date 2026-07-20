@@ -127,6 +127,45 @@ describe('buildProviderSidebarModel', () => {
     expect(model.allAgentsCount).toBe(0);
     expect(model.universal.skillsDirExists).toBe(false);
   });
+
+  it('hides providers that share the Universal skills directory', () => {
+    const snapshot: typeof MOCK_INSTALLED_SCAN = {
+      ...MOCK_INSTALLED_SCAN,
+      providers: [
+        {
+          id: 'cline',
+          name: 'Cline',
+          universal: true,
+          detected: true,
+          skillsDir: '/Users/mock/.agents/skills',
+          skillsDirExists: true,
+          skillCount: 2,
+        },
+        {
+          id: 'cursor',
+          name: 'Cursor',
+          universal: true,
+          detected: true,
+          skillsDir: '/Users/mock/.cursor/skills',
+          skillsDirExists: true,
+          skillCount: 1,
+        },
+        {
+          id: 'claude-code',
+          name: 'Claude Code',
+          universal: false,
+          detected: true,
+          skillsDir: '/Users/mock/.claude/skills',
+          skillsDirExists: true,
+          skillCount: 2,
+        },
+      ],
+    };
+    const model = buildProviderSidebarModel(snapshot);
+    expect(model.activeProviders.map((p) => p.id)).toEqual(['claude-code', 'cursor']);
+    expect(model.activeProviders.some((p) => p.id === 'cline')).toBe(false);
+    expect(model.inactiveProviders.some((p) => p.id === 'cline')).toBe(false);
+  });
 });
 
 describe('contentWarningsForSelection', () => {

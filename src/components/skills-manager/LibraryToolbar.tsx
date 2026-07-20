@@ -4,7 +4,7 @@ import { ContinuousTabs } from '@/components/ui/continuous-tabs';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { LibraryLayoutMode } from '@/store/installed-skills-ui-store';
-import { FolderOpen, LoaderCircle } from 'lucide-react';
+import { FolderOpen, LayoutGrid, LayoutList, LoaderCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { platform } from '@platform';
 
@@ -58,8 +58,16 @@ export function LibraryToolbar({
           <ContinuousTabs
             value={layoutMode}
             tabs={[
-              { id: 'list', label: t('skills.installed.layoutList') },
-              { id: 'grid', label: t('skills.installed.layoutGrid') },
+              {
+                id: 'list',
+                label: t('skills.installed.layoutList'),
+                icon: LayoutList,
+              },
+              {
+                id: 'grid',
+                label: t('skills.installed.layoutGrid'),
+                icon: LayoutGrid,
+              },
             ]}
             onChange={(id) => {
               if (id === 'grid' || id === 'list') {

@@ -1,18 +1,26 @@
 'use client';
 
+import type { LucideIcon } from 'lucide-react';
 import { LayoutGroup, motion, useReducedMotion } from 'motion/react';
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from '@/lib/utils';
 
-interface TabItem {
+export interface ContinuousTabItem {
   id: string;
-  label: string;
+  /** Visible label. Omit for icon-only tabs. */
+  label?: string;
+  icon?: LucideIcon;
+  /**
+   * Accessible name. Defaults to `label`.
+   * Required when `label` is omitted (icon-only).
+   */
+  ariaLabel?: string;
 }
 
 interface ContinuousTabsProps {
-  tabs?: TabItem[];
+  tabs?: ContinuousTabItem[];
   defaultActiveId?: string;
   /** Controlled active tab; when set, overrides internal state. */
   value?: string;
@@ -20,7 +28,7 @@ interface ContinuousTabsProps {
   className?: string;
 }
 
-const DEFAULT_TABS: TabItem[] = [
+const DEFAULT_TABS: ContinuousTabItem[] = [
   { id: 'list', label: 'List' },
   { id: 'grid', label: 'Grid' },
 ];
@@ -31,6 +39,29 @@ const PILL_TRANSITION = {
   damping: 30,
   mass: 0.9,
 };
+
+function tabAccessibleName(tab: ContinuousTabItem): string {
+  return tab.ariaLabel ?? tab.label ?? tab.id;
+}
+
+function TabContent({ tab }: { tab: ContinuousTabItem }) {
+  const Icon = tab.icon;
+  const showLabel = Boolean(tab.label);
+  const nodes: ReactNode[] = [];
+
+  if (Icon) {
+    nodes.push(<Icon key="icon" aria-hidden />);
+  }
+  if (showLabel && tab.label) {
+    nodes.push(
+      <span key="label" className="text-sm font-medium">
+        {tab.label}
+      </span>,
+    );
+  }
+
+  return <span className="relative z-10 inline-flex items-center gap-1.5">{nodes}</span>;
+}
 
 export function ContinuousTabs({
   tabs = DEFAULT_TABS,
@@ -66,12 +97,13 @@ export function ContinuousTabs({
       >
         {tabs.map((tab) => {
           const isActive = active === tab.id;
+          const iconOnly = Boolean(tab.icon) && !tab.label;
 
           return (
             <ToggleGroupItem
               key={tab.id}
               value={tab.id}
-              aria-label={tab.label}
+              aria-label={tabAccessibleName(tab)}
               size="sm"
               className={cn(
                 'relative min-w-0 flex-none rounded-full shadow-none',
@@ -79,6 +111,7 @@ export function ContinuousTabs({
                 'first:rounded-full last:rounded-full',
                 'data-[state=on]:bg-transparent data-[state=on]:text-primary-foreground',
                 'data-[state=off]:text-muted-foreground data-[state=off]:hover:text-foreground',
+                iconOnly ? 'px-2' : 'px-3',
               )}
             >
               {isActive ? (
@@ -92,7 +125,7 @@ export function ContinuousTabs({
                   />
                 )
               ) : null}
-              <span className="relative z-10 text-sm font-medium">{tab.label}</span>
+              <TabContent tab={tab} />
             </ToggleGroupItem>
           );
         })}

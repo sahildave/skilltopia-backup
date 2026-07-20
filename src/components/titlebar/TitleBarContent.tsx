@@ -61,7 +61,7 @@ export function TitleBarRightActions() {
 
   return (
     <div className="flex items-center gap-1">
-      <Button
+      {/* <Button
         onClick={handleOpenPreferences}
         variant="ghost"
         size="icon"
@@ -69,7 +69,7 @@ export function TitleBarRightActions() {
         title={t('titlebar.settings')}
       >
         <Settings className="h-3 w-3" />
-      </Button>
+      </Button> */}
 
       <Button
         onClick={toggleRightSidebar}

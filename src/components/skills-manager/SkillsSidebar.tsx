@@ -4,12 +4,12 @@ import {
   LayoutDashboard,
   Layers,
   Settings,
-  Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import type { SkillsNavId } from './types'
+import { executeCommand, useCommandContext } from '@/lib/commands'
+import appLogo from '@/assets/logo.png';
 
 const PRIMARY_NAV: {
   id: SkillsNavId
@@ -28,19 +28,26 @@ interface SkillsSidebarProps {
 }
 
 export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
+  const commandContext = useCommandContext()
+
+  const handleOpenPreferences = async () => {
+    const result = await executeCommand('open-preferences', commandContext)
+    if (!result.success && result.error) {
+      commandContext.showToast(result.error, 'error')
+    }
+  }
+
   return (
     <div className="flex h-full flex-col bg-muted/40">
-      <div className="flex items-center gap-2 px-4 py-4">
-        <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md text-sm font-semibold">
-          S
+      <div className="flex items-center gap-1.5 px-4 py-4">
+        <div className="size-12 items-center justify-center rounded-xl overflow-clip">
+         <img src={appLogo} alt="Logo" width="100%" height="100%" />
         </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-balance">
-            Skills Manager
-          </p>
-          <p className="text-muted-foreground truncate text-xs">
-            Global agent skills
-          </p>
+        <div className="min-w-0 flex flex-col gap-1">
+          <h1 className="truncate text-xl pt-1 leading-none font-semibold text-balance">
+            Skills<br/> Hub
+          </h1>
+          
         </div>
       </div>
 
@@ -72,32 +79,20 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
           )
         })}
 
-        <Separator className="my-3" />
 
-        <div className="px-3 py-1">
-          <p className="text-muted-foreground text-xs font-medium uppercase">
-            Global Workspace
-          </p>
-        </div>
-        <div className="text-muted-foreground flex items-center gap-2 rounded-md px-3 py-2 text-sm">
-          <Sparkles className="size-4 shrink-0" />
-          <span className="truncate">All Agents</span>
-          <span className="bg-muted ms-auto rounded-md px-1.5 py-0.5 text-xs tabular-nums">
-            —
-          </span>
-        </div>
-      </nav>
-
-      <div className="border-t p-2">
+      <div className="border-t py-2">
         <Button
+        onClick={handleOpenPreferences}
           variant="ghost"
           className="text-muted-foreground w-full justify-start"
-          disabled
+          
         >
           <Settings className="size-4" />
           Settings
         </Button>
       </div>
+
+      </nav>
     </div>
   )
 }

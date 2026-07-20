@@ -42,7 +42,7 @@ export function SkillsLibraryView() {
     <div className="relative flex h-full flex-col">
       <div className="flex flex-col gap-4 border-b p-6">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold text-balance">Library</h1>
+          <h1 className="text-2xl font-bold text-balance">Library</h1>
           {entries ? (
             <Badge variant="secondary" className="tabular-nums">
               {entries.length}

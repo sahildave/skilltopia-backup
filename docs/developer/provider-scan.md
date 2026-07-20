@@ -13,7 +13,23 @@ Global installed-skill discovery for the desktop adapter.
 
 `listInstalled()` and `listProviders()` read the same in-memory snapshot. Call
 `scanInstalled()` to replace it (app open / Installed Skills activation /
-manual Rescan — wired in the Installed Skills UI task).
+manual Rescan).
+
+## Installed Skills UI
+
+The Library tab is **Installed Skills**. Shared UI filters the cached snapshot
+(no extra FS I/O):
+
+- Providers sidebar: All Agents (default), Universal (always listed), detected
+  providers, then a collapsed searchable inactive-registry group
+- Cards show stable tags such as `[Universal]` / `[Claude Code]` (paths stay in
+  snapshot data for later inspection, not on the card)
+- Selected provider views filter to that provider’s direct directory; optional
+  **Show all Universal** appends a separate Universal section (off by default;
+  resets on tab/filter change)
+- Path row uses `revealProviderSkillsDir` without rescanning
+- Web (`hasLocalLibrary: false`) shows the download-the-app state; mock TARGET
+  keeps the full provider UI for Chrome development
 
 ## Snapshot contents
 

@@ -8,7 +8,7 @@ describe('App', () => {
   it('renders main window layout', () => {
     render(<App />)
     expect(
-      screen.getByRole('heading', { name: /library/i })
+      screen.getByRole('heading', { name: /installed skills/i })
     ).toBeInTheDocument()
   })
 

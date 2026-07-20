@@ -69,7 +69,7 @@ Desktop `platform.install` runs `npx skills add` (shell plugin). Conventions:
 
 | Scope     | CLI flags                       | Typical on-disk location                                         |
 | --------- | ------------------------------- | ---------------------------------------------------------------- |
-| `global`  | `-g -a '*' -y`                  | Agent global dirs (Library reads `~/.agents/skills`)             |
+| `global`  | `-g -a '*' -y`                  | Agent global dirs (Installed Skills reads scan snapshot)         |
 | `project` | `-a '*' -y` after folder picker | `<chosen-project>/.agents/skills` (and other agent project dirs) |
 
 Skill ids are `owner/repo/skill` → CLI source `owner/repo` + `--skill skill`. Web `install` copies a pasteable `npx skills add …` command (`copiesInstallCommand: true`). Desktop runs the same args via the shell plugin. Shared UI must not import `@tauri-apps/*`; only `index.desktop.ts` may.

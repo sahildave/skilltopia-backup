@@ -347,6 +347,89 @@ mod tests {
         assert!(evaluate_detection(&cursor.detection, &ctx));
     }
 
+    #[test]
+    fn resolves_macos_applications_absolute_probe_on_darwin() {
+        let tmp = tempfile_dir();
+        let mut ctx = ctx_with_home(&tmp);
+        ctx.platform = "darwin".into();
+        let spec = PathSpec::Absolute {
+            path: "/Applications/ZCode.app".into(),
+            platforms: None,
+        };
+        assert_eq!(
+            resolve_path_spec(&spec, &ctx).unwrap(),
+            PathBuf::from("/Applications/ZCode.app")
+        );
+    }
+
+    #[test]
+    fn detects_zcode_via_home_dir_and_resolves_global_skills() {
+        let tmp = tempfile_dir();
+        fs::create_dir_all(tmp.join(".zcode")).unwrap();
+        let ctx = ctx_with_home(&tmp);
+        let registry = load_registry().unwrap();
+        let zcode = registry
+            .providers
+            .iter()
+            .find(|p| p.id == "zcode")
+            .expect("zcode");
+        assert!(evaluate_detection(&zcode.detection, &ctx));
+        let skills = resolve_global_skills_dir(&zcode.global_skills_dir, &ctx).unwrap();
+        assert_eq!(skills, tmp.join(".zcode/skills"));
+    }
+
+    #[test]
+    fn detects_zed_via_appdata_on_windows() {
+        let tmp = tempfile_dir();
+        let app_data = tmp.join("AppData/Roaming");
+        fs::create_dir_all(app_data.join("Zed")).unwrap();
+        let mut ctx = ctx_with_home(&tmp);
+        ctx.platform = "win32".into();
+        ctx.env
+            .insert("APPDATA".into(), app_data.display().to_string());
+        let registry = load_registry().unwrap();
+        let zed = registry
+            .providers
+            .iter()
+            .find(|p| p.id == "zed")
+            .expect("zed");
+        assert!(evaluate_detection(&zed.detection, &ctx));
+    }
+
+    #[test]
+    fn resolves_config_home_and_env_global_skills_dirs() {
+        let tmp = tempfile_dir();
+        let xdg = tmp.join("xdg-config");
+        let mut ctx = ctx_with_home(&tmp);
+        ctx.env
+            .insert("XDG_CONFIG_HOME".into(), xdg.display().to_string());
+        ctx.env.insert(
+            "CLAUDE_CONFIG_DIR".into(),
+            tmp.join("custom-claude").display().to_string(),
+        );
+
+        let registry = load_registry().unwrap();
+        let amp = registry
+            .providers
+            .iter()
+            .find(|p| p.id == "amp")
+            .expect("amp");
+        assert_eq!(
+            resolve_global_skills_dir(&amp.global_skills_dir, &ctx).unwrap(),
+            xdg.join("agents/skills")
+        );
+
+        let claude = registry
+            .providers
+            .iter()
+            .find(|p| p.id == "claude-code")
+            .expect("claude-code");
+        assert_eq!(
+            resolve_global_skills_dir(&claude.global_skills_dir, &ctx).unwrap(),
+            tmp.join("custom-claude/skills")
+        );
+    }
+
     fn tempfile_dir() -> PathBuf {
         let dir = std::env::temp_dir().join(format!(
             "skills-explorer-probe-{}",

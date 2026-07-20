@@ -20,7 +20,6 @@ import {
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
-import { cn } from '@/lib/utils'
 import { useInstalledScanStore } from '@/store/installed-scan-store'
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store'
 import { isPermissionError } from './library-errors'
@@ -133,13 +132,13 @@ function LocalInstalledSkillsView() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              className={cn(
-                'text-muted-foreground hover:text-foreground inline-flex max-w-full items-center gap-1.5 text-sm',
-                !pathInfo.skillsDirExists && pathInfo.skillsDir && 'opacity-60'
-              )}
+              className="text-muted-foreground hover:text-foreground inline-flex max-w-full items-center gap-1.5 text-sm disabled:pointer-events-none disabled:opacity-60"
               onClick={() => {
                 void platform.revealProviderSkillsDir(pathInfo.revealId)
               }}
+              disabled={
+                Boolean(pathInfo.skillsDir) && !pathInfo.skillsDirExists
+              }
               title={
                 pathInfo.skillsDirExists || !pathInfo.skillsDir
                   ? t('skills.installed.revealPath')

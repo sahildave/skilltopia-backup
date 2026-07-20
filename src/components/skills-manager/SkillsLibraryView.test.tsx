@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@/test/test-utils'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DESKTOP_APP_DOWNLOAD_URL } from '@/lib/desktop-download'
-import { MOCK_INSTALLED_SCAN } from '@/platform/fixtures'
+import { MOCK_EMPTY_SCAN, MOCK_INSTALLED_SCAN } from '@/platform/fixtures'
 import { useInstalledScanStore } from '@/store/installed-scan-store'
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store'
 import { ALL_AGENTS_FILTER_ID } from './installed-skills-model'
@@ -104,6 +104,14 @@ describe('SkillsLibraryView (local / mock)', () => {
     expect(scanMock.revealProviderSkillsDir).toHaveBeenCalledWith('claude-code')
   })
 
+  it('disables reveal when the selected provider directory is missing', () => {
+    useInstalledScanStore.setState({ snapshot: MOCK_EMPTY_SCAN })
+    useInstalledSkillsUiStore.setState({ providerFilter: 'claude-code' })
+    render(<SkillsLibraryView />)
+
+    expect(screen.getByTitle(/directory is missing/i)).toBeDisabled()
+  })
+
   it('shows Universal Skills section when Show all Universal is enabled', async () => {
     const user = userEvent.setup()
     useInstalledSkillsUiStore.setState({ providerFilter: 'claude-code' })
@@ -114,6 +122,47 @@ describe('SkillsLibraryView (local / mock)', () => {
     )
     expect(screen.getByText('Universal Skills')).toBeInTheDocument()
     expect(screen.getByText('frontend-design')).toBeInTheDocument()
+  })
+
+  it('resets Show all Universal when changing providers', async () => {
+    const user = userEvent.setup()
+    useInstalledSkillsUiStore.setState({
+      providerFilter: 'claude-code',
+      showAllUniversal: true,
+    })
+    render(
+      <>
+        <SkillsSidebar active="library" onSelect={vi.fn()} />
+        <SkillsLibraryView />
+      </>
+    )
+
+    expect(
+      screen.getByRole('switch', { name: /show all universal/i })
+    ).toBeChecked()
+    await user.click(screen.getByText('Cursor'))
+    expect(useInstalledSkillsUiStore.getState().showAllUniversal).toBe(false)
+  })
+
+  it('manual Rescan replaces the shared snapshot while keeping prior cards', async () => {
+    const user = userEvent.setup()
+    let resolveScan: (value: typeof MOCK_EMPTY_SCAN) => void = () => undefined
+    scanMock.scanInstalled.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          resolveScan = resolve
+        })
+    )
+    render(<SkillsLibraryView />)
+
+    await user.click(screen.getByRole('button', { name: /rescan/i }))
+    expect(screen.getByText('find-skills')).toBeInTheDocument()
+    expect(screen.getByText(/refreshing/i)).toBeInTheDocument()
+
+    resolveScan(MOCK_EMPTY_SCAN)
+    await waitFor(() => {
+      expect(useInstalledScanStore.getState().snapshot).toEqual(MOCK_EMPTY_SCAN)
+    })
   })
 
   it('keeps prior results visible while refreshing', () => {
@@ -139,7 +188,7 @@ describe('SkillsSidebar providers', () => {
     })
   })
 
-  it('shows Universal, active providers, and inactive group', async () => {
+  it('shows Universal, active providers, counts, warnings, and inactive group', async () => {
     const user = userEvent.setup()
     const onSelect = vi.fn()
     render(<SkillsSidebar active="library" onSelect={onSelect} />)
@@ -150,25 +199,39 @@ describe('SkillsSidebar providers', () => {
     expect(screen.getByText('Claude Code')).toBeInTheDocument()
     expect(screen.getByText('Cursor')).toBeInTheDocument()
 
+    const allAgents = screen.getByText('All Agents').closest('button')
+    expect(allAgents).toHaveTextContent('3')
+    const universal = screen.getByText('Universal').closest('button')
+    expect(universal).toHaveTextContent('2')
+    const cursorRow = screen.getByText('Cursor').closest('button')
+    expect(cursorRow).toHaveTextContent('0')
+
     await user.click(screen.getByText('Other providers'))
     expect(screen.getByLabelText(/search providers/i)).toBeInTheDocument()
   })
 
-  it('selects a provider without requiring a new scan to finish first', async () => {
+  it('selects a provider from the in-memory snapshot without scanning', async () => {
     const user = userEvent.setup()
+    scanMock.scanInstalled.mockClear()
+    scanMock.getInstalledScan.mockClear()
     render(<SkillsSidebar active="library" onSelect={vi.fn()} />)
 
     await user.click(screen.getByText('Claude Code'))
     expect(useInstalledSkillsUiStore.getState().providerFilter).toBe(
       'claude-code'
     )
+    expect(scanMock.scanInstalled).not.toHaveBeenCalled()
+    expect(scanMock.getInstalledScan).not.toHaveBeenCalled()
   })
 })
 
-describe('Installed Skills activation rescan', () => {
+describe('Installed Skills shared snapshot lifecycle', () => {
   beforeEach(() => {
     scanMock.hasLocalLibrary = true
+    scanMock.scanInstalled.mockReset()
+    scanMock.getInstalledScan.mockReset()
     scanMock.scanInstalled.mockResolvedValue(MOCK_INSTALLED_SCAN)
+    scanMock.getInstalledScan.mockResolvedValue(MOCK_INSTALLED_SCAN)
     useInstalledScanStore.setState({
       snapshot: null,
       error: null,
@@ -176,12 +239,52 @@ describe('Installed Skills activation rescan', () => {
     })
   })
 
-  it('rescans when the Installed Skills tab becomes active', async () => {
+  it('rescans when the Installed Skills tab becomes active (app-open default)', async () => {
     const { SkillsContent } = await import('./SkillsContent')
     render(<SkillsContent active="library" />)
 
     await waitFor(() => {
       expect(scanMock.scanInstalled).toHaveBeenCalled()
     })
+    expect(useInstalledScanStore.getState().snapshot).toEqual(
+      MOCK_INSTALLED_SCAN
+    )
+  })
+
+  it('keeps prior results visible while Installed Skills activation rescans', async () => {
+    useInstalledScanStore.setState({ snapshot: MOCK_INSTALLED_SCAN })
+    let resolveScan: (value: typeof MOCK_EMPTY_SCAN) => void = () => undefined
+    scanMock.scanInstalled.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          resolveScan = resolve
+        })
+    )
+
+    const { SkillsContent } = await import('./SkillsContent')
+    render(<SkillsContent active="library" />)
+
+    expect(screen.getByText('find-skills')).toBeInTheDocument()
+    expect(screen.getByText(/refreshing/i)).toBeInTheDocument()
+    expect(scanMock.scanInstalled).toHaveBeenCalled()
+
+    resolveScan(MOCK_EMPTY_SCAN)
+    await waitFor(() => {
+      expect(useInstalledScanStore.getState().snapshot).toEqual(MOCK_EMPTY_SCAN)
+    })
+  })
+
+  it('hydrates the cached platform snapshot when Installed Skills is not active', async () => {
+    scanMock.getInstalledScan.mockResolvedValue(MOCK_INSTALLED_SCAN)
+    const { SkillsContent } = await import('./SkillsContent')
+    render(<SkillsContent active="dashboard" />)
+
+    await waitFor(() => {
+      expect(scanMock.getInstalledScan).toHaveBeenCalled()
+    })
+    expect(scanMock.scanInstalled).not.toHaveBeenCalled()
+    expect(useInstalledScanStore.getState().snapshot).toEqual(
+      MOCK_INSTALLED_SCAN
+    )
   })
 })

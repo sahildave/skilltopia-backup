@@ -50,5 +50,34 @@ Universal path) and opens Finder/Explorer. It does **not** rescan. Returns
 ## Tests
 
 Rust unit tests live under `src-tauri/src/provider_scan/` (detection, path
-resolution, frontmatter, dedupe, Universal attribution, warnings). Mock TARGET
-fixtures exercise the snapshot shape for Chrome UI work.
+resolution including macOS/Windows probes, frontmatter, dedupe, Universal
+attribution, warnings). Mock TARGET fixtures exercise the snapshot shape for
+Chrome UI work. Shared React coverage lives in:
+
+- `src/providers/registry.test.ts` / `generate-provider-registry.test.ts`
+- `src/components/skills-manager/installed-skills-model.test.ts`
+- `src/components/skills-manager/SkillsLibraryView.test.tsx`
+- `src/store/installed-scan-store.test.ts`
+- `src/platform/platform.test.ts` and `src/web-bundle-utils.test.ts`
+
+### Quality gate
+
+```bash
+npm run check:all
+```
+
+Includes TypeScript, lint, format, design tokens, Rust fmt/clippy, Vitest, and
+`cargo test` (provider scan included).
+
+### Generated artifacts
+
+When registry or Tauri commands change, regenerate before committing:
+
+```bash
+npm run providers:generate          # refresh registry.json from upstream
+npm run rust:bindings               # export typed TS bindings (tauri-specta)
+npm run build:web && npm run scan:web-bundle  # confirm zero Tauri markers
+```
+
+`build:web` already runs `scan:web-bundle`. Weekly registry sync is
+`.github/workflows/sync-provider-registry.yml`.

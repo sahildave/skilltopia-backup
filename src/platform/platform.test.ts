@@ -67,6 +67,14 @@ describe('PlatformPort web', () => {
     vi.restoreAllMocks()
   })
 
+  it('does not import Tauri packages', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { resolve } = await import('node:path')
+    const source = readFileSync(resolve('src/platform/index.web.ts'), 'utf8')
+    expect(source).not.toMatch(/@tauri-apps/)
+    expect(source).not.toMatch(/__TAURI__/)
+  })
+
   it('does not claim a local library', () => {
     expect(webPlatform.hasLocalLibrary).toBe(false)
   })

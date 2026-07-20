@@ -20,11 +20,11 @@ One-shot local enrichment for the head of the install distribution, with fallbac
 
 ## Pipeline
 
-1. Fetch leaderboard / skill detail via Backend API or shared server modules  
-2. Store raw files in Supabase Storage; metadata + hash in Postgres  
-3. Rule-based extraction → LLM `generateObject` (required core + optional) → fallback partial  
-4. Distill text → Qdrant embed + upsert  
-5. Persist enrichment JSON via repository  
+1. Fetch leaderboard / skill detail via Backend API or shared server modules
+2. Store raw files in Supabase Storage; metadata + hash in Postgres
+3. Rule-based extraction → LLM `generateObject` (required core + optional) → fallback partial
+4. Distill text → Qdrant embed + upsert
+5. Persist enrichment JSON via repository
 
 ## Scope
 

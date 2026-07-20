@@ -8,23 +8,23 @@
 
 Discovery dashboard for desktop:
 
-- **Top Installed** → skills.sh view `all-time`  
-- **Trending** → `trending`  
-- **Hot** → `hot`  
+- **Top Installed** → skills.sh view `all-time`
+- **Trending** → `trending`
+- **Hot** → `hot`
 
 UX:
 
-- Show **cached** skills immediately when present  
-- Then refresh from Backend API and reconcile  
-- First install uses **bundled seed** (see task-8)  
+- Show **cached** skills immediately when present
+- Then refresh from Backend API and reconcile
+- First install uses **bundled seed** (see task-8)
 - If Backend API fails: keep cache/seed visible + **error banner**
 
 ## Scope
 
-- [ ] Three discovery rails wired to the three API views  
-- [ ] Stale-while-revalidate via TanStack Query (and/or persisted cache)  
-- [ ] Error banner on fetch failure  
-- [ ] Consume bundled seed on first run  
+- [ ] Three discovery rails wired to the three API views
+- [ ] Stale-while-revalidate via TanStack Query (and/or persisted cache)
+- [ ] Error banner on fetch failure
+- [ ] Consume bundled seed on first run
 
 ## Out of scope
 

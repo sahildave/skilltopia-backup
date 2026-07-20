@@ -12,16 +12,16 @@ End users must still open the Tauri app and get skills with **no token UX**. Cre
 
 ## Context (already shipped)
 
-| Piece | Location |
-| --- | --- |
-| Proxy helper | [`api/_lib/proxy.ts`](../../api/_lib/proxy.ts) |
-| Leaderboard route | [`api/skills.ts`](../../api/skills.ts) → upstream `/api/v1/skills` |
-| Search route | [`api/skills/search.ts`](../../api/skills/search.ts) → upstream `/api/v1/skills/search` |
-| CORS / deploy config | [`vercel.json`](../../vercel.json) — currently `Access-Control-Allow-Origin: *` |
-| Tauri client | [`src-tauri/src/commands/skills_sh.rs`](../../src-tauri/src/commands/skills_sh.rs) |
-| Dashboard UI | [`src/components/skills-manager/SkillsDashboardView.tsx`](../../src/components/skills-manager/SkillsDashboardView.tsx) |
-| Docs | [`docs/developer/external-apis.md`](../developer/external-apis.md) § skills.sh |
-| Env gitignore | [`.gitignore`](../../.gitignore) — `.env`, `.env.*`, `.vercel`, etc. |
+| Piece                | Location                                                                                                               |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Proxy helper         | [`api/_lib/proxy.ts`](../../api/_lib/proxy.ts)                                                                         |
+| Leaderboard route    | [`api/skills.ts`](../../api/skills.ts) → upstream `/api/v1/skills`                                                     |
+| Search route         | [`api/skills/search.ts`](../../api/skills/search.ts) → upstream `/api/v1/skills/search`                                |
+| CORS / deploy config | [`vercel.json`](../../vercel.json) — currently `Access-Control-Allow-Origin: *`                                        |
+| Tauri client         | [`src-tauri/src/commands/skills_sh.rs`](../../src-tauri/src/commands/skills_sh.rs)                                     |
+| Dashboard UI         | [`src/components/skills-manager/SkillsDashboardView.tsx`](../../src/components/skills-manager/SkillsDashboardView.tsx) |
+| Docs                 | [`docs/developer/external-apis.md`](../developer/external-apis.md) § skills.sh                                         |
+| Env gitignore        | [`.gitignore`](../../.gitignore) — `.env`, `.env.*`, `.vercel`, etc.                                                   |
 
 Architecture today:
 
@@ -37,10 +37,10 @@ Default proxy base: `https://skills-explorer-six.vercel.app` (override with `SKI
 
 ## Security findings to fix
 
-| Severity | Issue | Where |
-| --- | --- | --- |
-| Medium | Unauthenticated OIDC relay + wildcard CORS | `vercel.json`, `api/*` |
-| Medium | Proxy forwards all query params; Rust validation bypassed on direct HTTP | `api/_lib/proxy.ts` |
+| Severity | Issue                                                                    | Where                  |
+| -------- | ------------------------------------------------------------------------ | ---------------------- |
+| Medium   | Unauthenticated OIDC relay + wildcard CORS                               | `vercel.json`, `api/*` |
+| Medium   | Proxy forwards all query params; Rust validation bypassed on direct HTTP | `api/_lib/proxy.ts`    |
 
 No secrets in repo. Snyk on `api/` was clean. Do **not** reintroduce keyring / user-pasted token UX.
 

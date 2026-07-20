@@ -8,20 +8,20 @@
 
 One smart search box backed by a Backend API that merges:
 
-1. **Keyword** — skills.sh search (full registry)  
+1. **Keyword** — skills.sh search (full registry)
 2. **Semantic** — Qdrant knn over enriched subset (~500)
 
 ## Ranking policy (locked)
 
-- Keyword / exact matches first  
-- Then semantic matches  
-- Boost highly installed  
-- De-duplicate identical skills  
+- Keyword / exact matches first
+- Then semantic matches
+- Boost highly installed
+- De-duplicate identical skills
 
 ## Scope
 
-- [ ] `GET` (or equivalent) hybrid search on Backend API  
-- [ ] Merge/rank implementation  
+- [ ] `GET` (or equivalent) hybrid search on Backend API
+- [ ] Merge/rank implementation
 - [ ] Desktop client calls Backend API for search (replace or wrap existing search hook)
 
 ## Out of scope

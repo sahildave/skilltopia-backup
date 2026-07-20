@@ -1,7 +1,7 @@
 # Analytics and install-history snapshots
 
 **Milestone:** post-mvp  
-**Post-MVP #:** 4  
+**Post-MVP #:** 4
 
 ## Goal
 
@@ -9,9 +9,9 @@ skills.sh has no historical install series — store **daily snapshots** ourselv
 
 ## Scope
 
-- [ ] Snapshot job (cron) for install counts  
-- [ ] Charts / sparklines in UI  
-- [ ] Fastest growing / growth rails  
+- [ ] Snapshot job (cron) for install counts
+- [ ] Charts / sparklines in UI
+- [ ] Fastest growing / growth rails
 
 ## Note
 

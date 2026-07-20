@@ -1,7 +1,7 @@
 # Cross-ecosystem AI Capability index
 
 **Milestone:** post-mvp  
-**Post-MVP #:** 10  
+**Post-MVP #:** 10
 
 ## Goal
 
@@ -9,9 +9,9 @@ Expand beyond skills.sh into a unified **AI Capability** model (Claude Code skil
 
 ## Scope
 
-- [ ] Generic capability schema (not only `SKILL.md`)  
-- [ ] Per-source ingest adapters  
-- [ ] Unified discovery UI  
+- [ ] Generic capability schema (not only `SKILL.md`)
+- [ ] Per-source ingest adapters
+- [ ] Unified discovery UI
 
 ## Reference
 

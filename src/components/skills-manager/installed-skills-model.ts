@@ -4,6 +4,7 @@ import type {
   ScannedProvider,
   ScannedSkill,
   ScanWarning,
+  ScanWarningCode,
 } from '@/platform/types'
 import { UNIVERSAL_PROVIDER_ID } from '@/platform/types'
 
@@ -131,6 +132,37 @@ function warningsFor(
   return snapshot.warnings.filter(warning => warning.providerId === providerId)
 }
 
+/** Benign when a provider is detected but has no direct skills (e.g. symlink-only). */
+const SIDEBAR_SUPPRESSED_WARNING_CODES = new Set<ScanWarningCode>([
+  'provider_empty',
+])
+
+/** Warnings that warrant a content-area banner. */
+export function isBannerWarning(
+  warning: ScanWarning,
+  selection: ProviderFilterId
+): boolean {
+  if (SIDEBAR_SUPPRESSED_WARNING_CODES.has(warning.code)) {
+    return false
+  }
+  if (warning.code === 'entry_skipped' && selection === ALL_AGENTS_FILTER_ID) {
+    return false
+  }
+  return true
+}
+
+/** Provider id for `revealProviderSkillsDir`, when the warning maps to a skills folder. */
+export function warningRevealProviderId(warning: ScanWarning): string | null {
+  if (warning.code === 'universal_empty') {
+    return UNIVERSAL_PROVIDER_ID
+  }
+  return warning.providerId ?? null
+}
+
+export function sidebarWarnings(warnings: ScanWarning[]): ScanWarning[] {
+  return warnings.filter(w => !SIDEBAR_SUPPRESSED_WARNING_CODES.has(w.code))
+}
+
 function sortProvidersByCountThenName(
   a: ProviderSidebarItem,
   b: ProviderSidebarItem
@@ -140,7 +172,8 @@ function sortProvidersByCountThenName(
 
 function scannedProviderItem(
   provider: ScannedProvider,
-  snapshot: InstalledScanSnapshot
+  snapshot: InstalledScanSnapshot,
+  inActiveList: boolean
 ): ProviderSidebarItem {
   return {
     id: provider.id,
@@ -148,17 +181,23 @@ function scannedProviderItem(
     skillCount: provider.skillCount,
     skillsDir: provider.skillsDir,
     skillsDirExists: provider.skillsDirExists,
-    active: provider.detected,
+    active: inActiveList,
     warnings: warningsFor(snapshot, provider.id),
   }
+}
+
+function providerHasDirectSkills(provider: ScannedProvider): boolean {
+  return provider.skillCount > 0
 }
 
 /** Build sidebar rows from the scan snapshot + full registry. */
 export function buildProviderSidebarModel(
   snapshot: InstalledScanSnapshot
 ): ProviderSidebarModel {
-  const detectedIds = new Set(
-    snapshot.providers.filter(p => p.detected).map(p => p.id)
+  const filledProviderIds = new Set(
+    snapshot.providers
+      .filter(p => p.detected && providerHasDirectSkills(p))
+      .map(p => p.id)
   )
   const scannedById = new Map(snapshot.providers.map(p => [p.id, p]))
 
@@ -176,22 +215,22 @@ export function buildProviderSidebarModel(
   }
 
   const activeProviders = snapshot.providers
-    .filter(p => p.detected && !p.universal)
-    .map(p => scannedProviderItem(p, snapshot))
+    .filter(p => p.detected && !p.universal && providerHasDirectSkills(p))
+    .map(p => scannedProviderItem(p, snapshot, true))
     .sort(sortProvidersByCountThenName)
 
   // Detected universal-registry agents (e.g. Cursor) still appear as providers.
   const detectedUniversalAgents = snapshot.providers
-    .filter(p => p.detected && p.universal)
-    .map(p => scannedProviderItem(p, snapshot))
+    .filter(p => p.detected && p.universal && providerHasDirectSkills(p))
+    .map(p => scannedProviderItem(p, snapshot, true))
     .sort(sortProvidersByCountThenName)
 
   const inactiveProviders = providerRegistry.providers
-    .filter(def => !detectedIds.has(def.id))
+    .filter(def => !filledProviderIds.has(def.id))
     .map(def => {
       const scanned = scannedById.get(def.id)
       if (scanned) {
-        return scannedProviderItem(scanned, snapshot)
+        return scannedProviderItem(scanned, snapshot, false)
       }
       return {
         id: def.id,
@@ -220,14 +259,16 @@ export function contentWarningsForSelection(
   snapshot: InstalledScanSnapshot,
   selection: ProviderFilterId
 ): ScanWarning[] {
+  let warnings: ScanWarning[]
   if (selection === ALL_AGENTS_FILTER_ID) {
-    return snapshot.warnings
-  }
-  if (selection === UNIVERSAL_PROVIDER_ID) {
-    return snapshot.warnings.filter(
+    warnings = snapshot.warnings
+  } else if (selection === UNIVERSAL_PROVIDER_ID) {
+    warnings = snapshot.warnings.filter(
       w =>
         w.code === 'universal_empty' || w.providerId === UNIVERSAL_PROVIDER_ID
     )
+  } else {
+    warnings = snapshot.warnings.filter(w => w.providerId === selection)
   }
-  return snapshot.warnings.filter(w => w.providerId === selection)
+  return warnings.filter(w => isBannerWarning(w, selection))
 }

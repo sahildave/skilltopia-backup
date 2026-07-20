@@ -29,9 +29,14 @@ import {
   contentWarningsForSelection,
   filterSkillsForSelection,
   providerTagsForSkill,
+  warningRevealProviderId,
   type ProviderFilterId,
 } from './installed-skills-model'
-import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types'
+import type {
+  InstalledScanSnapshot,
+  ScannedSkill,
+  ScanWarning,
+} from '@/platform/types'
 import { UNIVERSAL_PROVIDER_ID } from '@/platform/types'
 
 export function SkillsLibraryView() {
@@ -221,13 +226,7 @@ function LocalInstalledSkillsView() {
             {warnings.length > 0 ? (
               <div className="space-y-2">
                 {warnings.map(warning => (
-                  <div
-                    key={`${warning.code}-${warning.providerId ?? ''}-${warning.path ?? ''}`}
-                    className="bg-amber-500/10 text-amber-950 dark:text-amber-100 flex items-start gap-2 rounded-md px-3 py-2 text-sm"
-                  >
-                    <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-                    <p className="text-pretty">{warning.message}</p>
-                  </div>
+                  <ScanWarningBanner key={warningKey(warning)} warning={warning} />
                 ))}
               </div>
             ) : null}
@@ -304,6 +303,36 @@ function SkillCardGrid({
           </CardFooter>
         </Card>
       ))}
+    </div>
+  )
+}
+
+function warningKey(warning: ScanWarning): string {
+  return `${warning.code}-${warning.providerId ?? ''}-${warning.path ?? ''}`
+}
+
+function ScanWarningBanner({ warning }: { warning: ScanWarning }) {
+  const { t } = useTranslation()
+  const revealId = warningRevealProviderId(warning)
+
+  return (
+    <div className="bg-amber-500/10 text-amber-950 dark:text-amber-100 flex items-start justify-between gap-3 rounded-md px-3 py-2 text-sm">
+      <div className="flex min-w-0 items-start gap-2">
+        <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+        <p className="text-pretty">{warning.message}</p>
+      </div>
+      {revealId ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0 border-amber-600/30 bg-background/80 hover:bg-background"
+          onClick={() => void platform.revealProviderSkillsDir(revealId)}
+        >
+          <FolderOpen className="size-3.5" aria-hidden />
+          {t('skills.installed.openFolder')}
+        </Button>
+      ) : null}
     </div>
   )
 }

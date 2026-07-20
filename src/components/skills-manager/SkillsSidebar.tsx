@@ -20,6 +20,7 @@ import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store'
 import {
   ALL_AGENTS_FILTER_ID,
   buildProviderSidebarModel,
+  sidebarWarnings,
   type ProviderFilterId,
   type ProviderSidebarItem,
 } from './installed-skills-model'
@@ -248,7 +249,7 @@ function ProviderRow(props: {
     return null
   }
   const count = item?.skillCount ?? props.skillCount ?? 0
-  const hasWarning = (item?.warnings.length ?? 0) > 0
+  const hasWarning = sidebarWarnings(item?.warnings ?? []).length > 0
 
   return (
     <button

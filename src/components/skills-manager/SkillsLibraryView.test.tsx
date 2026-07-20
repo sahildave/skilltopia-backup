@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DESKTOP_APP_DOWNLOAD_URL } from '@/lib/desktop-download'
 import { MOCK_EMPTY_SCAN, MOCK_INSTALLED_SCAN } from '@/platform/fixtures'
+import { UNIVERSAL_PROVIDER_ID } from '@/platform/types'
 import { useInstalledScanStore } from '@/store/installed-scan-store'
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store'
 import { ALL_AGENTS_FILTER_ID } from './installed-skills-model'
@@ -104,12 +105,16 @@ describe('SkillsLibraryView (local / mock)', () => {
     expect(scanMock.revealProviderSkillsDir).toHaveBeenCalledWith('claude-code')
   })
 
-  it('disables reveal when the selected provider directory is missing', () => {
+  it('disables reveal when the selected provider directory is missing', async () => {
+    const user = userEvent.setup()
     useInstalledScanStore.setState({ snapshot: MOCK_EMPTY_SCAN })
-    useInstalledSkillsUiStore.setState({ providerFilter: 'claude-code' })
+    useInstalledSkillsUiStore.setState({ providerFilter: UNIVERSAL_PROVIDER_ID })
     render(<SkillsLibraryView />)
 
     expect(screen.getByTitle(/directory is missing/i)).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: /open folder/i }))
+    expect(scanMock.revealProviderSkillsDir).toHaveBeenCalledWith('universal')
   })
 
   it('shows Universal Skills section when Show all Universal is enabled', async () => {
@@ -140,7 +145,9 @@ describe('SkillsLibraryView (local / mock)', () => {
     expect(
       screen.getByRole('switch', { name: /show all universal/i })
     ).toBeChecked()
-    await user.click(screen.getByText('Cursor'))
+    await user.click(
+      screen.getAllByRole('button', { name: /Claude Code/i })[0]!
+    )
     expect(useInstalledSkillsUiStore.getState().showAllUniversal).toBe(false)
   })
 
@@ -188,7 +195,7 @@ describe('SkillsSidebar providers', () => {
     })
   })
 
-  it('shows Universal, active providers, counts, warnings, and inactive group', async () => {
+  it('shows Universal, filled providers, and collapsible other providers', async () => {
     const user = userEvent.setup()
     const onSelect = vi.fn()
     render(<SkillsSidebar active="library" onSelect={onSelect} />)
@@ -197,17 +204,18 @@ describe('SkillsSidebar providers', () => {
     expect(screen.getByText('All Agents')).toBeInTheDocument()
     expect(screen.getByText('Universal')).toBeInTheDocument()
     expect(screen.getByText('Claude Code')).toBeInTheDocument()
-    expect(screen.getByText('Cursor')).toBeInTheDocument()
+    expect(screen.queryByText('Cursor')).not.toBeInTheDocument()
 
     const allAgents = screen.getByText('All Agents').closest('button')
     expect(allAgents).toHaveTextContent('3')
     const universal = screen.getByText('Universal').closest('button')
     expect(universal).toHaveTextContent('2')
-    const cursorRow = screen.getByText('Cursor').closest('button')
-    expect(cursorRow).toHaveTextContent('0')
 
     await user.click(screen.getByText('Other providers'))
     expect(screen.getByLabelText(/search providers/i)).toBeInTheDocument()
+    expect(screen.getByText('Cursor')).toBeInTheDocument()
+    const cursorRow = screen.getByText('Cursor').closest('button')
+    expect(cursorRow).toHaveTextContent('0')
   })
 
   it('selects a provider from the in-memory snapshot without scanning', async () => {

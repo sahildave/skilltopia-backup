@@ -134,6 +134,7 @@
   "skills.installed.refreshing": "Refreshing…",
   "skills.installed.loading": "Scanning installed skills…",
   "skills.installed.revealPath": "Reveal in Finder or Explorer",
+  "skills.installed.openFolder": "Open folder",
   "skills.installed.pathMissing": "Directory is missing",
   "skills.installed.pathUnknown": "Path unavailable",
   "skills.installed.showAllUniversal": "Show all Universal",

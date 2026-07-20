@@ -5,6 +5,7 @@ import {
   contentWarningsForSelection,
   filterSkillsForSelection,
   providerTagsForSkill,
+  warningRevealProviderId,
 } from './installed-skills-model'
 import {
   MOCK_EMPTY_SCAN,
@@ -78,18 +79,13 @@ describe('providerTagsForSkill', () => {
 })
 
 describe('buildProviderSidebarModel', () => {
-  it('keeps Universal visible and lists active then inactive providers', () => {
+  it('keeps Universal visible and lists filled providers in the active group', () => {
     const model = buildProviderSidebarModel(MOCK_INSTALLED_SCAN)
     expect(model.universal.skillCount).toBe(2)
     expect(model.universal.skillsDir).toBe('/Users/mock/.agents/skills')
     expect(model.allAgentsCount).toBe(3)
-    expect(model.activeProviders.map(p => p.id)).toEqual([
-      'claude-code',
-      'cursor',
-    ])
-    expect(
-      model.activeProviders.find(p => p.id === 'cursor')?.warnings
-    ).toHaveLength(1)
+    expect(model.activeProviders.map(p => p.id)).toEqual(['claude-code'])
+    expect(model.inactiveProviders.some(p => p.id === 'cursor')).toBe(true)
     expect(model.inactiveProviders.length).toBeGreaterThan(0)
     expect(model.inactiveProviders.every(p => !p.active)).toBe(true)
     expect(model.inactiveProviders.some(p => p.id === 'claude-code')).toBe(
@@ -147,24 +143,43 @@ describe('buildProviderSidebarModel', () => {
 })
 
 describe('contentWarningsForSelection', () => {
-  it('scopes warnings to the selected provider', () => {
+  it('omits benign provider_empty warnings from banners', () => {
     expect(
       contentWarningsForSelection(MOCK_INSTALLED_SCAN, 'cursor')
-    ).toHaveLength(1)
-    expect(
-      contentWarningsForSelection(MOCK_INSTALLED_SCAN, 'claude-code')
     ).toHaveLength(0)
     expect(
       contentWarningsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID)
-    ).toHaveLength(1)
+    ).toHaveLength(0)
+    expect(
+      contentWarningsForSelection(MOCK_INSTALLED_SCAN, 'claude-code')
+    ).toHaveLength(0)
   })
 
-  it('surfaces empty-scan warnings for Universal and All Agents', () => {
+  it('surfaces missing-directory and empty-universal warnings for banners', () => {
     expect(
       contentWarningsForSelection(MOCK_EMPTY_SCAN, UNIVERSAL_PROVIDER_ID)
     ).toHaveLength(1)
     expect(
       contentWarningsForSelection(MOCK_EMPTY_SCAN, ALL_AGENTS_FILTER_ID)
     ).toHaveLength(2)
+    expect(
+      contentWarningsForSelection(MOCK_EMPTY_SCAN, 'claude-code')
+    ).toHaveLength(1)
+  })
+
+  it('maps banner warnings to reveal provider ids', () => {
+    const universalWarning = MOCK_EMPTY_SCAN.warnings.find(
+      w => w.code === 'universal_empty'
+    )
+    expect(universalWarning).toBeDefined()
+    if (!universalWarning) return
+    expect(warningRevealProviderId(universalWarning)).toBe(UNIVERSAL_PROVIDER_ID)
+
+    const missingDir = MOCK_EMPTY_SCAN.warnings.find(
+      w => w.code === 'skills_dir_missing'
+    )
+    expect(missingDir).toBeDefined()
+    if (!missingDir) return
+    expect(warningRevealProviderId(missingDir)).toBe('claude-code')
   })
 })

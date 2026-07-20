@@ -233,6 +233,7 @@
   "skills.detail.noEnrichment": "This skill has catalog metadata, but enrichment is not available yet.",
   "skills.detail.openExternal": "Open on skills.sh",
   "skills.install.action": "Install",
+  "skills.install.installed": "Installed",
   "skills.install.global": "Install globally",
   "skills.install.project": "Install to project…",
   "skills.install.pickProject": "Choose project folder for skill install",

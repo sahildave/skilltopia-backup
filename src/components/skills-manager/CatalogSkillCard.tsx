@@ -27,6 +27,8 @@ import {
   MorphingDialogTrigger,
 } from '@/components/ui/morphing-dialog';
 import type { SkillsShSkill } from '@/catalog/types';
+import { useInstalledScanStore } from '@/store/installed-scan-store';
+import { isCatalogSkillInstalled } from './catalog-installed-match';
 import { isInstallCancelled, isPermissionError } from './library-errors';
 import { SkillDetailBody } from './SkillDetailDialog';
 import type { InstallScope } from './types';
@@ -40,10 +42,17 @@ export function formatInstalls(count: number): string {
   return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(count);
 }
 
-export function SkillInstallMenu({ skill }: { skill: SkillsShSkill }) {
+export function SkillInstallMenu({
+  skill,
+  installedKeys,
+}: {
+  skill: SkillsShSkill;
+  installedKeys: Set<string>;
+}) {
   const { t } = useTranslation();
   const [installing, setInstalling] = useState(false);
   const copiesCommand = platform.copiesInstallCommand;
+  const isInstalled = isCatalogSkillInstalled(skill, installedKeys);
 
   const handleInstall = async (scope: InstallScope) => {
     setInstalling(true);
@@ -61,6 +70,9 @@ export function SkillInstallMenu({ skill }: { skill: SkillsShSkill }) {
           name: skill.name,
         }),
       );
+      if (platform.hasLocalLibrary) {
+        void useInstalledScanStore.getState().rescan();
+      }
     } catch (error) {
       if (isInstallCancelled(error)) return;
       const message = error instanceof Error ? error.message : String(error);
@@ -80,6 +92,14 @@ export function SkillInstallMenu({ skill }: { skill: SkillsShSkill }) {
       setInstalling(false);
     }
   };
+
+  if (isInstalled) {
+    return (
+      <Button variant="outline" size="sm" disabled>
+        {t('skills.install.installed')}
+      </Button>
+    );
+  }
 
   return (
     <DropdownMenu>
@@ -103,9 +123,11 @@ export function SkillInstallMenu({ skill }: { skill: SkillsShSkill }) {
 
 export function CatalogSkillCard({
   skill,
+  installedKeys,
   compact = false,
 }: {
   skill: SkillsShSkill;
+  installedKeys: Set<string>;
   compact?: boolean;
 }) {
   const { t } = useTranslation();
@@ -144,7 +166,7 @@ export function CatalogSkillCard({
               onClick={(event) => event.stopPropagation()}
               onKeyDown={(event) => event.stopPropagation()}
             >
-              <SkillInstallMenu skill={skill} />
+              <SkillInstallMenu skill={skill} installedKeys={installedKeys} />
               <Button
                 variant="ghost"
                 size="sm"
@@ -170,7 +192,13 @@ export function CatalogSkillCard({
   );
 }
 
-export function CatalogSkillListRow({ skill }: { skill: SkillsShSkill }) {
+export function CatalogSkillListRow({
+  skill,
+  installedKeys,
+}: {
+  skill: SkillsShSkill;
+  installedKeys: Set<string>;
+}) {
   const { t } = useTranslation();
 
   return (
@@ -192,7 +220,7 @@ export function CatalogSkillListRow({ skill }: { skill: SkillsShSkill }) {
             {formatInstalls(skill.installs)}
           </Badge>
           <Badge variant="outline">{skill.sourceType}</Badge>
-          <SkillInstallMenu skill={skill} />
+          <SkillInstallMenu skill={skill} installedKeys={installedKeys} />
           <MorphingDialogTrigger asChild>
             <Button variant="outline" size="sm">
               {t('skills.dashboard.details')}

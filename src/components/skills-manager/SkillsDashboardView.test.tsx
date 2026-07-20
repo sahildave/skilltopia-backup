@@ -5,6 +5,8 @@ import { MotionGlobalConfig } from 'motion/react';
 import { SkillsDashboardView } from './SkillsDashboardView';
 import { catalog } from '@catalog';
 import { MOCK_LEADERBOARD } from '@/catalog/fixtures';
+import { MOCK_INSTALLED_SCAN } from '@/platform/fixtures';
+import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
 
 vi.mock('@catalog', () => ({
@@ -18,6 +20,11 @@ vi.mock('@catalog', () => ({
 describe('SkillsDashboardView', () => {
   beforeEach(() => {
     useInstalledSkillsUiStore.setState({ layoutMode: 'grid' });
+    useInstalledScanStore.setState({
+      snapshot: null,
+      error: null,
+      refreshing: false,
+    });
     vi.mocked(catalog.fetchLeaderboard).mockResolvedValue(MOCK_LEADERBOARD);
     vi.mocked(catalog.search).mockResolvedValue([]);
     vi.mocked(catalog.fetchDetail).mockResolvedValue({
@@ -80,6 +87,20 @@ describe('SkillsDashboardView', () => {
     render(<SkillsDashboardView />);
 
     expect(await screen.findAllByRole('button', { name: 'Install' })).not.toHaveLength(0);
+  });
+
+  it('shows Installed instead of Install when a catalog skill matches the local scan', async () => {
+    useInstalledScanStore.setState({ snapshot: MOCK_INSTALLED_SCAN });
+
+    render(<SkillsDashboardView />);
+
+    await waitFor(() => {
+      expect(catalog.fetchLeaderboard).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Install' })).not.toBeInTheDocument();
+    });
+    expect(screen.getAllByRole('button', { name: 'Installed' })).toHaveLength(2);
   });
 
   it('toggles list and grid layout from the toolbar', async () => {

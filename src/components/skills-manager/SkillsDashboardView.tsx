@@ -26,12 +26,14 @@ import {
   useSkillsLeaderboard,
   useSkillsSearch,
 } from '@/services/skills-sh';
+import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
 import { AlertCircle, LayoutGrid, LayoutList, Search, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DitherGradient } from '../dither-kit';
 import { CatalogSkillCard, CatalogSkillListRow } from './CatalogSkillCard';
+import { installedSkillKeysFromSnapshot } from './catalog-installed-match';
 
 const LIST_PER_PAGE = 100;
 
@@ -89,6 +91,8 @@ function SkillsResults({
   emptyDescription: string;
 }) {
   const { t } = useTranslation();
+  const snapshot = useInstalledScanStore((state) => state.snapshot);
+  const installedKeys = installedSkillKeysFromSnapshot(snapshot);
 
   if (isLoading && skills.length === 0) {
     return <SkillsSkeleton layoutMode={layoutMode} />;
@@ -138,9 +142,9 @@ function SkillsResults({
       >
         {skills.map((skill) =>
           layoutMode === 'grid' ? (
-            <CatalogSkillCard key={skill.id} skill={skill} />
+            <CatalogSkillCard key={skill.id} skill={skill} installedKeys={installedKeys} />
           ) : (
-            <CatalogSkillListRow key={skill.id} skill={skill} />
+            <CatalogSkillListRow key={skill.id} skill={skill} installedKeys={installedKeys} />
           ),
         )}
       </div>

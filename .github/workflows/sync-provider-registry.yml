@@ -1,0 +1,76 @@
+name: Sync provider registry
+
+on:
+  schedule:
+    - cron: '0 9 * * 1' # Mondays 09:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-provider-registry
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    name: Generate and open update PR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate provider registry from upstream
+        id: generate
+        run: npm run providers:generate
+
+      - name: Validate registry (typecheck + provider tests)
+        run: |
+          npm run typecheck
+          npm run test:run -- src/providers
+
+      - name: Detect registry changes
+        id: changes
+        run: |
+          if git diff --quiet -- src/providers/registry.json src/providers/upstream/agents.ts; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            COMMIT=$(node -e "console.log(require('./src/providers/registry.json').source.commit)")
+            echo "commit=${COMMIT}" >> "$GITHUB_OUTPUT"
+            echo "short=$(echo "$COMMIT" | cut -c1-7)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create pull request
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: 'chore(providers): sync registry from vercel-labs/skills@${{ steps.changes.outputs.short }}'
+          title: 'chore(providers): sync registry from vercel-labs/skills@${{ steps.changes.outputs.short }}'
+          body: |
+            ## Summary
+
+            Automated weekly sync of the provider registry from
+            [`vercel-labs/skills`](https://github.com/vercel-labs/skills)
+            (`src/agents.ts` @ `${{ steps.changes.outputs.commit }}`).
+
+            ## Notes
+
+            - Generation and provider parity tests passed in this workflow.
+            - Review the diff before merging; this workflow does not merge automatically.
+
+            ## Test plan
+
+            - [ ] Confirm Universal / detection probe diffs look intentional
+            - [ ] CI is green on this PR
+          branch: chore/sync-provider-registry
+          delete-branch: true

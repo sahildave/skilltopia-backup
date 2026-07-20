@@ -12,28 +12,28 @@ Tauri commands for the React client.
 
 ## Scope
 
-- [ ] Extend the shared port contract with a normalized scan snapshot covering
+- [x] Extend the shared port contract with a normalized scan snapshot covering
       providers, valid skills, provider associations, counts, paths, warnings, and
       source metadata.
-- [ ] Keep `listProviders()` and `listInstalled()` backed by one in-memory scan
+- [x] Keep `listProviders()` and `listInstalled()` backed by one in-memory scan
       snapshot; replace it on app open, Installed Skills tab activation, and manual
       Rescan.
-- [ ] Implement upstream-compatible detection in Rust using the generated
+- [x] Implement upstream-compatible detection in Rust using the generated
       registry, including macOS and Windows path variants.
-- [ ] Scan global locations only. Do not scan project-local directories.
-- [ ] Match skills.sh listing rules: directory or directory symlink, required
+- [x] Scan global locations only. Do not scan project-local directories.
+- [x] Match skills.sh listing rules: directory or directory symlink, required
       `SKILL.md`, upstream-compatible frontmatter parsing, and invalid-entry skip.
-- [ ] Follow symlinks safely when checking directory entries and deduplicate by
+- [x] Follow symlinks safely when checking directory entries and deduplicate by
       scope and parsed skill name, preserving all provider associations.
-- [ ] Treat `~/.agents/skills` as the aggregate Universal location. Provider
+- [x] Treat `~/.agents/skills` as the aggregate Universal location. Provider
       filters use only their direct global skills directory.
-- [ ] Keep detected providers visible even with zero valid skills and return a
+- [x] Keep detected providers visible even with zero valid skills and return a
       structured non-blocking warning.
-- [ ] Add a typed desktop command for revealing a provider skills directory in
+- [x] Add a typed desktop command for revealing a provider skills directory in
       Finder/Explorer without triggering a rescan. Disable the action when the
       directory is missing.
-- [ ] Normalize serialized Windows paths for the shared frontend contract.
-- [ ] Keep all Tauri imports and filesystem logic inside the desktop adapter and
+- [x] Normalize serialized Windows paths for the shared frontend contract.
+- [x] Keep all Tauri imports and filesystem logic inside the desktop adapter and
       Rust command boundary.
 
 ## Out of scope

@@ -25,12 +25,13 @@ Technical documentation for building and extending this app. These docs describe
 
 ## UI & UX
 
-| Document                                   | Description                                 |
-| ------------------------------------------ | ------------------------------------------- |
-| [UI Patterns](./ui-patterns.md)            | CSS architecture, shadcn/ui components      |
-| [Internationalization](./i18n-patterns.md) | Translation system, RTL support             |
-| [Notifications](./notifications.md)        | Toast and native notifications              |
-| [Cross-Platform](./cross-platform.md)      | Platform detection, OS-specific adaptations |
+| Document                                   | Description                                         |
+| ------------------------------------------ | --------------------------------------------------- |
+| [Design System](../design/DESIGN.md)       | Canonical agent-facing visual and interaction rules |
+| [UI Patterns](./ui-patterns.md)            | CSS architecture, shadcn/ui components              |
+| [Internationalization](./i18n-patterns.md) | Translation system, RTL support                     |
+| [Notifications](./notifications.md)        | Toast and native notifications                      |
+| [Cross-Platform](./cross-platform.md)      | Platform detection, OS-specific adaptations         |
 
 ## Data & Storage
 

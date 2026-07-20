@@ -19,6 +19,7 @@
     "dev:web": "TARGET=web vite",
     "dev:mock": "TARGET=mock vite",
     "dev:all": "concurrently -n web,tauri -c cyan,magenta --kill-others-on-fail \"TARGET=web VITE_PORT=5173 vite --open http://localhost:5173/\" \"npm run tauri:dev\"",
+    "dev:all:design": "concurrently -n web,tauri,design -c cyan,magenta,yellow --kill-others-on-fail \"TARGET=web VITE_PORT=5173 vite --open http://localhost:5173/\" \"npm run tauri:dev\" \"npm run design:watch\"",
     "build": "npm run build:desktop",
     "build:web": "TARGET=web tsc --noEmit && TARGET=web vite build && npm run scan:web-bundle",
     "build:desktop": "TARGET=desktop tsc --noEmit && TARGET=desktop vite build",
@@ -51,7 +52,7 @@
     "tauri:build": "npm run tauri build",
     "tauri:check": "npm run typecheck && npm run tauri build --check",
     "test:all": "npm run test:run && npm run rust:test",
-    "check:all": "npm run typecheck && npm run lint && npm run ast:lint && npm run format:check && npm run rust:fmt:check && npm run rust:clippy && npm run test:run && npm run rust:test",
+    "check:all": "npm run design:check && npm run typecheck && npm run lint && npm run ast:lint && npm run format:check && npm run rust:fmt:check && npm run rust:clippy && npm run test:run && npm run rust:test",
     "fix:all": "npm run lint:fix && npm run format && npm run rust:fmt && npm run rust:clippy:fix",
     "build:analyze": "vite build && echo '\\n📊 Bundle analysis complete. Check dist/ folder sizes or use a tool like webpack-bundle-analyzer on the dist folder.'",
     "release:prepare": "node scripts/prepare-release.js",
@@ -60,7 +61,10 @@
     "knip": "knip",
     "jscpd": "jscpd",
     "ast:lint": "ast-grep scan",
-    "ast:fix": "ast-grep scan --fix"
+    "ast:fix": "ast-grep scan --fix",
+    "design:check": "node scripts/sync-design.mjs check",
+    "design:sync": "node scripts/sync-design.mjs sync",
+    "design:watch": "node scripts/sync-design.mjs watch"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.18",

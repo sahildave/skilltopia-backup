@@ -46,8 +46,23 @@ This repository is a template with sensible defaults for building Tauri React ap
 
 **CRITICAL:** When doing UI work, always read and follow these skills before implementing:
 
+- `docs/design/DESIGN.md` — canonical repository design system and agent-facing UI rules
+- `docs/developer/ui-patterns.md` — implementation patterns for Tailwind, shadcn/ui, and desktop behavior
 - `/shadcn` — component selection, composition, and styling rules
 - `/baseline-ui` — baseline UI constraints (layout, interaction, a11y, anti-slop)
+
+`docs/design/DESIGN.md` is the only active design document. Use
+`src/theme-variables.css` as the source of truth for live color and theme
+values. Do not create parallel token tables or copied design-system documents.
+When changing visual tokens, update the CSS implementation and
+`docs/design/DESIGN.md` together. If this document conflicts with the actual
+repository implementation, the implementation wins and the design document
+should be updated.
+
+After Chrome Inspect or UI styling changes, run `npm run design:sync` and invoke
+`/sync-design` for the semantic prose/component pass. Use `npm run design:check`
+to detect drift; `npm run design:watch` can sync derivable values continuously
+while inspecting the UI.
 
 **CRITICAL:** When adding or changing animations/motion, always read and follow these skills before implementing:
 

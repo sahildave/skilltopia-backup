@@ -106,6 +106,7 @@ npm run dev
 ## Documentation
 
 - **[Developer Docs](docs/developer/)** - Architecture, patterns, and detailed guides
+- **[Design System](docs/design/DESIGN.md)** - Canonical UI guidance for human and AI agents
 - **[User Guide](docs/userguide/)** - End-user documentation template
 - **[Using This Template](docs/USING_THIS_TEMPLATE.md)** - Setup and workflow guide
 

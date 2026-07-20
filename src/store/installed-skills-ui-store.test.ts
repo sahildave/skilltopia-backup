@@ -7,7 +7,19 @@ describe('installed-skills-ui-store', () => {
     useInstalledSkillsUiStore.setState({
       providerFilter: ALL_AGENTS_FILTER_ID,
       showAllUniversal: false,
+      layoutMode: 'grid',
     });
+  });
+
+  it('updates layout mode without resetting other UI state', () => {
+    useInstalledSkillsUiStore.setState({
+      providerFilter: 'claude-code',
+      showAllUniversal: true,
+    });
+    useInstalledSkillsUiStore.getState().setLayoutMode('list');
+    expect(useInstalledSkillsUiStore.getState().layoutMode).toBe('list');
+    expect(useInstalledSkillsUiStore.getState().providerFilter).toBe('claude-code');
+    expect(useInstalledSkillsUiStore.getState().showAllUniversal).toBe(true);
   });
 
   it('resets Show all Universal when the provider filter changes', () => {

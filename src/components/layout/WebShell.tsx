@@ -39,7 +39,7 @@ export function WebShell() {
           <ResizableHandle className={cn(!leftSidebarVisible && 'hidden')} />
 
           <ResizablePanel defaultSize={100 - LAYOUT.leftSidebar.default} minSize={LAYOUT.main.min}>
-            <div className="flex h-full flex-col bg-background">
+            <div className="flex h-full min-w-0 flex-col overflow-hidden bg-background">
               <SkillsContent active={activeNav} />
             </div>
           </ResizablePanel>

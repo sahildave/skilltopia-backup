@@ -35,12 +35,5 @@ export type {
   SpecialProbeName,
 } from './types'
 
-export {
-  createProbeContext,
-  evaluateDetection,
-  evaluateSpecialProbe,
-  resolveGlobalSkillsDir,
-  resolveOpenClawGlobalSkillsDir,
-  resolvePathSpec,
-} from './evaluate-detection'
-export type { ProbeContext, ProbeFs } from './evaluate-detection'
+// Detection helpers use node:os / node:path — import from
+// `@/providers/evaluate-detection` (Node/tests only), never this barrel.

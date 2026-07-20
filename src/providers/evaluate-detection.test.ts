@@ -1,13 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import { getProviderById, providerRegistry, type ProviderDefinition } from './index'
 import {
   createProbeContext,
   evaluateDetection,
-  getProviderById,
-  providerRegistry,
   resolveGlobalSkillsDir,
   resolveOpenClawGlobalSkillsDir,
-  type ProviderDefinition,
-} from './index'
+} from './evaluate-detection'
 
 function requireProvider(id: string): ProviderDefinition {
   const provider = getProviderById(providerRegistry, id)

@@ -71,7 +71,7 @@ export function providerTagsForSkill(
     const label = names.get(id) ?? id
     if (seen.has(label)) continue
     seen.add(label)
-    tags.push(`[${label}]`)
+    tags.push(label)
   }
   return tags
 }

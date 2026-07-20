@@ -1,11 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
+import { catalog } from '@catalog'
 import { getSeedDetail, getSeedForView } from '@/data/skills-seed'
 import { logger } from '@/lib/logger'
-import {
-  commands,
-  unwrapResult,
-  type SkillsShSkill,
-} from '@/lib/tauri-bindings'
+import type { SkillsShSkill } from '@/catalog/types'
 
 export const skillsShQueryKeys = {
   all: ['skills-sh'] as const,
@@ -39,9 +36,7 @@ export function useSkillsLeaderboard(options?: {
     queryKey: skillsShQueryKeys.leaderboard(view, perPage),
     queryFn: async (): Promise<SkillsShSkill[]> => {
       logger.debug('Fetching skills.sh leaderboard', { view, perPage })
-      const skills = unwrapResult(
-        await commands.fetchSkillsLeaderboard(view, 0, perPage)
-      )
+      const skills = await catalog.fetchLeaderboard(view, 0, perPage)
       logger.info('skills.sh leaderboard loaded', { count: skills.length })
       return skills
     },
@@ -65,7 +60,7 @@ export function useSkillsSearch(
     queryKey: skillsShQueryKeys.search(trimmed, limit),
     queryFn: async (): Promise<SkillsShSkill[]> => {
       logger.debug('Searching skills.sh', { query: trimmed, limit })
-      const skills = unwrapResult(await commands.searchSkills(trimmed, limit))
+      const skills = await catalog.search(trimmed, limit)
       logger.info('skills.sh search complete', { count: skills.length })
       return skills
     },
@@ -80,7 +75,7 @@ export function useSkillDetail(skillId: string | null) {
     queryKey: skillsShQueryKeys.detail(skillId ?? ''),
     queryFn: async () => {
       if (!skillId) throw new Error('Skill ID is required.')
-      return unwrapResult(await commands.fetchSkillDetail(skillId))
+      return catalog.fetchDetail(skillId)
     },
     enabled: Boolean(skillId),
     initialData: () => (skillId ? getSeedDetail(skillId) : undefined),

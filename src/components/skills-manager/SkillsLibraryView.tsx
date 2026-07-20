@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { FileText, Folder, LoaderCircle, ShieldAlert } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { platform } from '@platform'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,10 +14,33 @@ import {
 } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
-import { isPermissionError, readGlobalSkills } from './read-global-skills'
+import { isPermissionError } from './library-errors'
 import type { SkillEntry } from './types'
 
 export function SkillsLibraryView() {
+  if (!platform.hasLocalLibrary) {
+    return <LibraryUnavailableStub />
+  }
+
+  return <LocalLibraryView />
+}
+
+function LibraryUnavailableStub() {
+  const { t } = useTranslation()
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+      <h1 className="text-2xl font-semibold text-balance">
+        {t('skills.library.title')}
+      </h1>
+      <p className="text-muted-foreground max-w-md text-sm text-pretty">
+        {t('skills.library.webUnavailable')}
+      </p>
+    </div>
+  )
+}
+
+function LocalLibraryView() {
   const [entries, setEntries] = useState<SkillEntry[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -25,7 +50,7 @@ export function SkillsLibraryView() {
     setError(null)
 
     try {
-      const next = await readGlobalSkills()
+      const next = await platform.listInstalled()
       setEntries(next)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)

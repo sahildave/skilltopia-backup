@@ -22,7 +22,9 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@platform": ["./src/platform/index.desktop.ts"],
+      "@catalog": ["./src/catalog/index.desktop.ts"]
     }
   },
   "include": ["src"],

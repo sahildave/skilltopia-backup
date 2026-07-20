@@ -30,22 +30,22 @@ This is the agent source of truth for dual-client work. Do not invent a monorepo
                     Backend API (api/ on Vercel)
 ```
 
-| Concern            | Web                                              | Desktop                                      |
-| ------------------ | ------------------------------------------------ | -------------------------------------------- |
-| Shell              | Thin browser shell (no titlebar/menu/updater)    | MainWindow, native menu, titlebar            |
-| Catalog            | `fetch('/api/…')` same-origin                    | Tauri command → Rust → `SKILLS_PROXY_BASE_URL` |
-| Native capability  | Via `PlatformPort` (Phase-1 subset)              | Same port; desktop implements disk/install   |
-| Secrets            | None in client; Backend only                     | Infisical `local` desktop-safe vars only     |
-| Package layout     | Single package — **not** npm workspaces/`apps/*` | Same                                         |
+| Concern           | Web                                              | Desktop                                        |
+| ----------------- | ------------------------------------------------ | ---------------------------------------------- |
+| Shell             | Thin browser shell (no titlebar/menu/updater)    | MainWindow, native menu, titlebar              |
+| Catalog           | `fetch('/api/…')` same-origin                    | Tauri command → Rust → `SKILLS_PROXY_BASE_URL` |
+| Native capability | Via `PlatformPort` (Phase-1 subset)              | Same port; desktop implements disk/install     |
+| Secrets           | None in client; Backend only                     | Infisical `local` desktop-safe vars only       |
+| Package layout    | Single package — **not** npm workspaces/`apps/*` | Same                                           |
 
 ## Capability ports and TARGET
 
 Build-time adapters — not runtime `if (isTauri)` branching for catalog/platform. Landed in task-2; treat this contract as locked for agents now.
 
-| Alias       | Resolves to (by `TARGET`)                                      | Role |
-| ----------- | -------------------------------------------------------------- | ---- |
-| `@platform` | `src/platform/index.{web\|desktop\|mock}.ts`                   | `PlatformPort` |
-| `@catalog`  | `src/catalog/index.{web\|desktop\|mock}.ts`                    | `CatalogPort` |
+| Alias       | Resolves to (by `TARGET`)                    | Role           |
+| ----------- | -------------------------------------------- | -------------- |
+| `@platform` | `src/platform/index.{web\|desktop\|mock}.ts` | `PlatformPort` |
+| `@catalog`  | `src/catalog/index.{web\|desktop\|mock}.ts`  | `CatalogPort`  |
 
 `TARGET` values: `web` \| `desktop` \| `mock`. Vite `resolve.alias` picks the file. Shared UI and services import **only** these aliases.
 
@@ -59,53 +59,54 @@ Build-time adapters — not runtime `if (isTauri)` branching for catalog/platfor
 
 ### CatalogPort
 
-| TARGET    | Implementation                                      |
-| --------- | --------------------------------------------------- |
-| `web`     | `fetch('/api/…')` (relative; Vite proxy in dev)     |
-| `desktop` | Tauri `commands.*` → Rust → Backend absolute URL    |
-| `mock`    | Fixtures (no network, no `@tauri-apps/*`)           |
+| TARGET    | Implementation                                   |
+| --------- | ------------------------------------------------ |
+| `web`     | `fetch('/api/…')` (relative; Vite proxy in dev)  |
+| `desktop` | Tauri `commands.*` → Rust → Backend absolute URL |
+| `mock`    | Fixtures (no network, no `@tauri-apps/*`)        |
 
 ## Entries and shells
 
-| Entry           | Shell                                      | Notes |
-| --------------- | ------------------------------------------ | ----- |
-| `entry-web`     | Thin browser chrome                        | Looks like a web app |
-| `entry-desktop` | Existing MainWindow / desktop startup      | Titlebar, menus, updater paths stay here |
-| mock            | Same as web shell + fixture ports          | Chrome Inspect for Library-like UI |
+| Entry           | Shell                                 | Notes                                    |
+| --------------- | ------------------------------------- | ---------------------------------------- |
+| `entry-web`     | Thin browser chrome                   | Looks like a web app                     |
+| `entry-desktop` | Existing MainWindow / desktop startup | Titlebar, menus, updater paths stay here |
+| mock            | Same as web shell + fixture ports     | Chrome Inspect for Library-like UI       |
 
 Web module graph must not import desktop-only startup (menus, quick panes, recovery, prefs UI in Phase-1).
 
 ## Script matrix
 
-Target state after task-2 (today: use `tauri:dev` / `dev:local` for desktop; web scripts land in foundation).
-
-| Script            | What runs                         | TARGET     | Notes |
-| ----------------- | --------------------------------- | ---------- | ----- |
-| `dev` / `dev:web` | Vite browser shell                | `web`      | Vite proxies `/api` → deployed Backend |
-| `dev:mock`        | Vite browser shell + fixtures     | `mock`     | No Backend required for UI states |
-| `dev:all`         | `dev:web` **+** `tauri:dev` only  | both       | **No** `proxy:dev` / local Backend process |
-| `tauri:dev`       | Tauri + Vite child                | `desktop`  | Rust → deployed Backend (or Infisical override) |
-| `build:web`       | Static web bundle                 | `web`      | Zero Tauri markers in `dist/` (enforced in task-3) |
-| `proxy:dev`       | Local Backend on `:3000`          | n/a        | Optional with `tauri:dev:local` — **not** part of `dev:all` |
-| `dev:local:proxy` | `proxy:dev` + `tauri:dev:local`   | desktop    | Optional both-local path; see [external-apis.md](./external-apis.md) |
+| Script            | What runs                           | TARGET    | Notes                                                                |
+| ----------------- | ----------------------------------- | --------- | -------------------------------------------------------------------- |
+| `dev` / `dev:web` | Vite browser shell                  | `web`     | Vite proxies `/api` → deployed Backend                               |
+| `dev:mock`        | Vite browser shell + fixtures       | `mock`    | No Backend required for UI states                                    |
+| `dev:all`         | web Vite **+** `tauri:dev` only     | both      | Web on `:5173`, Tauri Vite on `:1420`. **No** `proxy:dev`            |
+| `tauri:dev`       | Tauri + Vite child (`desktop.html`) | `desktop` | Rust → deployed Backend (or Infisical override)                      |
+| `build:web`       | Static web bundle                   | `web`     | Zero Tauri markers in `dist/` (enforced in task-3)                   |
+| `build:desktop`   | Desktop + quick-pane bundle         | `desktop` | Used by Tauri `beforeBuildCommand`                                   |
+| `proxy:dev`       | Local Backend on `:3000`            | n/a       | Optional with `tauri:dev:local` — **not** part of `dev:all`          |
+| `dev:local:proxy` | `proxy:dev` + `tauri:dev:local`     | desktop   | Optional both-local path; see [external-apis.md](./external-apis.md) |
 
 ### Network ports (TCP)
 
-| Process              | Port   |
-| -------------------- | ------ |
-| Vite (web / Tauri HMR) | `1420` |
-| Local Backend (`vercel dev`) | `3000` |
+| Process                                             | Port   |
+| --------------------------------------------------- | ------ |
+| Vite (`dev` / `dev:web` / `dev:mock` / Tauri alone) | `1420` |
+| Vite web half of `dev:all`                          | `5173` |
+| Local Backend (`vercel dev`)                        | `3000` |
 
 ### Chrome-first workflow
 
-- Day-to-day **UI** work: Chrome + `dev:web` (Inspect, React tooling).
-- Use Tauri when you need filesystem, install, opener, or desktop shell behavior.
-- `dev:mock` exercises Library / installed-list UI without a desktop binary.
+- Day-to-day **UI** work: Chrome + `npm run dev` / `dev:web` (Inspect, React tooling). Open `http://localhost:1420`.
+- Catalog calls go to relative `/api/*`; Vite proxies them to the deployed Backend (`SKILLS_PROXY_BASE_URL` or `https://skills-explorer-six.vercel.app`).
+- Use Tauri (`tauri:dev` / `dev:local`) when you need filesystem, install, opener, or desktop shell (titlebar/menu).
+- `npm run dev:mock` exercises Library / installed-list UI from fixtures without a desktop binary or Backend.
 
 ## Backend access (no CORS)
 
-| Client   | How it reaches Backend                                      |
-| -------- | ----------------------------------------------------------- |
+| Client   | How it reaches Backend                                       |
+| -------- | ------------------------------------------------------------ |
 | Web prod | Same origin: static site + `api/` on one Vercel project      |
 | Web dev  | Relative `/api` + Vite `server.proxy['/api']` → deploy URL   |
 | Desktop  | Rust `reqwest` to absolute Backend URL (CORS does not apply) |
@@ -114,11 +115,11 @@ Target state after task-2 (today: use `tauri:dev` / `dev:local` for desktop; web
 
 ## Secrets
 
-| Location                         | Allowed                                      |
-| -------------------------------- | -------------------------------------------- |
-| Infisical `dev` / `prod` → Vercel | Backend secrets (Supabase, Qdrant, LLM, …)  |
-| Infisical `local` → Tauri          | Desktop-safe only (e.g. optional `SKILLS_PROXY_BASE_URL`) |
-| `VITE_*` / web bundle / Tauri binary | **Never** Backend secrets                 |
+| Location                             | Allowed                                                   |
+| ------------------------------------ | --------------------------------------------------------- |
+| Infisical `dev` / `prod` → Vercel    | Backend secrets (Supabase, Qdrant, LLM, …)                |
+| Infisical `local` → Tauri            | Desktop-safe only (e.g. optional `SKILLS_PROXY_BASE_URL`) |
+| `VITE_*` / web bundle / Tauri binary | **Never** Backend secrets                                 |
 
 See [infisical.md](./infisical.md).
 
@@ -126,18 +127,18 @@ See [infisical.md](./infisical.md).
 
 Agent-actionable anti-patterns. Each row is a failure mode and the rule that prevents it.
 
-| What would break | How we avoid it |
-| ---------------- | --------------- |
-| Desktop React `fetch(https://deploy/api/…)` → CORS / leaked browser path | CatalogPort **desktop** adapter uses Tauri commands only; Rust owns the Backend URL |
-| Shared UI importing `@tauri-apps/*` → Tauri code in web bundle | Shared UI imports only `@platform` / `@catalog`; web adapters import zero `@tauri-apps/*` |
+| What would break                                                                         | How we avoid it                                                                                              |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Desktop React `fetch(https://deploy/api/…)` → CORS / leaked browser path                 | CatalogPort **desktop** adapter uses Tauri commands only; Rust owns the Backend URL                          |
+| Shared UI importing `@tauri-apps/*` → Tauri code in web bundle                           | Shared UI imports only `@platform` / `@catalog`; web adapters import zero `@tauri-apps/*`                    |
 | Dynamic `import('@tauri-apps/…')` “gated” by `isTauri` still emits chunks into web graph | Not enough. Web `TARGET` module graph must never reference the desktop adapter or any `@tauri-apps/*` module |
-| Browser CORS enabled on `/api/*` → open abuse of OIDC-backed proxy | Same-origin web only; **no CORS** on `/api/*`. Desktop bypasses CORS via Rust |
-| Absolute Backend URL in browser without a proxy → CORS or wrong origin | Web uses relative `/api`; Vite proxies in dev; prod is same-origin on Vercel |
-| Branching on `isTauri` / platform name for catalog or install | Call **port methods** / capabilities (`hasLocalLibrary`, `install`, …), not stringly platform checks |
-| Backend secrets in `VITE_*` or the Tauri binary | Forbidden. Secrets stay in Backend Infisical envs / Vercel only |
-| Backend proxy (`proxy:dev`) inside `dev:all` | Not our workflow. `dev:all` = web Vite + Tauri only; optional local Backend is a separate script |
-| Monorepo / `apps/web` + `apps/desktop` workspaces | Single package; build-time `TARGET` aliases |
-| Intentional Tauri import in a shared module ships in web `dist/` | task-3 CI scan after `build:web` fails on `@tauri-apps`, `__TAURI__`, invoke markers |
+| Browser CORS enabled on `/api/*` → open abuse of OIDC-backed proxy                       | Same-origin web only; **no CORS** on `/api/*`. Desktop bypasses CORS via Rust                                |
+| Absolute Backend URL in browser without a proxy → CORS or wrong origin                   | Web uses relative `/api`; Vite proxies in dev; prod is same-origin on Vercel                                 |
+| Branching on `isTauri` / platform name for catalog or install                            | Call **port methods** / capabilities (`hasLocalLibrary`, `install`, …), not stringly platform checks         |
+| Backend secrets in `VITE_*` or the Tauri binary                                          | Forbidden. Secrets stay in Backend Infisical envs / Vercel only                                              |
+| Backend proxy (`proxy:dev`) inside `dev:all`                                             | Not our workflow. `dev:all` = web Vite + Tauri only; optional local Backend is a separate script             |
+| Monorepo / `apps/web` + `apps/desktop` workspaces                                        | Single package; build-time `TARGET` aliases                                                                  |
+| Intentional Tauri import in a shared module ships in web `dist/`                         | task-3 CI scan after `build:web` fails on `@tauri-apps`, `__TAURI__`, invoke markers                         |
 
 ## Related docs
 

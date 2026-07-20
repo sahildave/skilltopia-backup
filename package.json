@@ -15,8 +15,13 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
+    "dev": "npm run dev:web",
+    "dev:web": "TARGET=web vite",
+    "dev:mock": "TARGET=mock vite",
+    "dev:all": "concurrently -n web,tauri -c cyan,magenta --kill-others-on-fail \"TARGET=web VITE_PORT=5173 vite\" \"npm run tauri:dev\"",
+    "build": "npm run build:desktop",
+    "build:web": "TARGET=web tsc --noEmit && TARGET=web vite build",
+    "build:desktop": "TARGET=desktop tsc --noEmit && TARGET=desktop vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",

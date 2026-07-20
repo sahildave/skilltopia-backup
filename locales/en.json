@@ -107,5 +107,10 @@
   "toast.error.windowMinimizeFailed": "Failed to minimize window: {{message}}",
   "toast.error.windowMaximizeFailed": "Failed to toggle maximize: {{message}}",
   "toast.error.fullscreenEnterFailed": "Failed to enter fullscreen: {{message}}",
-  "toast.error.fullscreenExitFailed": "Failed to exit fullscreen: {{message}}"
+  "toast.error.fullscreenExitFailed": "Failed to exit fullscreen: {{message}}",
+
+  "web.error.title": "Something went wrong",
+  "web.error.reload": "Reload",
+  "skills.library.title": "Library",
+  "skills.library.webUnavailable": "Local skill library is available in the desktop app. Download Skills Explorer to browse and manage skills on disk."
 }

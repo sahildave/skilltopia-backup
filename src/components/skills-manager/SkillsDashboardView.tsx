@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { openUrl } from '@tauri-apps/plugin-opener'
 import { AlertCircle, ExternalLink, Search, X } from 'lucide-react'
+import { platform } from '@platform'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -29,7 +29,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useDebouncedValue } from '@/hooks/use-debounced-value'
-import type { SkillsShSkill } from '@/lib/tauri-bindings'
+import type { SkillsShSkill } from '@/catalog/types'
 import {
   DISCOVERY_VIEWS,
   useSkillsLeaderboard,
@@ -98,7 +98,7 @@ function SkillCard({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => void openUrl(skill.url)}
+            onClick={() => void platform.openExternal(skill.url)}
             aria-label={`Open ${skill.name} on skills.sh`}
           >
             <ExternalLink data-icon="inline-start" /> View

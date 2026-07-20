@@ -1,5 +1,5 @@
 import { AlertCircle, ExternalLink, LoaderCircle } from 'lucide-react'
-import { openUrl } from '@tauri-apps/plugin-opener'
+import { platform } from '@platform'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
 import { useSkillDetail } from '@/services/skills-sh'
-import type { SkillsShSkill } from '@/lib/tauri-bindings'
+import type { SkillsShSkill } from '@/catalog/types'
 
 function titleForSkill(skillId: string): string {
   return skillId.split('/').at(-1)?.replaceAll('-', ' ') ?? skillId
@@ -152,7 +152,7 @@ export function SkillDetailDialog({
               <Button
                 variant="outline"
                 className="w-fit"
-                onClick={() => void openUrl(skill.url)}
+                onClick={() => void platform.openExternal(skill.url)}
               >
                 <ExternalLink data-icon="inline-start" /> Open on skills.sh
               </Button>

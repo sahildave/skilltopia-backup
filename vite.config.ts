@@ -1,16 +1,26 @@
+import path from 'path'
 import { defineConfig } from 'vite'
 import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import babel from '@rolldown/plugin-babel'
 import tailwindcss from '@tailwindcss/vite'
-import path, { resolve } from 'path'
+import { resolve } from 'path'
 import packageJson from './package.json'
 
 const host = process.env.TAURI_DEV_HOST
+const target = (process.env.TARGET ?? 'web') as 'web' | 'desktop' | 'mock'
+const port = Number(process.env.VITE_PORT) || 1420
+
+const DEFAULT_BACKEND_PROXY_TARGET =
+  process.env.SKILLS_PROXY_BASE_URL?.replace(/\/$/, '') ??
+  'https://skills-explorer-six.vercel.app'
+
+const isDesktop = target === 'desktop'
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
+    __APP_TARGET__: JSON.stringify(target),
   },
   plugins: [
     react(),
@@ -22,15 +32,24 @@ export default defineConfig(async () => ({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@platform': path.resolve(
+        __dirname,
+        `./src/platform/index.${target}.ts`
+      ),
+      '@catalog': path.resolve(__dirname, `./src/catalog/index.${target}.ts`),
     },
   },
   build: {
     chunkSizeWarningLimit: 600, // Prevent warnings for template's bundled components
     rolldownOptions: {
-      input: {
-        main: resolve(__dirname, 'index.html'),
-        'quick-pane': resolve(__dirname, 'quick-pane.html'),
-      },
+      input: isDesktop
+        ? {
+            main: resolve(__dirname, 'desktop.html'),
+            'quick-pane': resolve(__dirname, 'quick-pane.html'),
+          }
+        : {
+            main: resolve(__dirname, 'index.html'),
+          },
     },
   },
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
@@ -39,7 +58,7 @@ export default defineConfig(async () => ({
   clearScreen: false,
   // 2. tauri expects a fixed port, fail if that port is not available
   server: {
-    port: 1420,
+    port,
     strictPort: true,
     host: host || false,
     hmr: host
@@ -52,6 +71,13 @@ export default defineConfig(async () => ({
     watch: {
       // 3. tell vite to ignore watching `src-tauri`
       ignored: ['**/src-tauri/**'],
+    },
+    proxy: {
+      '/api': {
+        target: DEFAULT_BACKEND_PROXY_TARGET,
+        changeOrigin: true,
+        secure: true,
+      },
     },
   },
 }))

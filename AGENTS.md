@@ -4,6 +4,8 @@
 
 This repository is a template with sensible defaults for building Tauri React apps.
 
+**Chrome-first UI:** Day-to-day React work runs in Chrome via `npm run dev` / `dev:web` (TARGET=web). Use Tauri for filesystem, install, opener, and desktop chrome. See `docs/developer/web-and-desktop.md`. Shared UI imports only `@platform` / `@catalog` — never `@tauri-apps/*` on those paths.
+
 ## Vocabulary
 
 - **Backend API**: The Vercel-hosted HTTP API under `api/`. It owns all secrets and env (skills.sh auth, Supabase, Qdrant, AI provider keys). The Tauri desktop app and web UI never hold those credentials; they only call the Backend API.

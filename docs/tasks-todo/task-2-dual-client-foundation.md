@@ -21,35 +21,35 @@ Make web and desktop runnable from one package: build-time ports/adapters, separ
 
 ### Ports + TARGET
 
-- [ ] `src/platform/*` + `src/catalog/*` with `index.web.ts` / `index.desktop.ts` / `index.mock.ts`
-- [ ] Vite `resolve.alias` `@platform` / `@catalog` from `TARGET=web|desktop|mock`
-- [ ] Refactor `skills-sh.ts`, `read-global-skills.ts`, opener call sites onto ports
-- [ ] Tests; dashboard mocks `@catalog`
-- [ ] Web adapters import zero `@tauri-apps/*`
+- [x] `src/platform/*` + `src/catalog/*` with `index.web.ts` / `index.desktop.ts` / `index.mock.ts`
+- [x] Vite `resolve.alias` `@platform` / `@catalog` from `TARGET=web|desktop|mock`
+- [x] Refactor `skills-sh.ts`, `read-global-skills.ts`, opener call sites onto ports
+- [x] Tests; dashboard mocks `@catalog`
+- [x] Web adapters import zero `@tauri-apps/*`
 
 ### Entries + shells
 
-- [ ] `entry-web` + thin browser shell (no titlebar/menu/updater) — web looks like a web app
-- [ ] `entry-desktop` keeps MainWindow / desktop startup
-- [ ] Web module graph must not import Tauri-only startup
-- [ ] Library whole-screen substitute when `!hasLocalLibrary` (stub OK; polish in task-4)
-- [ ] Wire Vite/HTML inputs for both entries
-- [ ] Omit web prefs / quick pane / recovery in Phase-1
+- [x] `entry-web` + thin browser shell (no titlebar/menu/updater) — web looks like a web app
+- [x] `entry-desktop` keeps MainWindow / desktop startup
+- [x] Web module graph must not import Tauri-only startup
+- [x] Library whole-screen substitute when `!hasLocalLibrary` (stub OK; polish in task-4)
+- [x] Wire Vite/HTML inputs for both entries
+- [x] Omit web prefs / quick pane / recovery in Phase-1
 
 ### Scripts + Vite proxy
 
-- [ ] `dev:web` (`TARGET=web`); alias `dev` → `dev:web`
-- [ ] `dev:mock` (`TARGET=mock`)
-- [ ] `build:web`
-- [ ] `dev:all` = `dev:web` + `tauri:dev` only (**no** `proxy:dev` / Backend proxy process)
-- [ ] `tauri:dev` Vite child uses `TARGET=desktop`
-- [ ] Vite `server.proxy['/api']` → deployed Backend URL (env override)
+- [x] `dev:web` (`TARGET=web`); alias `dev` → `dev:web`
+- [x] `dev:mock` (`TARGET=mock`)
+- [x] `build:web`
+- [x] `dev:all` = `dev:web` + `tauri:dev` only (**no** `proxy:dev` / Backend proxy process)
+- [x] `tauri:dev` Vite child uses `TARGET=desktop`
+- [x] Vite `server.proxy['/api']` → deployed Backend URL (env override)
 
 ### Chrome-first + mock
 
-- [ ] Document Chrome-first workflow in `web-and-desktop.md` + AGENTS.md note: UI in Chrome; Tauri for fs/install/opener
-- [ ] Complete mock PlatformPort + CatalogPort fixtures (`hasLocalLibrary=true`, fake installed list, mocked install)
-- [ ] `dev:mock` smoke-tested; mock imports zero `@tauri-apps/*`
+- [x] Document Chrome-first workflow in `web-and-desktop.md` + AGENTS.md note: UI in Chrome; Tauri for fs/install/opener
+- [x] Complete mock PlatformPort + CatalogPort fixtures (`hasLocalLibrary=true`, fake installed list, mocked install)
+- [x] `dev:mock` smoke-tested; mock imports zero `@tauri-apps/*`
 
 ## Out of scope
 

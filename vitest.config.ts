@@ -38,6 +38,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@platform': path.resolve(__dirname, './src/platform/index.mock.ts'),
+      '@catalog': path.resolve(__dirname, './src/catalog/index.mock.ts'),
     },
   },
 })

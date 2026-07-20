@@ -144,11 +144,11 @@ function SkillCard({
   const { t } = useTranslation()
 
   return (
-    <div className={compact ? 'w-72 shrink-0' : undefined}>
+    <div className={compact ? 'w-75 shrink-0' : undefined}>
       <Card className="gap-4 py-4">
         <CardHeader className="px-4">
-          <CardTitle className="flex items-start justify-between gap-2 text-sm">
-            <span className="truncate text-balance">{skill.name}</span>
+          <CardTitle className="flex items-start justify-between gap-2 text-base">
+            <span className="truncate text-balance line-clamp-1">{skill.name}</span>
             <Badge variant="secondary" className="shrink-0 tabular-nums">
               {formatInstalls(skill.installs)}
             </Badge>
@@ -232,9 +232,9 @@ function DiscoveryRail({
       aria-labelledby={`rail-${view.id}`}
       className="flex flex-col gap-3"
     >
-      <div className="flex items-baseline justify-between gap-3">
-        <div>
-          <h3 id={`rail-${view.id}`} className="text-base font-semibold">
+      <div className="flex items-baseline px-2 justify-between gap-3">
+        <div className="flex flex-row justify-baseline items-baseline gap-2">
+          <h3 id={`rail-${view.id}`} className="text-lg">
             {view.label}
           </h3>
           <p className="text-muted-foreground text-xs">
@@ -258,7 +258,7 @@ function DiscoveryRail({
       ) : null}
       {query.isLoading && skills.length === 0 ? <SkillsGridSkeleton /> : null}
       {skills.length > 0 ? (
-        <div className="flex gap-4 overflow-x-auto pb-2">
+        <div className="flex gap-4 -ml-2.5 overflow-x-auto p-1">
           {skills.map(skill => (
             <SkillCard key={skill.id} skill={skill} onOpen={onOpen} compact />
           ))}
@@ -329,7 +329,7 @@ export function SkillsDashboardView() {
 
   return (
     <div className="relative flex h-full flex-col">
-      <div className="app-material app-scroll-edge sticky top-0 z-10 flex flex-row items-end justify-between pb-10 gap-4 p-6 ">
+      <div className="app-material border-b border-border sticky top-0 z-10 flex flex-row items-end justify-between pb-10 gap-4 p-8 ">
         <div className="flex flex-col items-start gap-3">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl leading-none text-balance">
@@ -341,7 +341,7 @@ export function SkillsDashboardView() {
             {t('skills.dashboard.description')}
           </p>
         </div>
-        <InputGroup className="max-w-md">
+        <InputGroup className="max-w-md rounded-xl">
           <InputGroupAddon>
             <Search />
           </InputGroupAddon>
@@ -375,7 +375,7 @@ export function SkillsDashboardView() {
         ) : null}
       </div>
       <ScrollArea className="min-h-0 flex-1">
-        <div className="flex flex-col gap-10 p-6">
+        <div className="flex flex-col gap-6 px-6 py-4">
           {isSearching ? (
             <SearchResults query={search} onOpen={setSelectedSkill} />
           ) : (

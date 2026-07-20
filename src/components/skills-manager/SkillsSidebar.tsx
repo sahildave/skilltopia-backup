@@ -4,7 +4,9 @@ import {
   LayoutDashboard,
   Layers,
   Settings,
+  Eye,
   ListChecks,
+  EyeClosed,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -75,8 +77,20 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
               <Icon className="size-4 shrink-0" />
               <span className="truncate">{item.label}</span>
             </button>
+
           )
         })}
+        <div className="flex flex-row justify-between items-center">
+          <Button
+          disabled
+          variant="ghost"
+          className="text-muted-foreground justify-center"
+        >
+          <Eye className="size-4" />
+          Review
+        </Button>
+        <p className="text-xs text-muted-foreground/70 shrink-0">Coming soon</p>
+        </div>
 
 
       <div className="py-2 h-full flex justify-end items-end">

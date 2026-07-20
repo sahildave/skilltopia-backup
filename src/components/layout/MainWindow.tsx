@@ -87,7 +87,7 @@ export function MainWindow() {
       <CommandPalette />
       <PreferencesDialog />
       <Toaster
-        position="bottom-right"
+        position="top-right"
         theme={
           theme === 'dark' ? 'dark' : theme === 'light' ? 'light' : 'system'
         }

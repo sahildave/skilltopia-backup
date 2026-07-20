@@ -41,20 +41,24 @@ export function SkillsLibraryView() {
   return (
     <div className="relative flex h-full flex-col">
       <div className="flex flex-col gap-4 border-b p-6">
+        <div className="flex flex-col items-start gap-1">
+
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-balance">Library</h1>
+          <h1 className="text-2xl font-bold text-balance">Installed</h1>
           {entries ? (
             <Badge variant="secondary" className="tabular-nums">
               {entries.length}
             </Badge>
           ) : null}
-        </div>
-        <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
+           <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
           <code className="bg-muted rounded px-1.5 py-0.5 text-xs">
             ~/.agents/skills
           </code>
           .
         </p>
+        </div>
+          </div>
+       
         <div>
           <Button onClick={handleRead} disabled={loading}>
             {loading ? <LoaderCircle className="size-4 animate-spin" /> : null}

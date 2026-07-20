@@ -7,7 +7,6 @@ import {
   PanelLeftClose,
   PanelRight,
   PanelRightClose,
-  Settings,
 } from 'lucide-react'
 
 /**
@@ -61,16 +60,6 @@ export function TitleBarRightActions() {
 
   return (
     <div className="flex items-center gap-1">
-      {/* <Button
-        onClick={handleOpenPreferences}
-        variant="ghost"
-        size="icon"
-        className="h-6 w-6 text-foreground/70 hover:text-foreground"
-        title={t('titlebar.settings')}
-      >
-        <Settings className="h-3 w-3" />
-      </Button> */}
-
       <Button
         onClick={toggleRightSidebar}
         variant="ghost"

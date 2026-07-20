@@ -26,13 +26,14 @@ import {
   useSkillsLeaderboard,
   useSkillsSearch,
 } from '@/services/skills-sh';
+import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
 import { AlertCircle, LayoutGrid, LayoutList, Search, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DitherGradient } from '../dither-kit';
 import { CatalogSkillCard, CatalogSkillListRow } from './CatalogSkillCard';
-import { SkillDetailDialog } from './SkillDetailDialog';
+import { installedSkillKeysFromSnapshot } from './catalog-installed-match';
 
 const LIST_PER_PAGE = 100;
 
@@ -81,7 +82,6 @@ function SkillsResults({
   error,
   emptyTitle,
   emptyDescription,
-  onOpen,
 }: {
   skills: SkillsShSkill[];
   layoutMode: 'grid' | 'list';
@@ -89,9 +89,10 @@ function SkillsResults({
   error: string | null;
   emptyTitle: string;
   emptyDescription: string;
-  onOpen: (skill: SkillsShSkill) => void;
 }) {
   const { t } = useTranslation();
+  const snapshot = useInstalledScanStore((state) => state.snapshot);
+  const installedKeys = installedSkillKeysFromSnapshot(snapshot);
 
   if (isLoading && skills.length === 0) {
     return <SkillsSkeleton layoutMode={layoutMode} />;
@@ -141,9 +142,9 @@ function SkillsResults({
       >
         {skills.map((skill) =>
           layoutMode === 'grid' ? (
-            <CatalogSkillCard key={skill.id} skill={skill} onOpen={onOpen} />
+            <CatalogSkillCard key={skill.id} skill={skill} installedKeys={installedKeys} />
           ) : (
-            <CatalogSkillListRow key={skill.id} skill={skill} onOpen={onOpen} />
+            <CatalogSkillListRow key={skill.id} skill={skill} installedKeys={installedKeys} />
           ),
         )}
       </div>
@@ -165,8 +166,6 @@ export function SkillsDashboardView() {
     perPage: LIST_PER_PAGE,
     enabled: !isSearching,
   });
-  const [selectedSkill, setSelectedSkill] = useState<SkillsShSkill | null>(null);
-
   const activeQuery = isSearching ? search : leaderboard;
   const skills = activeQuery.data ?? [];
   const isRefreshing = activeQuery.isFetching && skills.length > 0;
@@ -270,27 +269,9 @@ export function SkillsDashboardView() {
             error={errorMessage(activeQuery.error)}
             emptyTitle={t('skills.dashboard.noResultsTitle')}
             emptyDescription={t('skills.dashboard.noResultsDescription')}
-            onOpen={setSelectedSkill}
           />
         </div>
       </ScrollArea>
-      <SkillDetailDialog
-        skill={selectedSkill}
-        onOpenChange={(open) => {
-          if (!open) setSelectedSkill(null);
-        }}
-        onSelectRelated={(skillId) => {
-          setSelectedSkill({
-            id: skillId,
-            slug: skillId.split('/').at(-1) ?? skillId,
-            name: skillId.split('/').at(-1) ?? skillId,
-            source: skillId.split('/')[0] ?? '',
-            installs: 0,
-            sourceType: 'github',
-            url: `https://skills.sh/skills/${skillId}`,
-          });
-        }}
-      />
     </div>
   );
 }

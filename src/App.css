@@ -4,6 +4,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@font-face {
+  font-family: 'Inter';
+  src: url('./fonts/Inter-VariableFont_opsz,wght.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+
 /* Lustria */
 @font-face {
   font-family: 'Lustria';
@@ -12,12 +20,32 @@
   font-style: normal;
 }
 
+/* Corben */
 @font-face {
-  font-family: 'Inter';
-  src: url('./fonts/Inter-VariableFont_opsz,wght.woff2') format('woff2');
-  font-weight: 100 900;
+  font-family: 'Corben';
+  src: url('./fonts/Corben-Regular.ttf') format('truetype');
+  font-weight: 400;
   font-style: normal;
-  font-display: block;
+}
+@font-face {
+  font-family: 'Corben';
+  src: url('./fonts/Corben-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* Sumana */
+@font-face {
+  font-family: 'Sumana';
+  src: url('./fonts/Sumana-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Sumana';
+  src: url('./fonts/Sumana-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
 }
 
 @layer base {
@@ -38,14 +66,12 @@
 
   h1,
   h2,
-  h3,
-  h4,
-  h5,
-  h6,
+  strong,
   .serif-text {
-    font-family: 'Lustria', serif;
-    font-weight: 700; /* Uses the Bold variant for headings */
-    letter-spacing: -0.5px;
+    font-family: 'Sumana';
+    src: url('./fonts/Sumana-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
   }
 
   body {
@@ -107,5 +133,227 @@
   *[data-tauri-drag-region] {
     -webkit-app-region: drag;
     app-region: drag;
+  }
+}
+
+@layer utilities {
+  .app-pressable {
+    transform: translateZ(0);
+    transition:
+      transform 120ms ease-out,
+      opacity 120ms ease-out,
+      color 120ms ease-out,
+      background-color 120ms ease-out,
+      border-color 120ms ease-out,
+      box-shadow 120ms ease-out;
+  }
+
+  .app-pressable:where(:active, [data-state='open']) {
+    transform: scale(0.98);
+  }
+
+  .app-pressable-subtle:where(:active, [data-state='open']) {
+    transform: scale(0.99);
+  }
+
+  .app-material {
+    background-color: color-mix(in oklch, var(--background) 86%, transparent);
+    backdrop-filter: blur(18px) saturate(160%);
+  }
+
+  .app-material-strong {
+    background-color: color-mix(in oklch, var(--popover) 92%, transparent);
+    backdrop-filter: blur(22px) saturate(150%);
+  }
+
+  .app-scroll-edge {
+    border-block-end: 0;
+  }
+
+  .app-scroll-edge::after {
+    position: absolute;
+    inset-inline: 0;
+    inset-block-end: -1px;
+    height: 12px;
+    pointer-events: none;
+    content: '';
+    background: linear-gradient(
+      to bottom,
+      color-mix(in oklch, var(--border) 58%, transparent),
+      transparent
+    );
+    opacity: 0.62;
+  }
+
+  .app-dialog-command {
+    transform-origin: top center;
+  }
+
+  .app-dialog-command[data-state='open'] {
+    animation: app-dialog-command-in 180ms ease-out;
+  }
+
+  .app-dialog-command[data-state='closed'] {
+    animation: app-dialog-command-out 140ms ease-out;
+  }
+
+  .app-dialog-preferences {
+    transform-origin: left center;
+  }
+
+  .app-dialog-preferences[data-state='open'] {
+    animation: app-dialog-preferences-in 200ms ease-out;
+  }
+
+  .app-dialog-preferences[data-state='closed'] {
+    animation: app-dialog-preferences-out 150ms ease-out;
+  }
+
+  .app-dialog-detail {
+    transform-origin: center 42%;
+  }
+
+  .app-dialog-detail[data-state='open'] {
+    animation: app-dialog-detail-in 180ms ease-out;
+  }
+
+  .app-dialog-detail[data-state='closed'] {
+    animation: app-dialog-detail-out 140ms ease-out;
+  }
+
+  @keyframes app-dialog-command-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, calc(-50% - 10px)) scale(0.99);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+
+  @keyframes app-dialog-command-out {
+    from {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translate(-50%, calc(-50% - 8px)) scale(0.99);
+    }
+  }
+
+  @keyframes app-dialog-preferences-in {
+    from {
+      opacity: 0;
+      transform: translate(calc(-50% - 12px), -50%) scale(0.995);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+
+  @keyframes app-dialog-preferences-out {
+    from {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translate(calc(-50% - 10px), -50%) scale(0.995);
+    }
+  }
+
+  @keyframes app-dialog-detail-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, calc(-50% + 10px)) scale(0.995);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+
+  @keyframes app-dialog-detail-out {
+    from {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translate(-50%, calc(-50% + 8px)) scale(0.995);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .app-pressable {
+      transition:
+        opacity 120ms ease-out,
+        color 120ms ease-out,
+        background-color 120ms ease-out,
+        border-color 120ms ease-out,
+        box-shadow 120ms ease-out;
+    }
+
+    .app-pressable:where(:active, [data-state='open']),
+    .app-pressable-subtle:where(:active, [data-state='open']) {
+      transform: none;
+    }
+
+    .app-dialog-command[data-state='open'],
+    .app-dialog-preferences[data-state='open'],
+    .app-dialog-detail[data-state='open'] {
+      animation: app-dialog-fade-in 140ms ease-out;
+      transform: translate(-50%, -50%) !important;
+    }
+
+    .app-dialog-command[data-state='closed'],
+    .app-dialog-preferences[data-state='closed'],
+    .app-dialog-detail[data-state='closed'] {
+      animation: app-dialog-fade-out 120ms ease-out;
+      transform: translate(-50%, -50%) !important;
+    }
+
+    .motion-safe-pulse {
+      animation: none !important;
+    }
+  }
+
+  @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+    .app-material,
+    .app-material-strong {
+      background-color: var(--background);
+      backdrop-filter: none;
+    }
+
+    .app-material-strong {
+      background-color: var(--popover);
+    }
+
+    .app-scroll-edge::after {
+      height: 1px;
+      background: var(--border);
+      opacity: 1;
+    }
+  }
+
+  @keyframes app-dialog-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes app-dialog-fade-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
   }
 }

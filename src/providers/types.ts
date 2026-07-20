@@ -47,6 +47,9 @@ export type GlobalSkillsDir =
   | { type: 'none' }
   | { type: 'special'; name: 'openclaw-skills-dir' }
 
+// Repo standards prefer type aliases here; this local exception overrides
+// the generic lint preference for interfaces.
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 export type ProviderDefinition = {
   id: string
   displayName: string
@@ -60,6 +63,7 @@ export type ProviderDefinition = {
   detection: DetectionRule
 }
 
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 export type ProviderRegistrySource = {
   repositoryUrl: typeof PROVIDER_REGISTRY_SOURCE_URL
   commit: string
@@ -69,6 +73,7 @@ export type ProviderRegistrySource = {
   agentsTsPath: 'src/agents.ts'
 }
 
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 export type ProviderRegistry = {
   source: ProviderRegistrySource
   providers: readonly ProviderDefinition[]

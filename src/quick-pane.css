@@ -26,8 +26,8 @@ h4,
 h5,
 h6,
 .serif-text {
-  font-family: 'Lustria', serif;
-  font-weight: 700; /* Uses the Bold variant for headings */
+  font-family: 'Sumana', serif;
+  font-weight: 400; /* Uses the Bold variant for headings */
 }
 
 body {

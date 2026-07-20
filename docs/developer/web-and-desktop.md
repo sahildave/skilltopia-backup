@@ -67,9 +67,9 @@ direct global skills directory. Shared UI must not import `@tauri-apps/*`.
 
 Desktop `platform.install` runs `npx skills add` (shell plugin). Conventions:
 
-| Scope     | CLI flags                                                       | Typical on-disk location                                         |
-| --------- | --------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `global`  | `-g -y` plus `-a <id>` per detected non-universal provider only | Universal (`~/.agents/skills`) and symlinks for detected agents  |
+| Scope     | CLI flags                                                       | Typical on-disk location                                          |
+| --------- | --------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `global`  | `-g -y` plus `-a <id>` per detected non-universal provider only | Universal (`~/.agents/skills`) and symlinks for detected agents   |
 | `project` | `-y` plus `-a <id>` per detected non-universal provider only    | `<chosen-project>/.agents/skills` and detected agent project dirs |
 
 Desktop install reads the cached provider scan and never passes `-a '*'`, so undetected registry agents do not get new folders. Universal agents (Cursor, Codex, etc.) read from `~/.agents/skills` and do not need an explicit `-a` flag. Web `install` copies a universal-only command (no scan available).

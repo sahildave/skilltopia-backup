@@ -6,7 +6,7 @@ import type {
 } from './types'
 
 /** Non-universal detected providers to pass as `-a` flags to `skills add`. */
-export type InstallAgentTargets = {
+export interface InstallAgentTargets {
   providerIds: string[]
 }
 
@@ -57,15 +57,7 @@ export function buildSkillsAddArgs(
   targets: InstallAgentTargets = { providerIds: [] }
 ): string[] {
   const { source, skillName } = parseSkillInstallTarget(skill.id)
-  const args = [
-    '--yes',
-    'skills',
-    'add',
-    source,
-    '--skill',
-    skillName,
-    '-y',
-  ]
+  const args = ['--yes', 'skills', 'add', source, '--skill', skillName, '-y']
   for (const providerId of targets.providerIds) {
     args.push('-a', providerId)
   }

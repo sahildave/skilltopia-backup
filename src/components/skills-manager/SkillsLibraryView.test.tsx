@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { DESKTOP_APP_DOWNLOAD_URL } from '@/lib/desktop-download'
 import { MOCK_EMPTY_SCAN, MOCK_INSTALLED_SCAN } from '@/platform/fixtures'
 import { UNIVERSAL_PROVIDER_ID } from '@/platform/types'
+import type { ScannedSkill } from '@/platform/types'
 import { useInstalledScanStore } from '@/store/installed-scan-store'
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store'
 import { ALL_AGENTS_FILTER_ID } from './installed-skills-model'
@@ -205,7 +206,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     await user.click(screen.getByRole('menuitem', { name: /uninstall/i }))
     await waitFor(() => {
       expect(
-        screen.getByText(/this removes the skill from all agents/i)
+        screen.getByRole('button', { name: /yes, uninstall/i })
       ).toBeInTheDocument()
     })
 
@@ -234,7 +235,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     await user.click(screen.getByRole('menuitem', { name: /uninstall/i }))
     await waitFor(() => {
       expect(
-        screen.getByText(/this removes the skill from claude code/i)
+        screen.getByRole('button', { name: /yes, uninstall/i })
       ).toBeInTheDocument()
     })
 
@@ -257,7 +258,7 @@ describe('SkillsLibraryView (local / mock)', () => {
             ...MOCK_INSTALLED_SCAN.skills[0],
             name: 'Find Skills',
             uninstallName: 'find-skills',
-          },
+          } as ScannedSkill,
         ],
       },
     })

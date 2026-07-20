@@ -1,5 +1,5 @@
 import path from 'path'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import babel from '@rolldown/plugin-babel'
 import tailwindcss from '@tailwindcss/vite'
@@ -15,6 +15,17 @@ const DEFAULT_BACKEND_PROXY_TARGET =
   'https://skills-explorer-six.vercel.app'
 
 const isDesktop = target === 'desktop'
+const appEntry =
+  target === 'desktop' ? '/src/entry-desktop.tsx' : '/src/entry-web.tsx'
+
+function htmlAppEntryPlugin(): Plugin {
+  return {
+    name: 'html-app-entry',
+    transformIndexHtml(html) {
+      return html.replaceAll('%APP_ENTRY%', appEntry)
+    },
+  }
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
@@ -28,6 +39,7 @@ export default defineConfig(async () => ({
       presets: [reactCompilerPreset()],
     }),
     tailwindcss(),
+    htmlAppEntryPlugin(),
   ],
   resolve: {
     alias: {
@@ -44,7 +56,7 @@ export default defineConfig(async () => ({
     rolldownOptions: {
       input: isDesktop
         ? {
-            main: resolve(__dirname, 'desktop.html'),
+            main: resolve(__dirname, 'index.html'),
             'quick-pane': resolve(__dirname, 'quick-pane.html'),
           }
         : {

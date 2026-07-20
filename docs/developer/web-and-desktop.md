@@ -90,15 +90,17 @@ Web module graph must not import desktop-only startup (menus, quick panes, recov
 
 ### Network ports (TCP)
 
-| Process                                             | Port   |
-| --------------------------------------------------- | ------ |
-| Vite (`dev` / `dev:web` / `dev:mock` / Tauri alone) | `1420` |
-| Vite web half of `dev:all`                          | `5173` |
-| Local Backend (`vercel dev`)                        | `3000` |
+| Process | Port |
+| --- | --- |
+| Vite (`dev` / `dev:web` / `dev:mock` alone) | `1420` |
+| Vite web half of `dev:all` | `5173` — **Chrome web app URL** when both are running |
+| Vite desktop half of `dev:all` / `tauri:dev` | `1420` — Tauri WebView only (desktop adapters) |
+| Local Backend (`vercel dev`) | `3000` |
 
 ### Chrome-first workflow
 
-- Day-to-day **UI** work: Chrome + `npm run dev` / `dev:web` (Inspect, React tooling). Open `http://localhost:1420`.
+- Day-to-day **UI** work: Chrome + `npm run dev` / `dev:web`. Open `http://localhost:1420`.
+- With `npm run dev:all`: Chrome opens `http://localhost:5173` automatically (web TARGET). Do **not** open `:1420` in Chrome for catalog UI — that Vite is TARGET=desktop and will fail Tauri invokes in the browser.
 - Catalog calls go to relative `/api/*`; Vite proxies them to the deployed Backend (`SKILLS_PROXY_BASE_URL` or `https://skills-explorer-six.vercel.app`).
 - Use Tauri (`tauri:dev` / `dev:local`) when you need filesystem, install, opener, or desktop shell (titlebar/menu).
 - `npm run dev:mock` exercises Library / installed-list UI from fixtures without a desktop binary or Backend.

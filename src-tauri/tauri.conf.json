@@ -6,7 +6,7 @@
   "build": {
     "removeUnusedCommands": true,
     "beforeDevCommand": "TARGET=desktop vite",
-    "devUrl": "http://localhost:1420/desktop.html",
+    "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "npm run build:desktop",
     "frontendDist": "../dist"
   },

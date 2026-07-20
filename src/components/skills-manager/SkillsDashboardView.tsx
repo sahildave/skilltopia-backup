@@ -1,25 +1,8 @@
-import { useState } from 'react';
-import { AlertCircle, ChevronDown, ExternalLink, Search, X } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
-import { platform } from '@platform';
+import type { SkillsShSkill } from '@/catalog/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import {
   Empty,
   EmptyDescription,
@@ -33,132 +16,20 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '@/components/ui/input-group';
+import { ProgressiveBlur } from '@/components/ui/progressive-blur';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import type { SkillsShSkill } from '@/catalog/types';
+import type { PageSlideDirection } from '@/lib/animation';
+import { pageSlideVariants } from '@/lib/animation';
 import { DISCOVERY_VIEWS, useSkillsLeaderboard, useSkillsSearch } from '@/services/skills-sh';
-import { isInstallCancelled, isPermissionError } from './library-errors';
+import { AlertCircle, Search, X } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { CatalogSkillCard } from './CatalogSkillCard';
+import { DiscoveryListView, type DiscoveryViewId } from './DiscoveryListView';
 import { SkillDetailDialog } from './SkillDetailDialog';
-import type { InstallScope } from './types';
-
-function formatInstalls(count: number): string {
-  return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(count);
-}
-
-function SkillInstallMenu({ skill }: { skill: SkillsShSkill }) {
-  const { t } = useTranslation();
-  const [installing, setInstalling] = useState(false);
-  const copiesCommand = platform.copiesInstallCommand;
-
-  const handleInstall = async (scope: InstallScope) => {
-    setInstalling(true);
-    try {
-      await platform.install(
-        {
-          id: skill.id,
-          name: skill.name,
-          installUrl: skill.installUrl,
-        },
-        scope,
-      );
-      toast.success(
-        t(copiesCommand ? 'skills.install.copied' : 'skills.install.success', {
-          name: skill.name,
-        }),
-      );
-    } catch (error) {
-      if (isInstallCancelled(error)) return;
-      const message = error instanceof Error ? error.message : String(error);
-      if (isPermissionError(message)) {
-        toast.error(t('skills.install.permissionError'), {
-          description: message,
-        });
-      } else {
-        toast.error(
-          t(copiesCommand ? 'skills.install.copyFailed' : 'skills.install.failed', {
-            name: skill.name,
-          }),
-          { description: message },
-        );
-      }
-    } finally {
-      setInstalling(false);
-    }
-  };
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" disabled={installing}>
-          {t(copiesCommand ? 'skills.install.copyAction' : 'skills.install.action')}
-          <ChevronDown size={16} data-icon="inline-end" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem disabled={installing} onSelect={() => void handleInstall('global')}>
-          {t(copiesCommand ? 'skills.install.copyGlobal' : 'skills.install.global')}
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled={installing} onSelect={() => void handleInstall('project')}>
-          {t(copiesCommand ? 'skills.install.copyProject' : 'skills.install.project')}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-function SkillCard({
-  skill,
-  compact = false,
-  onOpen,
-}: {
-  skill: SkillsShSkill;
-  compact?: boolean;
-  onOpen: (skill: SkillsShSkill) => void;
-}) {
-  const { t } = useTranslation();
-
-  return (
-    <div className={compact ? 'w-75 shrink-0' : undefined}>
-      <Card className="gap-4 py-4">
-        <CardHeader className="px-4">
-          <CardTitle className="flex items-start justify-between gap-2 text-base">
-            <span className="truncate text-balance line-clamp-1">{skill.name}</span>
-            <Badge variant="secondary" className="shrink-0 tabular-nums">
-              {formatInstalls(skill.installs)}
-            </Badge>
-          </CardTitle>
-          <CardDescription className="truncate text-pretty">{skill.source}</CardDescription>
-        </CardHeader>
-        <CardContent className="px-4">
-          <div className="flex flex-wrap gap-1.5">
-            <Badge variant="outline">{skill.sourceType}</Badge>
-            <Badge variant="outline" className="max-w-full truncate">
-              {skill.slug}
-            </Badge>
-          </div>
-        </CardContent>
-        <CardFooter className="justify-end gap-1 border-t px-4 pt-4">
-          <SkillInstallMenu skill={skill} />
-          <Button variant="outline" size="sm" onClick={() => onOpen(skill)}>
-            {t('skills.dashboard.details')}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => void platform.openExternal(skill.url)}
-            aria-label={t('skills.dashboard.openExternalLabel', {
-              name: skill.name,
-            })}
-          >
-            <ExternalLink data-icon="inline-start" />
-            {t('skills.dashboard.view')}
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
-  );
-}
 
 function SkillsGridSkeleton() {
   return (
@@ -191,9 +62,11 @@ function errorMessage(error: unknown): string | null {
 function DiscoveryRail({
   view,
   onOpen,
+  onShowMore,
 }: {
   view: (typeof DISCOVERY_VIEWS)[number];
   onOpen: (skill: SkillsShSkill) => void;
+  onShowMore: (viewId: DiscoveryViewId) => void;
 }) {
   const { t } = useTranslation();
   const query = useSkillsLeaderboard({ view: view.id, perPage: 12 });
@@ -201,13 +74,16 @@ function DiscoveryRail({
   const error = errorMessage(query.error);
 
   return (
-    <section aria-labelledby={`rail-${view.id}`} className="flex flex-col gap-3">
-      <div className="flex items-baseline px-2 justify-between gap-3">
-        <div className="flex flex-row justify-baseline items-baseline gap-2">
-          <h3 id={`rail-${view.id}`} className="text-lg">
+    <section
+      aria-labelledby={`rail-${view.id}`}
+      className="flex w-full min-w-0 max-w-full flex-col gap-3"
+    >
+      <div className="flex min-w-0 items-baseline justify-between gap-3 px-2">
+        <div className="flex min-w-0 flex-row items-baseline gap-2">
+          <h3 id={`rail-${view.id}`} className="shrink-0 text-lg">
             {view.label}
           </h3>
-          <p className="text-muted-foreground text-xs">
+          <p className="text-muted-foreground min-w-0 truncate text-xs">
             {view.id === 'all-time'
               ? t('skills.dashboard.rail.allTimeDescription')
               : t('skills.dashboard.rail.currentDescription', {
@@ -215,9 +91,16 @@ function DiscoveryRail({
                 })}
           </p>
         </div>
-        <Badge variant="secondary" className="tabular-nums">
-          {skills.length}
-        </Badge>
+        <div className="flex shrink-0 items-center gap-2">
+          <Badge variant="secondary" className="tabular-nums">
+            {skills.length}
+          </Badge>
+          {skills.length > 0 ? (
+            <Button variant="ghost" size="sm" onClick={() => onShowMore(view.id)}>
+              {t('skills.dashboard.showMore')}
+            </Button>
+          ) : null}
+        </div>
       </div>
       {error ? (
         <Alert variant="destructive">
@@ -228,10 +111,24 @@ function DiscoveryRail({
       ) : null}
       {query.isLoading && skills.length === 0 ? <SkillsGridSkeleton /> : null}
       {skills.length > 0 ? (
-        <div className="flex gap-4 -ml-2.5 overflow-x-auto p-1">
-          {skills.map((skill) => (
-            <SkillCard key={skill.id} skill={skill} onOpen={onOpen} compact />
-          ))}
+        <div className="relative -mx-6 min-w-0">
+          <div className="overflow-x-auto">
+            <div className="flex w-max gap-4 px-6 py-1">
+              {skills.map((skill) => (
+                <CatalogSkillCard key={skill.id} skill={skill} onOpen={onOpen} compact />
+              ))}
+            </div>
+          </div>
+          <ProgressiveBlur
+            direction="left"
+            blurIntensity={1}
+            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16"
+          />
+          <ProgressiveBlur
+            direction="right"
+            blurIntensity={1}
+            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16"
+          />
         </div>
       ) : null}
     </section>
@@ -277,14 +174,14 @@ function SearchResults({
       ) : null}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {skills.map((skill) => (
-          <SkillCard key={skill.id} skill={skill} onOpen={onOpen} />
+          <CatalogSkillCard key={skill.id} skill={skill} onOpen={onOpen} />
         ))}
       </div>
     </div>
   );
 }
 
-export function SkillsDashboardView() {
+function ExploreRails({ onShowMore }: { onShowMore: (viewId: DiscoveryViewId) => void }) {
   const { t } = useTranslation();
   const [searchInput, setSearchInput] = useState('');
   const debouncedQuery = useDebouncedValue(searchInput, 300);
@@ -294,18 +191,17 @@ export function SkillsDashboardView() {
   const [selectedSkill, setSelectedSkill] = useState<SkillsShSkill | null>(null);
 
   return (
-    <div className="relative flex h-full flex-col">
-      <div className="app-material border-b border-border sticky top-0 z-10 flex flex-row items-end justify-between pb-10 gap-4 p-8 ">
-        <div className="flex flex-col items-start gap-3">
+    <div className="relative flex h-full min-w-0 flex-col overflow-hidden">
+      <div className="app-material border-border sticky top-0 z-10 flex min-w-0 flex-row flex-wrap items-end justify-between gap-4 border-b p-8 pb-10">
+        <div className="flex min-w-0 flex-col items-start gap-3">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl leading-none text-balance">{t('skills.dashboard.title')}</h1>
-            {/* <Badge variant="outline">skills.sh</Badge> */}
           </div>
           <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
             {t('skills.dashboard.description')}
           </p>
         </div>
-        <InputGroup className="max-w-md rounded-xl">
+        <InputGroup className="w-full max-w-md shrink-0 rounded-xl">
           <InputGroupAddon>
             <Search />
           </InputGroupAddon>
@@ -338,13 +234,18 @@ export function SkillsDashboardView() {
           </Alert>
         ) : null}
       </div>
-      <ScrollArea className="min-h-0 flex-1">
-        <div className="flex flex-col gap-6 px-6 py-4">
+      <ScrollArea className="min-h-0 min-w-0 flex-1">
+        <div className="flex w-full min-w-0 max-w-full flex-col gap-6 px-6 py-4">
           {isSearching ? (
             <SearchResults query={search} onOpen={setSelectedSkill} />
           ) : (
             DISCOVERY_VIEWS.map((view) => (
-              <DiscoveryRail key={view.id} view={view} onOpen={setSelectedSkill} />
+              <DiscoveryRail
+                key={view.id}
+                view={view}
+                onOpen={setSelectedSkill}
+                onShowMore={onShowMore}
+              />
             ))
           )}
         </div>
@@ -370,6 +271,51 @@ export function SkillsDashboardView() {
   );
 }
 
-// bg-[repeating-linear-gradient(45deg,_var(--pattern-fg)_0,_var(--pattern-fg)_1px,_transparent_0,_transparent_50%)] bg-[size:10px_10px] bg-fixed [--pattern-fg:#e1e1e1]
+export function SkillsDashboardView() {
+  const reduceMotion = useReducedMotion() ?? false;
+  const [selectedView, setSelectedView] = useState<DiscoveryViewId | null>(null);
+  const [direction, setDirection] = useState<PageSlideDirection>('forward');
+  const variants = pageSlideVariants(reduceMotion);
 
-//       dark:bg-[repeating-linear-gradient(45deg,_var(--pattern-fg)_0,_var(--pattern-fg)_1px,_transparent_0,_transparent_50%)] dark:bg-[size:10px_10px] bg-fixed dark:[--pattern-fg:#030303]
+  const openList = (viewId: DiscoveryViewId) => {
+    setDirection('forward');
+    setSelectedView(viewId);
+  };
+
+  const goBack = () => {
+    setDirection('back');
+    setSelectedView(null);
+  };
+
+  return (
+    <div className="relative h-full min-w-0 overflow-hidden">
+      <AnimatePresence mode="wait" custom={direction} initial={false}>
+        {selectedView ? (
+          <motion.div
+            key={`explore-list-${selectedView}`}
+            className="absolute inset-0 min-w-0 overflow-hidden"
+            custom={direction}
+            variants={variants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            <DiscoveryListView viewId={selectedView} onBack={goBack} />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="explore-rails"
+            className="absolute inset-0 min-w-0 overflow-hidden"
+            custom={direction}
+            variants={variants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            <ExploreRails onShowMore={openList} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

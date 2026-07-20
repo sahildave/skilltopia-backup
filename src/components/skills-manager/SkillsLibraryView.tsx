@@ -1,4 +1,5 @@
 import { platform } from '@platform';
+import { useTranslation } from 'react-i18next';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
 import { UNIVERSAL_PROVIDER_ID } from '@/platform/types';
@@ -22,6 +23,7 @@ export function SkillsLibraryView() {
 }
 
 function LocalInstalledSkillsView() {
+  const { t } = useTranslation();
   const snapshot = useInstalledScanStore((state) => state.snapshot);
   const error = useInstalledScanStore((state) => state.error);
   const refreshing = useInstalledScanStore((state) => state.refreshing);
@@ -47,6 +49,7 @@ function LocalInstalledSkillsView() {
   return (
     <div className="relative flex h-full flex-col">
       <LibraryToolbar
+        title={t('skills.installed.title')}
         skillCount={skillCount}
         refreshing={refreshing}
         hasSnapshot={snapshot !== null}

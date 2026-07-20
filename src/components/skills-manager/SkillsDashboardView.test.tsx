@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@/test/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import { SkillsDashboardView } from './SkillsDashboardView';
 import { catalog } from '@catalog';
 import { MOCK_LEADERBOARD } from '@/catalog/fixtures';
@@ -50,5 +51,26 @@ describe('SkillsDashboardView', () => {
     render(<SkillsDashboardView />);
 
     expect(await screen.findAllByRole('button', { name: 'Install' })).not.toHaveLength(0);
+  });
+
+  it('navigates to a category list from Show more and back to Explore', async () => {
+    const user = userEvent.setup();
+    render(<SkillsDashboardView />);
+
+    expect(await screen.findByRole('heading', { name: 'Top Installed' })).toBeInTheDocument();
+
+    await user.click(screen.getAllByRole('button', { name: 'Show more' })[0]!);
+
+    expect(await screen.findByRole('button', { name: 'Back' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Top Installed' })).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(catalog.fetchLeaderboard).toHaveBeenCalledWith('all-time', 0, 100);
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Back' }));
+
+    expect(await screen.findByRole('heading', { name: 'Explore' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Trending' })).toBeInTheDocument();
   });
 });

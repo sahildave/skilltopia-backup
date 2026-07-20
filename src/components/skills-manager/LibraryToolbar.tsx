@@ -4,35 +4,39 @@ import { ContinuousTabs } from '@/components/ui/continuous-tabs';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { LibraryLayoutMode } from '@/store/installed-skills-ui-store';
-import { FolderOpen, LayoutGrid, LayoutList, LoaderCircle } from 'lucide-react';
+import { ArrowLeft, FolderOpen, LayoutGrid, LayoutList, LoaderCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { platform } from '@platform';
 
 export function LibraryToolbar({
+  title,
   skillCount,
-  refreshing,
-  hasSnapshot,
-  pathInfo,
-  showUniversalToggle,
-  showAllUniversal,
+  refreshing = false,
+  hasSnapshot = false,
+  pathInfo = null,
+  showUniversalToggle = false,
+  showAllUniversal = false,
   layoutMode,
+  onBack,
   onRescan,
   onShowAllUniversalChange,
   onLayoutModeChange,
 }: {
+  title: string;
   skillCount: number | null;
-  refreshing: boolean;
-  hasSnapshot: boolean;
-  pathInfo: {
+  refreshing?: boolean;
+  hasSnapshot?: boolean;
+  pathInfo?: {
     skillsDir: string | null;
     skillsDirExists: boolean;
     revealId: string;
   } | null;
-  showUniversalToggle: boolean;
-  showAllUniversal: boolean;
+  showUniversalToggle?: boolean;
+  showAllUniversal?: boolean;
   layoutMode: LibraryLayoutMode;
-  onRescan: () => void;
-  onShowAllUniversalChange: (value: boolean) => void;
+  onBack?: () => void;
+  onRescan?: () => void;
+  onShowAllUniversalChange?: (value: boolean) => void;
   onLayoutModeChange: (mode: LibraryLayoutMode) => void;
 }) {
   const { t } = useTranslation();
@@ -40,19 +44,32 @@ export function LibraryToolbar({
   return (
     <div className="flex flex-col gap-4 border-b p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-row items-baseline gap-1">
-          <h1 className="text-2xl font-semibold text-balance">{t('skills.installed.title')}</h1>
-          {skillCount !== null ? (
-            <Badge variant="secondary" className="tabular-nums">
-              {skillCount}
-            </Badge>
+        <div className="flex flex-row items-center gap-3">
+          {onBack ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onBack}
+              aria-label={t('skills.dashboard.back')}
+            >
+              <ArrowLeft data-icon="inline-start" />
+              {t('skills.dashboard.back')}
+            </Button>
           ) : null}
-          {refreshing ? (
-            <span className="text-muted-foreground inline-flex items-center gap-1.5 text-xs">
-              <LoaderCircle className="size-3.5 animate-spin" aria-hidden />
-              {t('skills.installed.refreshing')}
-            </span>
-          ) : null}
+          <div className="flex flex-row items-baseline gap-1">
+            <h1 className="text-2xl font-semibold text-balance">{title}</h1>
+            {skillCount !== null ? (
+              <Badge variant="secondary" className="tabular-nums">
+                {skillCount}
+              </Badge>
+            ) : null}
+            {refreshing ? (
+              <span className="text-muted-foreground inline-flex items-center gap-1.5 text-xs">
+                <LoaderCircle className="size-3.5 animate-spin" aria-hidden />
+                {t('skills.installed.refreshing')}
+              </span>
+            ) : null}
+          </div>
         </div>
         <div className="flex flex-row items-center gap-2">
           <ContinuousTabs
@@ -75,14 +92,16 @@ export function LibraryToolbar({
               }
             }}
           />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRescan}
-            disabled={refreshing && !hasSnapshot}
-          >
-            {t('skills.installed.rescan')}
-          </Button>
+          {onRescan ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRescan}
+              disabled={refreshing && !hasSnapshot}
+            >
+              {t('skills.installed.rescan')}
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -109,7 +128,7 @@ export function LibraryToolbar({
         </div>
       ) : null}
 
-      {showUniversalToggle ? (
+      {showUniversalToggle && onShowAllUniversalChange ? (
         <div className="flex items-center gap-2">
           <Switch
             id="show-all-universal"

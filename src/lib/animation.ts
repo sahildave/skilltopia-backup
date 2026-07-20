@@ -172,6 +172,41 @@ export function carouselSlideVariants(reduceMotion: boolean) {
   };
 }
 
+export type PageSlideDirection = 'forward' | 'back';
+
+/** Full-page Explore rails ↔ category list. Pass `custom={direction}` to motion child. */
+export function pageSlideVariants(reduceMotion: boolean) {
+  if (reduceMotion) {
+    return reducedMotionFadeVariants();
+  }
+
+  const enterOffset = 12;
+  const exitOffset = 8;
+
+  return {
+    initial: (direction: PageSlideDirection) => ({
+      opacity: 0,
+      transform:
+        direction === 'forward'
+          ? `translateX(${enterOffset}px) scale(0.98)`
+          : `translateX(-${enterOffset}px) scale(0.98)`,
+    }),
+    animate: {
+      opacity: 1,
+      transform: 'translateX(0px) scale(1)',
+      transition: { duration: enterDuration, ease: entranceEase },
+    },
+    exit: (direction: PageSlideDirection) => ({
+      opacity: 0,
+      transform:
+        direction === 'forward'
+          ? `translateX(-${exitOffset}px) scale(0.98)`
+          : `translateX(${exitOffset}px) scale(0.98)`,
+      transition: { duration: exitDuration, ease: entranceEase },
+    }),
+  };
+}
+
 export function aspectRatioTransition(reduceMotion: boolean) {
   return reduceMotion ? { duration: 0 } : { duration: layoutDuration, ease: entranceEase };
 }

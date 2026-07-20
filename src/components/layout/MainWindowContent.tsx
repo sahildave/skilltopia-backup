@@ -10,7 +10,7 @@ export function MainWindowContent({ children, className }: MainWindowContentProp
   const lastQuickPaneEntry = useUIStore((state) => state.lastQuickPaneEntry);
 
   return (
-    <div className={cn('flex h-full flex-col bg-background', className)}>
+    <div className={cn('flex h-full min-w-0 flex-col overflow-hidden bg-background', className)}>
       {children || (
         <div className="flex flex-1 flex-col items-center justify-center">
           <h1 className="text-4xl font-bold text-foreground">

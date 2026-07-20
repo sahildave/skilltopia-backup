@@ -47,7 +47,7 @@ function LibraryUnavailableStub() {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
       <div className="flex max-w-md flex-col items-center gap-3">
-        <h1 className="text-2xl font-semibold text-balance">
+        <h1 className="text-2xl leading-none text-balance">
           {t('skills.library.title')}
         </h1>
         <p className="text-muted-foreground text-sm text-pretty">
@@ -108,8 +108,8 @@ function LocalLibraryView() {
       <div className="app-material app-scroll-edge sticky top-0 z-10 flex flex-col gap-5 p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 flex-col gap-2">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold text-balance">
+            <div className="flex items-baseline gap-3">
+              <h1 className="text-2xl leading-none text-balance">
                 {t('skills.library.installedTitle')}
               </h1>
               {entries ? (

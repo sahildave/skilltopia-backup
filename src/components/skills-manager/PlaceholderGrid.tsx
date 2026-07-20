@@ -30,7 +30,7 @@ export function PlaceholderGrid({
   return (
     <div className="flex h-full flex-col gap-6 p-6">
       <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-semibold text-balance">{title}</h1>
+        <h1 className="text-2xl leading-none text-balance">{title}</h1>
         <Badge variant="secondary" className="tabular-nums">
           {count}
         </Badge>

@@ -47,14 +47,7 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
             aria-hidden="true"
           />
         </div>
-        <div className="min-w-0 flex flex-col gap-1">
-          <h1 className="truncate text-sm font-semibold text-balance">
-            {t('web.shell.brand')}
-          </h1>
-          <p className="text-muted-foreground truncate text-xs">
-            {t('skills.sidebar.workspace')}
-          </p>
-        </div>
+       
       </div>
 
       <nav

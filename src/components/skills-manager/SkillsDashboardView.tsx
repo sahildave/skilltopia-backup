@@ -97,13 +97,13 @@ function SkillInstallMenu({ skill }: { skill: SkillsShSkill }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="default" size="sm" disabled={installing}>
+        <Button variant="outline" size="sm" disabled={installing}>
           {t(
             copiesCommand
               ? 'skills.install.copyAction'
               : 'skills.install.action'
           )}
-          <ChevronDown data-icon="inline-end" />
+          <ChevronDown size={16} data-icon="inline-end" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -234,9 +234,9 @@ function DiscoveryRail({
     >
       <div className="flex items-baseline justify-between gap-3">
         <div>
-          <h2 id={`rail-${view.id}`} className="text-base font-semibold">
+          <h3 id={`rail-${view.id}`} className="text-base font-semibold">
             {view.label}
-          </h2>
+          </h3>
           <p className="text-muted-foreground text-xs">
             {view.id === 'all-time'
               ? t('skills.dashboard.rail.allTimeDescription')
@@ -329,19 +329,19 @@ export function SkillsDashboardView() {
 
   return (
     <div className="relative flex h-full flex-col">
-      <div className="app-material app-scroll-edge sticky top-0 z-10 flex flex-col gap-4 p-6">
-        <div className="flex flex-col items-start gap-1">
+      <div className="app-material app-scroll-edge sticky top-0 z-10 flex flex-row items-end justify-between pb-10 gap-4 p-6 ">
+        <div className="flex flex-col items-start gap-3">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold text-balance">
+            <h1 className="text-2xl leading-none text-balance">
               {t('skills.dashboard.title')}
             </h1>
-            <Badge variant="outline">skills.sh</Badge>
+            {/* <Badge variant="outline">skills.sh</Badge> */}
           </div>
           <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
             {t('skills.dashboard.description')}
           </p>
         </div>
-        <InputGroup className="max-w-xl">
+        <InputGroup className="max-w-md">
           <InputGroupAddon>
             <Search />
           </InputGroupAddon>
@@ -409,3 +409,7 @@ export function SkillsDashboardView() {
     </div>
   )
 }
+
+// bg-[repeating-linear-gradient(45deg,_var(--pattern-fg)_0,_var(--pattern-fg)_1px,_transparent_0,_transparent_50%)] bg-[size:10px_10px] bg-fixed [--pattern-fg:#e1e1e1] 
+      
+//       dark:bg-[repeating-linear-gradient(45deg,_var(--pattern-fg)_0,_var(--pattern-fg)_1px,_transparent_0,_transparent_50%)] dark:bg-[size:10px_10px] bg-fixed dark:[--pattern-fg:#030303]

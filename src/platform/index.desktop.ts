@@ -4,10 +4,7 @@ import { exists, readDir } from '@tauri-apps/plugin-fs'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { Command } from '@tauri-apps/plugin-shell'
 import i18n from '@/i18n/config'
-import {
-  buildSkillsAddArgs,
-  InstallCancelledError,
-} from './install-command'
+import { buildSkillsAddArgs, InstallCancelledError } from './install-command'
 import type {
   InstallableSkill,
   InstallScope,

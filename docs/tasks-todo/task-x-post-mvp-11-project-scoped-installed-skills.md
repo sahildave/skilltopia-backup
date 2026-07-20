@@ -13,20 +13,20 @@ Installed Skills view.
 ## Scope
 
 - [ ] Add an explicit project scope model and project selection UX; do not infer
-  the project from the app's process working directory.
+      the project from the app's process working directory.
 - [ ] Scan project-local provider paths using the same skills.sh-derived
-  registry, `SKILL.md` validation, symlink handling, parsing, deduplication,
-  and provider attribution rules as global scanning.
+      registry, `SKILL.md` validation, symlink handling, parsing, deduplication,
+      and provider attribution rules as global scanning.
 - [ ] Support project-local Universal skills under the project’s canonical
-  `.agents/skills` directory and provider-specific project paths.
+      `.agents/skills` directory and provider-specific project paths.
 - [ ] Extend the normalized `PlatformPort` snapshot to distinguish global and
-  project scope without conflating or deduplicating skills across scopes.
+      project scope without conflating or deduplicating skills across scopes.
 - [ ] Add scope-aware filters, counts, warnings, and card metadata while
-  preserving the existing global behavior.
+      preserving the existing global behavior.
 - [ ] Define refresh behavior when the selected project changes or the project
-  is unavailable.
+      is unavailable.
 - [ ] Add macOS/Windows Rust tests and shared UI/mock fixtures for project
-  scope.
+      scope.
 
 ## Out of scope
 

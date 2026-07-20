@@ -62,10 +62,10 @@ Build-time adapters — not runtime `if (isTauri)` branching for catalog/platfor
 
 Desktop `platform.install` runs `npx skills add` (shell plugin). Conventions:
 
-| Scope     | CLI flags                         | Typical on-disk location                                      |
-| --------- | --------------------------------- | ------------------------------------------------------------- |
-| `global`  | `-g -a '*' -y`                    | Agent global dirs (Library reads `~/.agents/skills`)          |
-| `project` | `-a '*' -y` after folder picker   | `<chosen-project>/.agents/skills` (and other agent project dirs) |
+| Scope     | CLI flags                       | Typical on-disk location                                         |
+| --------- | ------------------------------- | ---------------------------------------------------------------- |
+| `global`  | `-g -a '*' -y`                  | Agent global dirs (Library reads `~/.agents/skills`)             |
+| `project` | `-a '*' -y` after folder picker | `<chosen-project>/.agents/skills` (and other agent project dirs) |
 
 Skill ids are `owner/repo/skill` → CLI source `owner/repo` + `--skill skill`. Web `install` copies a pasteable `npx skills add …` command (`copiesInstallCommand: true`). Desktop runs the same args via the shell plugin. Shared UI must not import `@tauri-apps/*`; only `index.desktop.ts` may.
 
@@ -89,26 +89,26 @@ Web module graph must not import desktop-only startup (menus, quick panes, recov
 
 ## Script matrix
 
-| Script            | What runs                           | TARGET    | Notes                                                                |
-| ----------------- | ----------------------------------- | --------- | -------------------------------------------------------------------- |
-| `dev` / `dev:web` | Vite browser shell                  | `web`     | Vite proxies `/api` → deployed Backend                               |
-| `dev:mock`        | Vite browser shell + fixtures       | `mock`    | No Backend required for UI states                                    |
-| `dev:all`         | web Vite **+** `tauri:dev` only     | both      | Web on `:5173`, Tauri Vite on `:1420`. **No** `proxy:dev`            |
-| `tauri:dev`       | Tauri + Vite child (`desktop.html`) | `desktop` | Rust → deployed Backend (or Infisical override)                      |
-| `build:web`       | Static web bundle + Tauri scan      | `web`     | Fails if `dist/` contains Tauri markers (`scan:web-bundle`)          |
+| Script            | What runs                           | TARGET    | Notes                                                                                |
+| ----------------- | ----------------------------------- | --------- | ------------------------------------------------------------------------------------ |
+| `dev` / `dev:web` | Vite browser shell                  | `web`     | Vite proxies `/api` → deployed Backend                                               |
+| `dev:mock`        | Vite browser shell + fixtures       | `mock`    | No Backend required for UI states                                                    |
+| `dev:all`         | web Vite **+** `tauri:dev` only     | both      | Web on `:5173`, Tauri Vite on `:1420`. **No** `proxy:dev`                            |
+| `tauri:dev`       | Tauri + Vite child (`desktop.html`) | `desktop` | Rust → deployed Backend (or Infisical override)                                      |
+| `build:web`       | Static web bundle + Tauri scan      | `web`     | Fails if `dist/` contains Tauri markers (`scan:web-bundle`)                          |
 | `scan:web-bundle` | Scan `dist/` only                   | n/a       | Used by `build:web` / CI; markers: `@tauri-apps`, `__TAURI__`, `__TAURI_INTERNALS__` |
-| `build:desktop`   | Desktop + quick-pane bundle         | `desktop` | Used by Tauri `beforeBuildCommand`                                   |
-| `proxy:dev`       | Local Backend on `:3000`            | n/a       | Optional with `tauri:dev:local` — **not** part of `dev:all`          |
-| `dev:local:proxy` | `proxy:dev` + `tauri:dev:local`     | desktop   | Optional both-local path; see [external-apis.md](./external-apis.md) |
+| `build:desktop`   | Desktop + quick-pane bundle         | `desktop` | Used by Tauri `beforeBuildCommand`                                                   |
+| `proxy:dev`       | Local Backend on `:3000`            | n/a       | Optional with `tauri:dev:local` — **not** part of `dev:all`                          |
+| `dev:local:proxy` | `proxy:dev` + `tauri:dev:local`     | desktop   | Optional both-local path; see [external-apis.md](./external-apis.md)                 |
 
 ### Network ports (TCP)
 
-| Process | Port |
-| --- | --- |
-| Vite (`dev` / `dev:web` / `dev:mock` alone) | `1420` |
-| Vite web half of `dev:all` | `5173` — **Chrome web app URL** when both are running |
-| Vite desktop half of `dev:all` / `tauri:dev` | `1420` — Tauri WebView only (desktop adapters) |
-| Local Backend (`vercel dev`) | `3000` |
+| Process                                      | Port                                                  |
+| -------------------------------------------- | ----------------------------------------------------- |
+| Vite (`dev` / `dev:web` / `dev:mock` alone)  | `1420`                                                |
+| Vite web half of `dev:all`                   | `5173` — **Chrome web app URL** when both are running |
+| Vite desktop half of `dev:all` / `tauri:dev` | `1420` — Tauri WebView only (desktop adapters)        |
+| Local Backend (`vercel dev`)                 | `3000`                                                |
 
 ### Chrome-first workflow
 
@@ -154,17 +154,17 @@ See [infisical.md](./infisical.md).
 
 Agent-actionable anti-patterns. Each row is a failure mode and the rule that prevents it.
 
-| What would break                                                                         | How we avoid it                                                                                              |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Desktop React `fetch(https://deploy/api/…)` → CORS / leaked browser path                 | CatalogPort **desktop** adapter uses Tauri commands only; Rust owns the Backend URL                          |
-| Shared UI importing `@tauri-apps/*` → Tauri code in web bundle                           | Shared UI imports only `@platform` / `@catalog`; web adapters import zero `@tauri-apps/*`                    |
-| Dynamic `import('@tauri-apps/…')` “gated” by `isTauri` still emits chunks into web graph | Not enough. Web `TARGET` module graph must never reference the desktop adapter or any `@tauri-apps/*` module |
-| Browser CORS enabled on `/api/*` → open abuse of OIDC-backed proxy                       | Same-origin web only; **no CORS** on `/api/*`. Desktop bypasses CORS via Rust                                |
-| Absolute Backend URL in browser without a proxy → CORS or wrong origin                   | Web uses relative `/api`; Vite proxies in dev; prod is same-origin on Vercel                                 |
-| Branching on `isTauri` / platform name for catalog or install                            | Call **port methods** / capabilities (`hasLocalLibrary`, `install`, …), not stringly platform checks         |
-| Backend secrets in `VITE_*` or the Tauri binary                                          | Forbidden. Secrets stay in Backend Infisical envs / Vercel only                                              |
-| Backend proxy (`proxy:dev`) inside `dev:all`                                             | Not our workflow. `dev:all` = web Vite + Tauri only; optional local Backend is a separate script             |
-| Monorepo / `apps/web` + `apps/desktop` workspaces                                        | Single package; build-time `TARGET` aliases                                                                  |
+| What would break                                                                         | How we avoid it                                                                                                                                                                                                  |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Desktop React `fetch(https://deploy/api/…)` → CORS / leaked browser path                 | CatalogPort **desktop** adapter uses Tauri commands only; Rust owns the Backend URL                                                                                                                              |
+| Shared UI importing `@tauri-apps/*` → Tauri code in web bundle                           | Shared UI imports only `@platform` / `@catalog`; web adapters import zero `@tauri-apps/*`                                                                                                                        |
+| Dynamic `import('@tauri-apps/…')` “gated” by `isTauri` still emits chunks into web graph | Not enough. Web `TARGET` module graph must never reference the desktop adapter or any `@tauri-apps/*` module                                                                                                     |
+| Browser CORS enabled on `/api/*` → open abuse of OIDC-backed proxy                       | Same-origin web only; **no CORS** on `/api/*`. Desktop bypasses CORS via Rust                                                                                                                                    |
+| Absolute Backend URL in browser without a proxy → CORS or wrong origin                   | Web uses relative `/api`; Vite proxies in dev; prod is same-origin on Vercel                                                                                                                                     |
+| Branching on `isTauri` / platform name for catalog or install                            | Call **port methods** / capabilities (`hasLocalLibrary`, `install`, …), not stringly platform checks                                                                                                             |
+| Backend secrets in `VITE_*` or the Tauri binary                                          | Forbidden. Secrets stay in Backend Infisical envs / Vercel only                                                                                                                                                  |
+| Backend proxy (`proxy:dev`) inside `dev:all`                                             | Not our workflow. `dev:all` = web Vite + Tauri only; optional local Backend is a separate script                                                                                                                 |
+| Monorepo / `apps/web` + `apps/desktop` workspaces                                        | Single package; build-time `TARGET` aliases                                                                                                                                                                      |
 | Intentional Tauri import in a shared module ships in web `dist/`                         | `build:web` runs `scan:web-bundle` (also CI). Fails on `@tauri-apps`, `__TAURI__`, `__TAURI_INTERNALS__`. Fix: move the import behind `@platform` / `@catalog` desktop adapters only; re-run `npm run build:web` |
 
 ## Related docs

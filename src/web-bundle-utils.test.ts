@@ -18,9 +18,7 @@ describe('web bundle Tauri hard-no', () => {
     )
   })
 
-  async function makeBundleDir(
-    files: Record<string, string>
-  ): Promise<string> {
+  async function makeBundleDir(files: Record<string, string>): Promise<string> {
     const root = await mkdtemp(join(tmpdir(), 'web-bundle-'))
     tempDirs.push(root)
     for (const [relativePath, contents] of Object.entries(files)) {
@@ -63,9 +61,7 @@ describe('web bundle Tauri hard-no', () => {
     })
 
     const hits = await scanWebBundle(root)
-    expect(hits).toEqual([
-      { file: 'assets/index.js', marker: '@tauri-apps' },
-    ])
+    expect(hits).toEqual([{ file: 'assets/index.js', marker: '@tauri-apps' }])
   })
 
   it('passes a clean bundle and fails a contaminated one', async () => {

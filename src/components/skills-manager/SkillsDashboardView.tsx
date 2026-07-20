@@ -68,12 +68,9 @@ function SkillInstallMenu({ skill }: { skill: SkillsShSkill }) {
         scope
       )
       toast.success(
-        t(
-          copiesCommand
-            ? 'skills.install.copied'
-            : 'skills.install.success',
-          { name: skill.name }
-        )
+        t(copiesCommand ? 'skills.install.copied' : 'skills.install.success', {
+          name: skill.name,
+        })
       )
     } catch (error) {
       if (isInstallCancelled(error)) return

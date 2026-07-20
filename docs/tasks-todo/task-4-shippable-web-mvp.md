@@ -10,11 +10,11 @@ Polish the web app enough to ship for **user acquisition and quick search**: bro
 
 ## Scope
 
-- [ ] Polished browser shell (still not a fake desktop titlebar)
-- [ ] Library whole-screen: download/get-the-app messaging + link
-- [ ] Install / skill actions: copy install command via web `PlatformPort.install`
-- [ ] Dashboard + search work on production same-origin deploy
-- [ ] i18n strings for new copy
+- [x] Polished browser shell (still not a fake desktop titlebar)
+- [x] Library whole-screen: download/get-the-app messaging + link
+- [x] Install / skill actions: copy install command via web `PlatformPort.install`
+- [x] Dashboard + search work on production same-origin deploy
+- [x] i18n strings for new copy
 
 ## Out of scope
 

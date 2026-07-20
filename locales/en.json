@@ -115,7 +115,7 @@
   "web.shell.tagline": "Browse and search agent skills in the browser",
   "skills.library.title": "Library",
   "skills.library.webUnavailable": "Your local skill library lives on disk in the desktop app.",
-  "skills.library.getAppDescription": "Download Skills Explorer to browse installed skills and install them with one click.",
+  "skills.library.getAppDescription": "Download Skills Explorer to browse installed skills and install them on your machine.",
   "skills.library.getApp": "Get the desktop app",
   "skills.install.action": "Install",
   "skills.install.global": "Install globally",

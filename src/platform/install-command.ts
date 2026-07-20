@@ -18,7 +18,12 @@ export function parseSkillInstallTarget(skillId: string): {
     )
   }
 
-  const skillName = parts.at(-1)!
+  const skillName = parts[parts.length - 1]
+  if (!skillName) {
+    throw new Error(
+      `Invalid skill id for install (expected owner/repo/skill): ${skillId}`
+    )
+  }
   const source = parts.slice(0, -1).join('/')
   return { source, skillName }
 }

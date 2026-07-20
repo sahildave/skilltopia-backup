@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -25,13 +26,23 @@ const LAYOUT = {
  * (titlebar, native menu, prefs, updater, quick pane).
  */
 export function WebShell() {
+  const { t } = useTranslation()
   const { theme } = useTheme()
   const leftSidebarVisible = useUIStore(state => state.leftSidebarVisible)
   const [activeNav, setActiveNav] = useState<SkillsNavId>('dashboard')
 
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-background">
-      <div className="flex flex-1 overflow-hidden">
+      <header className="flex shrink-0 items-center border-b px-4 py-3">
+        <div className="flex flex-col gap-0.5">
+          <p className="text-sm font-semibold">{t('web.shell.brand')}</p>
+          <p className="text-muted-foreground text-xs text-pretty">
+            {t('web.shell.tagline')}
+          </p>
+        </div>
+      </header>
+
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel
             defaultSize={LAYOUT.leftSidebar.default}

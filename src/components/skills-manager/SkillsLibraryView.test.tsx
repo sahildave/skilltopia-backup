@@ -143,7 +143,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     })
     render(
       <>
-        <SkillsSidebar active="library" onSelect={vi.fn()} />
+        <SkillsSidebar active="installed" onSelect={vi.fn()} />
         <SkillsLibraryView />
       </>
     )
@@ -301,7 +301,7 @@ describe('SkillsSidebar providers', () => {
   it('shows Universal, filled providers, and collapsible other providers', async () => {
     const user = userEvent.setup()
     const onSelect = vi.fn()
-    render(<SkillsSidebar active="library" onSelect={onSelect} />)
+    render(<SkillsSidebar active="installed" onSelect={onSelect} />)
 
     expect(screen.getByText('Installed Skills')).toBeInTheDocument()
     expect(screen.getByLabelText(/search providers/i)).toBeInTheDocument()
@@ -323,7 +323,7 @@ describe('SkillsSidebar providers', () => {
 
   it('filters active and inactive providers from the top search field', async () => {
     const user = userEvent.setup()
-    render(<SkillsSidebar active="library" onSelect={vi.fn()} />)
+    render(<SkillsSidebar active="installed" onSelect={vi.fn()} />)
 
     await user.type(screen.getByLabelText(/search providers/i), 'claude')
 
@@ -345,7 +345,7 @@ describe('SkillsSidebar providers', () => {
     const user = userEvent.setup()
     scanMock.scanInstalled.mockClear()
     scanMock.getInstalledScan.mockClear()
-    render(<SkillsSidebar active="library" onSelect={vi.fn()} />)
+    render(<SkillsSidebar active="installed" onSelect={vi.fn()} />)
 
     await user.click(screen.getByText('Claude Code'))
     expect(useInstalledSkillsUiStore.getState().providerFilter).toBe(
@@ -372,7 +372,7 @@ describe('Installed Skills shared snapshot lifecycle', () => {
 
   it('rescans when the Installed Skills tab becomes active (app-open default)', async () => {
     const { SkillsContent } = await import('./SkillsContent')
-    render(<SkillsContent active="library" />)
+    render(<SkillsContent active="installed" />)
 
     await waitFor(() => {
       expect(scanMock.scanInstalled).toHaveBeenCalled()
@@ -393,7 +393,7 @@ describe('Installed Skills shared snapshot lifecycle', () => {
     )
 
     const { SkillsContent } = await import('./SkillsContent')
-    render(<SkillsContent active="library" />)
+    render(<SkillsContent active="installed" />)
 
     expect(screen.getByText('find-skills')).toBeInTheDocument()
     expect(screen.getByText(/refreshing/i)).toBeInTheDocument()
@@ -408,7 +408,7 @@ describe('Installed Skills shared snapshot lifecycle', () => {
   it('hydrates the cached platform snapshot when Installed Skills is not active', async () => {
     scanMock.getInstalledScan.mockResolvedValue(MOCK_INSTALLED_SCAN)
     const { SkillsContent } = await import('./SkillsContent')
-    render(<SkillsContent active="dashboard" />)
+    render(<SkillsContent active="explore" />)
 
     await waitFor(() => {
       expect(scanMock.getInstalledScan).toHaveBeenCalled()

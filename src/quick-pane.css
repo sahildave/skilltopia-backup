@@ -19,8 +19,23 @@ body,
   overflow: hidden;
 }
 
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.serif-text {
+  font-family: 'Sumana', serif;
+  font-weight: 400; /* Uses the Bold variant for headings */
+}
+
 body {
-  font-family: -apple-system, 'Segoe UI', 'Roboto', sans-serif;
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

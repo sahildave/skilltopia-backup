@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { catalog } from '@catalog'
 import { getSeedDetail, getSeedForView } from '@/data/skills-seed'
 import { logger } from '@/lib/logger'
@@ -65,6 +65,7 @@ export function useSkillsSearch(
       return skills
     },
     enabled,
+    placeholderData: keepPreviousData,
     staleTime: SEARCH_STALE_MS,
     gcTime: 1000 * 60 * 5,
   })

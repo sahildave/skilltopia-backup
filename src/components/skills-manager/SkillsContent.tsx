@@ -12,11 +12,11 @@ interface SkillsContentProps {
 export function SkillsContent({ active }: SkillsContentProps) {
   useInstalledScanLifecycle(active)
 
-  if (active === 'library') {
+  if (active === 'installed') {
     return <SkillsLibraryView />
   }
 
-  if (active === 'dashboard') {
+  if (active === 'explore') {
     return <SkillsDashboardView />
   }
 

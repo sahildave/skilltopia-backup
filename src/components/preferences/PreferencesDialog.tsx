@@ -62,7 +62,7 @@ export function PreferencesDialog() {
 
   return (
     <Dialog open={preferencesOpen} onOpenChange={setPreferencesOpen}>
-      <DialogContent className="overflow-hidden p-0 md:max-h-[600px] md:max-w-[900px] lg:max-w-[1000px] font-sans rounded-xl">
+      <DialogContent className="app-dialog-preferences overflow-hidden rounded-xl p-0 font-sans md:max-h-[600px] md:max-w-[900px] lg:max-w-[1000px]">
         <DialogTitle className="sr-only">{t('preferences.title')}</DialogTitle>
         <DialogDescription className="sr-only">
           {t('preferences.description')}

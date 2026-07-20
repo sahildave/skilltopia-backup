@@ -14,7 +14,7 @@ export function useInstalledScanLifecycle(active: SkillsNavId) {
 
   useEffect(() => {
     if (!platform.hasLocalLibrary) return
-    if (active === 'library') {
+    if (active === 'installed') {
       void rescan()
       return () => {
         resetShowAllUniversal()

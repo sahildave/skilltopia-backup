@@ -8,7 +8,7 @@ colors:
   surface: '#FFFFFF'
   surface-subtle: '#F5F5F5'
   surface-muted: '#F5F5F5'
-  on-surface: '#0A0A0A'
+  on-surface: '#171717'
   on-surface-muted: '#737373'
   border: '#E5E5E5'
   border-strong: '#D7D7D7'
@@ -20,7 +20,7 @@ colors:
   warning: '#F4B400'
   error: '#DF2225'
   info: '#7D6CF0'
-  dark-canvas: '#0A0A0A'
+  dark-canvas: '#171717'
   dark-surface: '#171717'
   dark-surface-raised: '#222222'
   dark-on-surface: '#FAFAFA'
@@ -229,6 +229,27 @@ Cards group a meaningful task or content unit; do not wrap every item in one.
 Use hairlines for continuous lists. Dialogs and popovers may use a soft,
 low-opacity shadow and backdrop dimming, but the application shell should stay
 flat and quiet.
+
+Installed skills should favor dense, alphabetically scannable rows with compact
+provider and kind badges. Discovery rails and search results should share the
+same restrained card vocabulary and keep existing results visible during
+refreshes instead of using page-load choreography.
+
+### Motion and Materials
+
+Interaction feedback should be immediate and modest. Pressable controls use a
+120ms transform/opacity response that never changes layout; larger overlay
+movement stays under 220ms and uses only opacity and transform. Command palette
+motion is anchored above the workspace, preferences motion is anchored toward
+the sidebar, and skill details rise from the content area so enter and exit
+paths remain spatially predictable.
+
+Translucent sticky chrome and modal surfaces use semantic background tokens
+with blur as a material cue. Sticky headers separate from scrolled content with
+a soft scroll-edge fade instead of a hard divider. Respect
+`prefers-reduced-motion` by replacing slide/zoom/pulse motion with short
+opacity-only transitions, `prefers-reduced-transparency` by making material
+layers solid, and `prefers-contrast: more` by restoring crisp separators.
 
 ### Artwork and effects
 

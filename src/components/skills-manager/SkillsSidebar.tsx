@@ -11,6 +11,7 @@ import {
   Sparkles,
   X,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { platform } from '@platform'
 import { Button } from '@/components/ui/button'
@@ -32,14 +33,16 @@ import {
   type ProviderSidebarItem,
 } from './installed-skills-model'
 import type { SkillsNavId } from './types'
+import { executeCommand, useCommandContext } from '@/lib/commands'
+import appLogo from '@/assets/logo.png'
 
 const PRIMARY_NAV: {
   id: SkillsNavId
   labelKey: string
-  icon: typeof BookOpen
+  icon: LucideIcon
 }[] = [
-  { id: 'dashboard', labelKey: 'skills.nav.dashboard', icon: LayoutDashboard },
-  { id: 'library', labelKey: 'skills.nav.installed', icon: BookOpen },
+  { id: 'explore', labelKey: 'skills.nav.explore', icon: LayoutDashboard },
+  { id: 'installed', labelKey: 'skills.nav.installed', icon: BookOpen },
   { id: 'install', labelKey: 'skills.nav.install', icon: Download },
   { id: 'presets', labelKey: 'skills.nav.presets', icon: Layers },
 ]
@@ -51,6 +54,7 @@ interface SkillsSidebarProps {
 
 export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
   const { t } = useTranslation()
+  const commandContext = useCommandContext()
   const snapshot = useInstalledScanStore(state => state.snapshot)
   const providerFilter = useInstalledSkillsUiStore(
     state => state.providerFilter
@@ -85,11 +89,23 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
     filteredInactiveProviders.length > 0
   const inactiveExpanded = inactiveOpen || query.length > 0
 
+  const handleOpenPreferences = async () => {
+    const result = await executeCommand('open-preferences', commandContext)
+    if (!result.success && result.error) {
+      commandContext.showToast(result.error, 'error')
+    }
+  }
+
   return (
     <div className="flex h-full flex-col bg-muted/40">
-      <div className="flex items-center gap-2 px-4 py-4">
-        <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md text-sm font-semibold">
-          S
+      <div className="flex items-center gap-3 px-4 py-4">
+        <div className="size-11 overflow-hidden rounded-lg border bg-background">
+          <img
+            src={appLogo}
+            alt=""
+            className="size-full object-cover"
+            aria-hidden="true"
+          />
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-balance">
@@ -103,7 +119,7 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
 
       <nav
         className="flex flex-1 flex-col gap-1 overflow-hidden px-2"
-        aria-label="Primary"
+        aria-label={t('skills.sidebar.primaryNav')}
       >
         {PRIMARY_NAV.map(item => {
           const Icon = item.icon
@@ -114,10 +130,11 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
               type="button"
               onClick={() => onSelect(item.id)}
               className={cn(
-                'relative flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors',
+                'app-pressable app-pressable-subtle relative flex items-center gap-2 rounded-md px-3 py-2 text-sm',
                 isActive
                   ? 'bg-background text-foreground font-medium shadow-xs'
-                  : 'text-muted-foreground hover:bg-background/70 hover:text-foreground'
+                  : 'text-muted-foreground hover:bg-background/70 hover:text-foreground',
+                'focus-visible:border-ring focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]'
               )}
             >
               {isActive ? (
@@ -178,8 +195,8 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
                   selected={providerFilter === ALL_AGENTS_FILTER_ID}
                   onSelect={setProviderFilter}
                   icon={Sparkles}
-                  installedTabActive={active === 'library'}
-                  onEnsureInstalledTab={() => onSelect('library')}
+                  installedTabActive={active === 'installed'}
+                  onEnsureInstalledTab={() => onSelect('installed')}
                 />
               ) : null}
 
@@ -191,8 +208,8 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
                   }}
                   selected={providerFilter === model.universal.id}
                   onSelect={setProviderFilter}
-                  installedTabActive={active === 'library'}
-                  onEnsureInstalledTab={() => onSelect('library')}
+                  installedTabActive={active === 'installed'}
+                  onEnsureInstalledTab={() => onSelect('installed')}
                 />
               ) : null}
 
@@ -202,8 +219,8 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
                   item={item}
                   selected={providerFilter === item.id}
                   onSelect={setProviderFilter}
-                  installedTabActive={active === 'library'}
-                  onEnsureInstalledTab={() => onSelect('library')}
+                  installedTabActive={active === 'installed'}
+                  onEnsureInstalledTab={() => onSelect('installed')}
                 />
               ))}
 
@@ -248,8 +265,8 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
                           item={item}
                           selected={providerFilter === item.id}
                           onSelect={setProviderFilter}
-                          installedTabActive={active === 'library'}
-                          onEnsureInstalledTab={() => onSelect('library')}
+                          installedTabActive={active === 'installed'}
+                          onEnsureInstalledTab={() => onSelect('installed')}
                           compact
                         />
                       ))}
@@ -271,7 +288,7 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
         <Button
           variant="ghost"
           className="text-muted-foreground w-full justify-start"
-          disabled
+          onClick={handleOpenPreferences}
         >
           <Settings className="size-4" />
           {t('skills.nav.settings')}

@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils'
  * Sidebar defaults + main default must equal 100.
  */
 const LAYOUT = {
-  leftSidebar: { default: 22, min: 15, max: 35 },
+  leftSidebar: { default: 15, min: 13, max: 18 },
   rightSidebar: { default: 20, min: 15, max: 40 },
   main: { min: 30 },
 } as const
@@ -36,7 +36,7 @@ export function MainWindow() {
   const { theme } = useTheme()
   const leftSidebarVisible = useUIStore(state => state.leftSidebarVisible)
   const rightSidebarVisible = useUIStore(state => state.rightSidebarVisible)
-  const [activeNav, setActiveNav] = useState<SkillsNavId>('library')
+  const [activeNav, setActiveNav] = useState<SkillsNavId>('explore')
 
   const mainDefault = rightSidebarVisible
     ? 100 - LAYOUT.leftSidebar.default - LAYOUT.rightSidebar.default
@@ -87,7 +87,7 @@ export function MainWindow() {
       <CommandPalette />
       <PreferencesDialog />
       <Toaster
-        position="bottom-right"
+        position="top-right"
         theme={
           theme === 'dark' ? 'dark' : theme === 'light' ? 'light' : 'system'
         }

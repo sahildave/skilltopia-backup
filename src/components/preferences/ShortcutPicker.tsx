@@ -203,7 +203,7 @@ export function ShortcutPicker({
           }
         }}
         className={cn(
-          'border-input h-9 min-w-[120px] rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-[color,box-shadow] outline-none select-none',
+          'app-pressable app-pressable-subtle border-input h-9 min-w-[120px] rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs outline-none select-none',
           'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
           'flex items-center justify-center font-mono',
           isCapturing && 'border-ring ring-ring/50 ring-[3px] bg-muted/50',
@@ -212,10 +212,13 @@ export function ShortcutPicker({
         )}
       >
         {isCapturing ? (
-          <span className="text-muted-foreground animate-pulse">
+          <span
+            className="text-muted-foreground motion-safe-pulse animate-pulse"
+            aria-live="polite"
+          >
             {pendingShortcut
               ? formatShortcutForDisplay(pendingShortcut)
-              : 'Press shortcut...'}
+              : t('preferences.shortcutPicker.pressShortcut')}
           </span>
         ) : (
           <span className={isDefault ? 'text-muted-foreground' : ''}>
@@ -228,7 +231,7 @@ export function ShortcutPicker({
         <button
           type="button"
           onClick={handleReset}
-          className="text-muted-foreground hover:text-foreground text-xs underline"
+          className="app-pressable text-muted-foreground hover:text-foreground rounded-sm text-xs underline outline-none focus-visible:ring-ring/50 focus-visible:ring-[3px]"
         >
           {t('common.reset')}
         </button>

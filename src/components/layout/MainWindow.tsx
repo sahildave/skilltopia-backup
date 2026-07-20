@@ -1,17 +1,17 @@
-import { useState } from 'react';
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { TitleBar } from '@/components/titlebar/TitleBar';
-import { LeftSideBar } from './LeftSideBar';
-import { RightSideBar } from './RightSideBar';
-import { MainWindowContent } from './MainWindowContent';
 import { CommandPalette } from '@/components/command-palette/CommandPalette';
 import { PreferencesDialog } from '@/components/preferences/PreferencesDialog';
 import { SkillsContent, SkillsSidebar, type SkillsNavId } from '@/components/skills-manager';
-import { Toaster } from 'sonner';
+import { TitleBar } from '@/components/titlebar/TitleBar';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useTheme } from '@/hooks/use-theme';
-import { useUIStore } from '@/store/ui-store';
 import { useMainWindowEventListeners } from '@/hooks/useMainWindowEventListeners';
 import { cn } from '@/lib/utils';
+import { useUIStore } from '@/store/ui-store';
+import { useState } from 'react';
+import { Toaster } from 'sonner';
+import { LeftSideBar } from './LeftSideBar';
+import { MainWindowContent } from './MainWindowContent';
+import { RightSideBar } from './RightSideBar';
 
 /**
  * Layout sizing configuration for resizable panels.
@@ -19,9 +19,9 @@ import { cn } from '@/lib/utils';
  * Sidebar defaults + main default must equal 100.
  */
 const LAYOUT = {
-  leftSidebar: { default: 15, min: 13, max: 18 },
+  leftSidebar: { default: 16, min: 15, max: 18 },
   rightSidebar: { default: 20, min: 15, max: 40 },
-  main: { min: 30 },
+  main: { min: 60 },
 } as const;
 
 export function MainWindow() {

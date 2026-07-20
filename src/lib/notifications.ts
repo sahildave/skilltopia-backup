@@ -2,19 +2,19 @@
  * Simple notification system supporting both in-app toasts and native system notifications
  */
 
-import { toast } from 'sonner'
-import { logger } from './logger'
-import { commands } from './tauri-bindings'
+import { toast } from 'sonner';
+import { logger } from './logger';
+import { commands } from './tauri-bindings';
 
-type NotificationType = 'success' | 'error' | 'info' | 'warning'
+type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
 interface NotificationOptions {
   /** Type of notification (affects styling) */
-  type?: NotificationType
+  type?: NotificationType;
   /** Send as native system notification instead of toast */
-  native?: boolean
+  native?: boolean;
   /** Duration in milliseconds for toasts (0 = no auto-dismiss) */
-  duration?: number
+  duration?: number;
 }
 
 /**
@@ -39,49 +39,46 @@ interface NotificationOptions {
 export async function notify(
   title: string,
   message?: string,
-  options: NotificationOptions = {}
+  options: NotificationOptions = {},
 ): Promise<void> {
-  const { type = 'info', native = false, duration } = options
+  const { type = 'info', native = false, duration } = options;
 
   try {
     if (native) {
       // Send native system notification via Tauri
-      logger.debug('Sending native notification', { title, message, type })
-      const result = await commands.sendNativeNotification(
-        title,
-        message ?? null
-      )
+      logger.debug('Sending native notification', { title, message, type });
+      const result = await commands.sendNativeNotification(title, message ?? null);
       if (result.status === 'error') {
-        throw new Error(result.error)
+        throw new Error(result.error);
       }
     } else {
       // Send in-app toast notification
-      logger.debug('Sending toast notification', { title, message, type })
+      logger.debug('Sending toast notification', { title, message, type });
 
-      const toastContent = message ? `${title}: ${message}` : title
-      const toastOptions = duration !== undefined ? { duration } : {}
+      const toastContent = message ? `${title}: ${message}` : title;
+      const toastOptions = duration !== undefined ? { duration } : {};
 
       switch (type) {
         case 'success':
-          toast.success(toastContent, toastOptions)
-          break
+          toast.success(toastContent, toastOptions);
+          break;
         case 'error':
-          toast.error(toastContent, toastOptions)
-          break
+          toast.error(toastContent, toastOptions);
+          break;
         case 'warning':
-          toast.warning(toastContent, toastOptions)
-          break
+          toast.warning(toastContent, toastOptions);
+          break;
         case 'info':
         default:
-          toast.info(toastContent, toastOptions)
-          break
+          toast.info(toastContent, toastOptions);
+          break;
       }
     }
   } catch (error) {
-    logger.error('Failed to send notification', { title, message, error })
+    logger.error('Failed to send notification', { title, message, error });
     // Fallback to toast if native notification fails
     if (native) {
-      toast.error(`${title}${message ? `: ${message}` : ''}`)
+      toast.error(`${title}${message ? `: ${message}` : ''}`);
     }
   }
 }
@@ -105,7 +102,7 @@ export const notifications = {
   /** Show warning notification */
   warning: (title: string, message?: string, native?: boolean) =>
     notify(title, message, { type: 'warning', native }),
-}
+};
 
 // Export individual convenience functions
-export const { success, error, info, warning } = notifications
+export const { success, error, info, warning } = notifications;

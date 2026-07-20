@@ -71,19 +71,18 @@ export function usePreferences() {
   return useQuery({
     queryKey: ['preferences'],
     queryFn: async () => unwrapResult(await commands.loadPreferences()),
-  })
+  });
 }
 
 export function useUpdatePreferences() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (preferences: AppPreferences) =>
-      commands.savePreferences(preferences),
+    mutationFn: (preferences: AppPreferences) => commands.savePreferences(preferences),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['preferences'] })
+      queryClient.invalidateQueries({ queryKey: ['preferences'] });
     },
-  })
+  });
 }
 ```
 
@@ -96,12 +95,12 @@ For saving data before crashes or risky operations:
 await commands.saveEmergencyData({
   filename: 'unsaved-work',
   data: { content: userContent, timestamp: Date.now() },
-})
+});
 
 // Load on startup
 const recoveryData = await commands.loadEmergencyData({
   filename: 'unsaved-work',
-})
+});
 if (recoveryData.status === 'ok' && recoveryData.data) {
   // Show recovery dialog
 }
@@ -148,7 +147,7 @@ export function useMyData() {
   return useQuery({
     queryKey: ['my-data'],
     queryFn: async () => unwrapResult(await commands.loadMyData()),
-  })
+  });
 }
 ```
 
@@ -262,15 +261,15 @@ export function useItems() {
   return useQuery({
     queryKey: ['items'],
     queryFn: async () => unwrapResult(await commands.getItems()),
-  })
+  });
 }
 
 export function useAddItem() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (item: CreateItem) => commands.addItem(item),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['items'] }),
-  })
+  });
 }
 ```
 

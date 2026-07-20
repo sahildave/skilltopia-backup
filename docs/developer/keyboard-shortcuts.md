@@ -17,31 +17,30 @@ All shortcuts are handled in `src/hooks/useMainWindowEventListeners.ts`:
 
 ```typescript
 export function useMainWindowEventListeners() {
-  const commandContext = useCommandContext()
+  const commandContext = useCommandContext();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey) {
         switch (e.key) {
           case ',': {
-            e.preventDefault()
-            commandContext.openPreferences()
-            break
+            e.preventDefault();
+            commandContext.openPreferences();
+            break;
           }
           case '1': {
-            e.preventDefault()
-            const { leftSidebarVisible, setLeftSidebarVisible } =
-              useUIStore.getState()
-            setLeftSidebarVisible(!leftSidebarVisible)
-            break
+            e.preventDefault();
+            const { leftSidebarVisible, setLeftSidebarVisible } = useUIStore.getState();
+            setLeftSidebarVisible(!leftSidebarVisible);
+            break;
           }
         }
       }
-    }
+    };
 
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [commandContext])
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [commandContext]);
 }
 ```
 
@@ -69,7 +68,7 @@ await MenuItem.new({
   text: t('menu.myAction'),
   accelerator: 'CmdOrCtrl+3',
   action: handleMyAction,
-})
+});
 ```
 
 See [Menus](./menus.md) for full menu integration details.

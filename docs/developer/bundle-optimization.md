@@ -71,27 +71,27 @@ The built-in optimizations are sufficient for most apps. Consider more when:
 
 ```typescript
 // ❌ Imports entire library
-import * as icons from 'lucide-react'
+import * as icons from 'lucide-react';
 
 // ✅ Import only what you need
-import { Search, Settings, User } from 'lucide-react'
+import { Search, Settings, User } from 'lucide-react';
 
 // ❌ Full lodash
-import _ from 'lodash'
+import _ from 'lodash';
 
 // ✅ Specific functions
-import { debounce } from 'lodash-es'
+import { debounce } from 'lodash-es';
 ```
 
 ### Date Libraries
 
 ```typescript
 // ✅ Tree-shakeable imports
-import { format } from 'date-fns/format'
-import { parseISO } from 'date-fns/parseISO'
+import { format } from 'date-fns/format';
+import { parseISO } from 'date-fns/parseISO';
 
 // Or use native API
-new Intl.DateTimeFormat('en-US').format(date)
+new Intl.DateTimeFormat('en-US').format(date);
 ```
 
 ## Code Splitting
@@ -125,7 +125,7 @@ export default defineConfig({
       },
     },
   },
-})
+});
 ```
 
 ## Tauri-Specific Optimizations

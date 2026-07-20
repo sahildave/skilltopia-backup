@@ -99,10 +99,10 @@ Pass dynamic values using double curly braces:
 ### Usage
 
 ```typescript
-t('menu.about', { appName: 'My App' })
+t('menu.about', { appName: 'My App' });
 // Output: "About My App"
 
-t('toast.error.windowCloseFailed', { message: 'Permission denied' })
+t('toast.error.windowCloseFailed', { message: 'Permission denied' });
 // Output: "Failed to close window: Permission denied"
 ```
 
@@ -122,8 +122,8 @@ i18next supports pluralization with `_one`, `_other` suffixes:
 ### Usage
 
 ```typescript
-t('items.count', { count: 1 }) // "1 item"
-t('items.count', { count: 5 }) // "5 items"
+t('items.count', { count: 1 }); // "1 item"
+t('items.count', { count: 5 }); // "5 items"
 ```
 
 ## Adding a New Language
@@ -137,13 +137,13 @@ Copy `/locales/en.json` to `/locales/[lang].json` and translate all strings.
 Update `/src/i18n/config.ts`:
 
 ```typescript
-import en from '../../locales/en.json'
-import es from '../../locales/es.json' // NEW
+import en from '../../locales/en.json';
+import es from '../../locales/es.json'; // NEW
 
 const resources = {
   en: { translation: en },
   es: { translation: es }, // NEW
-}
+};
 ```
 
 Also add a display name in `AppearancePane` (`languageNames`).
@@ -153,7 +153,7 @@ Also add a display name in `AppearancePane` (`languageNames`).
 If the language is RTL, ensure it is in the `rtlLanguages` array in `config.ts`:
 
 ```typescript
-const rtlLanguages = ['ar', 'he', 'fa', 'ur'] // Add your RTL language if missing
+const rtlLanguages = ['ar', 'he', 'fa', 'ur']; // Add your RTL language if missing
 ```
 
 ## RTL Language Support
@@ -164,11 +164,11 @@ The i18n config automatically updates `document.documentElement.dir` when the la
 
 ```typescript
 // In /src/i18n/config.ts
-i18n.on('languageChanged', lng => {
-  const dir = rtlLanguages.includes(lng) ? 'rtl' : 'ltr'
-  document.documentElement.dir = dir
-  document.documentElement.lang = lng
-})
+i18n.on('languageChanged', (lng) => {
+  const dir = rtlLanguages.includes(lng) ? 'rtl' : 'ltr';
+  document.documentElement.dir = dir;
+  document.documentElement.lang = lng;
+});
 ```
 
 ### CSS Logical Properties
@@ -209,16 +209,16 @@ See `/src/lib/menu.ts` for the menu builder implementation.
 ### Adding Menu Items
 
 ```typescript
-import i18n from '@/i18n/config'
+import i18n from '@/i18n/config';
 
 export async function buildAppMenu(): Promise<Menu> {
-  const t = i18n.t.bind(i18n)
+  const t = i18n.t.bind(i18n);
 
   const myItem = await MenuItem.new({
     id: 'my-action',
     text: t('menu.myAction'),
     action: handleMyAction,
-  })
+  });
 
   // ... add to submenu
 }
@@ -232,8 +232,8 @@ Menus are automatically rebuilt when the language changes:
 // In /src/lib/menu.ts
 export function setupMenuLanguageListener(): void {
   i18n.on('languageChanged', async () => {
-    await buildAppMenu()
-  })
+    await buildAppMenu();
+  });
 }
 ```
 
@@ -281,10 +281,10 @@ The `i18n.d.ts` file provides type-safe translation keys:
 
 ```typescript
 // Type errors if key doesn't exist in en.json
-t('nonexistent.key') // TypeScript error
+t('nonexistent.key'); // TypeScript error
 
 // Autocomplete works for valid keys
-t('preferences.title') // ✅ Works
+t('preferences.title'); // ✅ Works
 ```
 
 ## Using Translations Outside React
@@ -292,15 +292,15 @@ t('preferences.title') // ✅ Works
 For non-React contexts (like menu building), import i18n directly:
 
 ```typescript
-import i18n from '@/i18n/config'
+import i18n from '@/i18n/config';
 
 // Get the t function
-const t = i18n.t.bind(i18n)
-const text = t('menu.about', { appName: 'My App' })
+const t = i18n.t.bind(i18n);
+const text = t('menu.about', { appName: 'My App' });
 
 // Or use i18n directly
-const currentLanguage = i18n.language
-await i18n.changeLanguage('en')
+const currentLanguage = i18n.language;
+await i18n.changeLanguage('en');
 ```
 
 ## Testing with RTL

@@ -8,8 +8,8 @@ The command system provides a unified way to register and execute actions throug
 
 ```typescript
 // src/lib/commands/my-feature-commands.ts
-import { SomeIcon } from 'lucide-react'
-import type { AppCommand } from './types'
+import { SomeIcon } from 'lucide-react';
+import type { AppCommand } from './types';
 
 export const myFeatureCommands: AppCommand[] = [
   {
@@ -21,24 +21,24 @@ export const myFeatureCommands: AppCommand[] = [
     shortcut: '⌘+M',
     keywords: ['my', 'action', 'feature'],
 
-    execute: context => {
-      context.showToast('Action executed!')
+    execute: (context) => {
+      context.showToast('Action executed!');
     },
 
     isAvailable: () => true,
   },
-]
+];
 ```
 
 ### Registering Commands
 
 ```typescript
 // src/lib/commands/index.ts
-import { myFeatureCommands } from './my-feature-commands'
-import { registerCommands } from './registry'
+import { myFeatureCommands } from './my-feature-commands';
+import { registerCommands } from './registry';
 
 export function initializeCommandSystem(): void {
-  registerCommands(myFeatureCommands)
+  registerCommands(myFeatureCommands);
   // Register other command groups...
 }
 ```
@@ -49,15 +49,15 @@ export function initializeCommandSystem(): void {
 
 ```typescript
 interface AppCommand {
-  id: string
-  labelKey: string // Translation key (e.g., 'commands.myAction.label')
-  descriptionKey?: string // Translation key for description
-  icon?: LucideIcon
-  group?: string // Grouping for command palette
-  keywords?: string[] // Additional search terms
-  shortcut?: string // Display shortcut (e.g., '⌘+1')
-  execute: (context: CommandContext) => void | Promise<void>
-  isAvailable?: (context: CommandContext) => boolean
+  id: string;
+  labelKey: string; // Translation key (e.g., 'commands.myAction.label')
+  descriptionKey?: string; // Translation key for description
+  icon?: LucideIcon;
+  group?: string; // Grouping for command palette
+  keywords?: string[]; // Additional search terms
+  shortcut?: string; // Display shortcut (e.g., '⌘+1')
+  execute: (context: CommandContext) => void | Promise<void>;
+  isAvailable?: (context: CommandContext) => boolean;
 }
 ```
 
@@ -67,8 +67,8 @@ The context provides actions commands need without tight coupling:
 
 ```typescript
 interface CommandContext {
-  openPreferences: () => void
-  showToast: (message: string, type?: 'success' | 'error' | 'info') => void
+  openPreferences: () => void;
+  showToast: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 ```
 
@@ -78,13 +78,13 @@ Commands are stored in a central registry:
 
 ```typescript
 // Register commands (called once at app init)
-registerCommands(navigationCommands)
+registerCommands(navigationCommands);
 
 // Get filtered commands (for command palette)
-const commands = getAllCommands(context, searchValue, t)
+const commands = getAllCommands(context, searchValue, t);
 
 // Execute by ID (returns success/error result)
-const result = await executeCommand(commandId, context)
+const result = await executeCommand(commandId, context);
 ```
 
 **Key Pattern**: Commands use `getState()` in execute functions:
@@ -92,13 +92,13 @@ const result = await executeCommand(commandId, context)
 ```typescript
 // ✅ Good: Direct store access in execute
 execute: () => {
-  const { leftSidebarVisible, setLeftSidebarVisible } = useUIStore.getState()
-  setLeftSidebarVisible(!leftSidebarVisible)
-}
+  const { leftSidebarVisible, setLeftSidebarVisible } = useUIStore.getState();
+  setLeftSidebarVisible(!leftSidebarVisible);
+};
 
 // ❌ Bad: Hook usage (would cause re-renders)
-const { leftSidebarVisible } = useUIStore()
-execute: () => setLeftSidebarVisible(!leftSidebarVisible)
+const { leftSidebarVisible } = useUIStore();
+execute: () => setLeftSidebarVisible(!leftSidebarVisible);
 ```
 
 ## Integration Points
@@ -128,13 +128,13 @@ const handleKeyDown = (e: KeyboardEvent) => {
   if (e.metaKey || e.ctrlKey) {
     switch (e.key) {
       case ',': {
-        e.preventDefault()
-        commandContext.openPreferences()
-        break
+        e.preventDefault();
+        commandContext.openPreferences();
+        break;
       }
     }
   }
-}
+};
 ```
 
 ### Native Menus
@@ -144,8 +144,8 @@ Menu events trigger commands through Tauri events:
 ```typescript
 // React side - in useMainWindowEventListeners
 listen('menu-preferences', () => {
-  commandContext.openPreferences()
-})
+  commandContext.openPreferences();
+});
 ```
 
 ## Adding New Commands
@@ -175,23 +175,23 @@ export const myFeatureCommands: AppCommand[] = [
     descriptionKey: 'commands.myAction.description',
     group: 'my-feature',
 
-    execute: context => {
+    execute: (context) => {
       // Your logic here
-      context.showToast('Done!')
+      context.showToast('Done!');
     },
   },
-]
+];
 ```
 
 ### Step 3: Register in Index
 
 ```typescript
 // src/lib/commands/index.ts
-import { myFeatureCommands } from './my-feature-commands'
+import { myFeatureCommands } from './my-feature-commands';
 
 export function initializeCommandSystem(): void {
-  registerCommands(navigationCommands)
-  registerCommands(myFeatureCommands) // Add here
+  registerCommands(navigationCommands);
+  registerCommands(myFeatureCommands); // Add here
   // ...
 }
 ```
@@ -208,8 +208,8 @@ export function useCommandContext(): CommandContext {
         /* implementation */
       },
     }),
-    []
-  )
+    [],
+  );
 }
 
 // Update CommandContext type in types.ts

@@ -5,21 +5,21 @@ import {
   MoreHorizontal,
   ShieldAlert,
   Trash2,
-} from 'lucide-react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
-import { platform } from '@platform'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+} from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
+import { platform } from '@platform';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { DESKTOP_APP_DOWNLOAD_URL } from '@/lib/desktop-download'
+} from '@/components/ui/dropdown-menu';
+import { DESKTOP_APP_DOWNLOAD_URL } from '@/lib/desktop-download';
 import {
   Card,
   CardContent,
@@ -27,13 +27,13 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Switch } from '@/components/ui/switch'
-import { useInstalledScanStore } from '@/store/installed-scan-store'
-import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store'
-import { isPermissionError } from './library-errors'
+} from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
+import { useInstalledScanStore } from '@/store/installed-scan-store';
+import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
+import { isPermissionError } from './library-errors';
 import {
   ALL_AGENTS_FILTER_ID,
   buildProviderSidebarModel,
@@ -44,32 +44,26 @@ import {
   uninstallAgentScopeFromFilter,
   warningRevealProviderId,
   type ProviderFilterId,
-} from './installed-skills-model'
-import type {
-  InstalledScanSnapshot,
-  ScannedSkill,
-  ScanWarning,
-} from '@/platform/types'
-import { UNIVERSAL_PROVIDER_ID } from '@/platform/types'
-import { panelRowSlideVariants } from '@/lib/animation'
+} from './installed-skills-model';
+import type { InstalledScanSnapshot, ScannedSkill, ScanWarning } from '@/platform/types';
+import { UNIVERSAL_PROVIDER_ID } from '@/platform/types';
+import { panelRowSlideVariants } from '@/lib/animation';
 
 export function SkillsLibraryView() {
   if (!platform.hasLocalLibrary) {
-    return <LibraryUnavailableStub />
+    return <LibraryUnavailableStub />;
   }
 
-  return <LocalInstalledSkillsView />
+  return <LocalInstalledSkillsView />;
 }
 
 function LibraryUnavailableStub() {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
       <div className="flex max-w-md flex-col items-center gap-3">
-        <h1 className="text-2xl font-semibold text-balance">
-          {t('skills.installed.title')}
-        </h1>
+        <h1 className="text-2xl font-semibold text-balance">{t('skills.installed.title')}</h1>
         <p className="text-muted-foreground text-sm text-pretty">
           {t('skills.installed.webUnavailable')}
         </p>
@@ -77,57 +71,40 @@ function LibraryUnavailableStub() {
           {t('skills.installed.getAppDescription')}
         </p>
       </div>
-      <Button
-        size="lg"
-        onClick={() => void platform.openExternal(DESKTOP_APP_DOWNLOAD_URL)}
-      >
+      <Button size="lg" onClick={() => void platform.openExternal(DESKTOP_APP_DOWNLOAD_URL)}>
         {t('skills.installed.getApp')}
       </Button>
     </div>
-  )
+  );
 }
 
 function LocalInstalledSkillsView() {
-  const { t } = useTranslation()
-  const snapshot = useInstalledScanStore(state => state.snapshot)
-  const error = useInstalledScanStore(state => state.error)
-  const refreshing = useInstalledScanStore(state => state.refreshing)
-  const rescan = useInstalledScanStore(state => state.rescan)
-  const providerFilter = useInstalledSkillsUiStore(
-    state => state.providerFilter
-  )
-  const showAllUniversal = useInstalledSkillsUiStore(
-    state => state.showAllUniversal
-  )
-  const setShowAllUniversal = useInstalledSkillsUiStore(
-    state => state.setShowAllUniversal
-  )
+  const { t } = useTranslation();
+  const snapshot = useInstalledScanStore((state) => state.snapshot);
+  const error = useInstalledScanStore((state) => state.error);
+  const refreshing = useInstalledScanStore((state) => state.refreshing);
+  const rescan = useInstalledScanStore((state) => state.rescan);
+  const providerFilter = useInstalledSkillsUiStore((state) => state.providerFilter);
+  const showAllUniversal = useInstalledSkillsUiStore((state) => state.showAllUniversal);
+  const setShowAllUniversal = useInstalledSkillsUiStore((state) => state.setShowAllUniversal);
 
-  const showPermissionCard = error !== null && isPermissionError(error)
+  const showPermissionCard = error !== null && isPermissionError(error);
   const sections = snapshot
     ? filterSkillsForSelection(snapshot, providerFilter, showAllUniversal)
-    : null
-  const warnings = snapshot
-    ? contentWarningsForSelection(snapshot, providerFilter)
-    : []
-  const pathInfo = snapshot
-    ? resolveSelectedPath(snapshot, providerFilter)
-    : null
+    : null;
+  const warnings = snapshot ? contentWarningsForSelection(snapshot, providerFilter) : [];
+  const pathInfo = snapshot ? resolveSelectedPath(snapshot, providerFilter) : null;
   const showUniversalToggle =
-    providerFilter !== ALL_AGENTS_FILTER_ID &&
-    providerFilter !== UNIVERSAL_PROVIDER_ID
+    providerFilter !== ALL_AGENTS_FILTER_ID && providerFilter !== UNIVERSAL_PROVIDER_ID;
 
   return (
     <div className="relative flex h-full flex-col">
       <div className="flex flex-col gap-4 border-b p-6">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold text-balance">
-            {t('skills.installed.title')}
-          </h1>
+          <h1 className="text-2xl font-semibold text-balance">{t('skills.installed.title')}</h1>
           {sections ? (
             <Badge variant="secondary" className="tabular-nums">
-              {sections.primary.length +
-                (sections.universalSection?.length ?? 0)}
+              {sections.primary.length + (sections.universalSection?.length ?? 0)}
             </Badge>
           ) : null}
           {refreshing ? (
@@ -153,11 +130,9 @@ function LocalInstalledSkillsView() {
               type="button"
               className="text-muted-foreground hover:text-foreground inline-flex max-w-full items-center gap-1.5 text-sm disabled:pointer-events-none disabled:opacity-60"
               onClick={() => {
-                void platform.revealProviderSkillsDir(pathInfo.revealId)
+                void platform.revealProviderSkillsDir(pathInfo.revealId);
               }}
-              disabled={
-                Boolean(pathInfo.skillsDir) && !pathInfo.skillsDirExists
-              }
+              disabled={Boolean(pathInfo.skillsDir) && !pathInfo.skillsDirExists}
               title={
                 pathInfo.skillsDirExists || !pathInfo.skillsDir
                   ? t('skills.installed.revealPath')
@@ -205,11 +180,7 @@ function LocalInstalledSkillsView() {
                 </pre>
               </CardContent>
               <CardFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => void rescan()}
-                  disabled={refreshing}
-                >
+                <Button variant="outline" onClick={() => void rescan()} disabled={refreshing}>
                   {t('skills.installed.tryAgain')}
                 </Button>
               </CardFooter>
@@ -239,11 +210,8 @@ function LocalInstalledSkillsView() {
 
             {warnings.length > 0 ? (
               <div className="space-y-2">
-                {warnings.map(warning => (
-                  <ScanWarningBanner
-                    key={warningKey(warning)}
-                    warning={warning}
-                  />
+                {warnings.map((warning) => (
+                  <ScanWarningBanner key={warningKey(warning)} warning={warning} />
                 ))}
               </div>
             ) : null}
@@ -254,9 +222,7 @@ function LocalInstalledSkillsView() {
               </p>
             ) : null}
 
-            {sections &&
-            sections.primary.length === 0 &&
-            !sections.universalSection?.length ? (
+            {sections && sections.primary.length === 0 && !sections.universalSection?.length ? (
               <p className="text-muted-foreground text-sm text-pretty">
                 {emptyMessage(providerFilter, t)}
               </p>
@@ -270,13 +236,9 @@ function LocalInstalledSkillsView() {
               />
             ) : null}
 
-            {sections?.universalSection &&
-            sections.universalSection.length > 0 &&
-            snapshot ? (
+            {sections?.universalSection && sections.universalSection.length > 0 && snapshot ? (
               <div className="space-y-3">
-                <h2 className="text-sm font-semibold">
-                  {t('skills.installed.universalSection')}
-                </h2>
+                <h2 className="text-sm font-semibold">{t('skills.installed.universalSection')}</h2>
                 <SkillCardGrid
                   skills={sections.universalSection}
                   snapshot={snapshot}
@@ -288,7 +250,7 @@ function LocalInstalledSkillsView() {
         </ScrollArea>
       </div>
     </div>
-  )
+  );
 }
 
 function SkillCardGrid({
@@ -296,21 +258,17 @@ function SkillCardGrid({
   snapshot,
   providerFilter,
 }: {
-  skills: ScannedSkill[]
-  snapshot: InstalledScanSnapshot
-  providerFilter: ProviderFilterId
+  skills: ScannedSkill[];
+  snapshot: InstalledScanSnapshot;
+  providerFilter: ProviderFilterId;
 }) {
-  const { t } = useTranslation()
-  const reduceMotion = useReducedMotion() ?? false
+  const { t } = useTranslation();
+  const reduceMotion = useReducedMotion() ?? false;
 
   return (
     <div className="grid grid-cols-3 gap-4">
-      {skills.map(skill => {
-        const originalPath = symlinkOriginalForSelection(
-          skill,
-          snapshot,
-          providerFilter
-        )
+      {skills.map((skill) => {
+        const originalPath = symlinkOriginalForSelection(skill, snapshot, providerFilter);
 
         return (
           <Card key={skill.name} className="gap-4 py-4">
@@ -329,7 +287,7 @@ function SkillCardGrid({
             </CardHeader>
             <CardContent className="px-4">
               <div className="flex flex-wrap gap-1.5">
-                {providerTagsForSkill(skill, snapshot).map(tag => (
+                {providerTagsForSkill(skill, snapshot).map((tag) => (
                   <Badge key={tag} variant="outline">
                     {tag}
                   </Badge>
@@ -346,10 +304,10 @@ function SkillCardGrid({
               <span>{t('skills.installed.cardInstalled')}</span>
             </CardFooter>
           </Card>
-        )
+        );
       })}
     </div>
-  )
+  );
 }
 
 function SkillCardOverflowMenu({
@@ -357,64 +315,62 @@ function SkillCardOverflowMenu({
   providerFilter,
   reduceMotion,
 }: {
-  skill: ScannedSkill
-  providerFilter: ProviderFilterId
-  reduceMotion: boolean
+  skill: ScannedSkill;
+  providerFilter: ProviderFilterId;
+  reduceMotion: boolean;
 }) {
-  const { t } = useTranslation()
-  const [open, setOpen] = useState(false)
-  const [confirming, setConfirming] = useState(false)
-  const [uninstalling, setUninstalling] = useState(false)
-  const copiesCommand = platform.copiesInstallCommand
-  const rescan = useInstalledScanStore(state => state.rescan)
-  const rowVariants = panelRowSlideVariants(Boolean(reduceMotion))
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [uninstalling, setUninstalling] = useState(false);
+  const copiesCommand = platform.copiesInstallCommand;
+  const rescan = useInstalledScanStore((state) => state.rescan);
+  const rowVariants = panelRowSlideVariants(Boolean(reduceMotion));
 
   const handleOpenChange = (next: boolean) => {
-    setOpen(next)
+    setOpen(next);
     if (!next) {
-      setConfirming(false)
+      setConfirming(false);
     }
-  }
+  };
 
   const handleUninstall = async () => {
-    setUninstalling(true)
+    setUninstalling(true);
     try {
       await platform.uninstall(skill.uninstallName, {
         agentScope: uninstallAgentScopeFromFilter(providerFilter),
         providerIds: skill.providerIds,
-      })
+      });
       toast.success(
         t(
-          copiesCommand
-            ? 'skills.installed.uninstallCopied'
-            : 'skills.installed.uninstallSuccess',
-          { name: skill.name }
-        )
-      )
-      setOpen(false)
-      setConfirming(false)
-      await rescan()
+          copiesCommand ? 'skills.installed.uninstallCopied' : 'skills.installed.uninstallSuccess',
+          { name: skill.name },
+        ),
+      );
+      setOpen(false);
+      setConfirming(false);
+      await rescan();
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
+      const message = error instanceof Error ? error.message : String(error);
       if (isPermissionError(message)) {
         toast.error(t('skills.install.permissionError'), {
           description: message,
-        })
+        });
       } else {
         toast.error(
           t(
             copiesCommand
               ? 'skills.installed.uninstallCopyFailed'
               : 'skills.installed.uninstallFailed',
-            { name: skill.name }
+            { name: skill.name },
           ),
-          { description: message }
-        )
+          { description: message },
+        );
       }
     } finally {
-      setUninstalling(false)
+      setUninstalling(false);
     }
-  }
+  };
 
   return (
     <DropdownMenu open={open} onOpenChange={handleOpenChange}>
@@ -430,10 +386,7 @@ function SkillCardOverflowMenu({
           <MoreHorizontal aria-hidden />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className="flex h-12 relative min-w-56 flex-col py-0.5"
-      >
+      <DropdownMenuContent align="end" className="flex h-12 relative min-w-56 flex-col py-0.5">
         <AnimatePresence custom={confirming} mode="popLayout" initial={false}>
           {!confirming ? (
             <motion.div
@@ -448,10 +401,10 @@ function SkillCardOverflowMenu({
               <DropdownMenuItem
                 variant="destructive"
                 disabled={uninstalling}
-                onSelect={event => {
-                  event.preventDefault()
-                  setConfirming(true)
-                  setOpen(true)
+                onSelect={(event) => {
+                  event.preventDefault();
+                  setConfirming(true);
+                  setOpen(true);
                 }}
               >
                 <Trash2 aria-hidden />
@@ -493,16 +446,16 @@ function SkillCardOverflowMenu({
         </AnimatePresence>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }
 
 function warningKey(warning: ScanWarning): string {
-  return `${warning.code}-${warning.providerId ?? ''}-${warning.path ?? ''}`
+  return `${warning.code}-${warning.providerId ?? ''}-${warning.path ?? ''}`;
 }
 
 function ScanWarningBanner({ warning }: { warning: ScanWarning }) {
-  const { t } = useTranslation()
-  const revealId = warningRevealProviderId(warning)
+  const { t } = useTranslation();
+  const revealId = warningRevealProviderId(warning);
 
   return (
     <div className="bg-amber-500/10 text-amber-950 dark:text-amber-100 flex items-start justify-between gap-3 rounded-md px-3 py-2 text-sm">
@@ -523,50 +476,47 @@ function ScanWarningBanner({ warning }: { warning: ScanWarning }) {
         </Button>
       ) : null}
     </div>
-  )
+  );
 }
 
 function resolveSelectedPath(
   snapshot: InstalledScanSnapshot,
-  selection: ProviderFilterId
+  selection: ProviderFilterId,
 ): {
-  skillsDir: string | null
-  skillsDirExists: boolean
-  revealId: string
+  skillsDir: string | null;
+  skillsDirExists: boolean;
+  revealId: string;
 } | null {
   if (selection === ALL_AGENTS_FILTER_ID) {
-    return null
+    return null;
   }
   if (selection === UNIVERSAL_PROVIDER_ID) {
     return {
       skillsDir: snapshot.universal.skillsDir,
       skillsDirExists: snapshot.universal.skillsDirExists,
       revealId: UNIVERSAL_PROVIDER_ID,
-    }
+    };
   }
-  const model = buildProviderSidebarModel(snapshot)
+  const model = buildProviderSidebarModel(snapshot);
   const item =
-    model.activeProviders.find(p => p.id === selection) ??
-    model.inactiveProviders.find(p => p.id === selection)
+    model.activeProviders.find((p) => p.id === selection) ??
+    model.inactiveProviders.find((p) => p.id === selection);
   if (!item) {
-    return { skillsDir: null, skillsDirExists: false, revealId: selection }
+    return { skillsDir: null, skillsDirExists: false, revealId: selection };
   }
   return {
     skillsDir: item.skillsDir,
     skillsDirExists: item.skillsDirExists,
     revealId: selection,
-  }
+  };
 }
 
-function emptyMessage(
-  selection: ProviderFilterId,
-  t: (key: string) => string
-): string {
+function emptyMessage(selection: ProviderFilterId, t: (key: string) => string): string {
   if (selection === ALL_AGENTS_FILTER_ID) {
-    return t('skills.installed.emptyAll')
+    return t('skills.installed.emptyAll');
   }
   if (selection === UNIVERSAL_PROVIDER_ID) {
-    return t('skills.installed.emptyUniversal')
+    return t('skills.installed.emptyUniversal');
   }
-  return t('skills.installed.emptyProvider')
+  return t('skills.installed.emptyProvider');
 }

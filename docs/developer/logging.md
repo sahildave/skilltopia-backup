@@ -16,12 +16,12 @@ log::error!("Error occurred: {}", error);
 ### TypeScript (Frontend)
 
 ```typescript
-import { logger } from '@/lib/logger'
+import { logger } from '@/lib/logger';
 
-logger.info('User action completed')
-logger.debug('Debug data', { userId: 123, action: 'click' })
-logger.warn('Performance warning')
-logger.error('Request failed', { error: response.error })
+logger.info('User action completed');
+logger.debug('Debug data', { userId: 123, action: 'click' });
+logger.warn('Performance warning');
+logger.error('Request failed', { error: response.error });
 ```
 
 ## Configuration

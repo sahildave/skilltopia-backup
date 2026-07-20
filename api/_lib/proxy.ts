@@ -1,55 +1,54 @@
-import { getVercelOidcToken } from '@vercel/oidc'
-import { clientIp, PROXY_RATE_LIMIT, proxyRateLimit } from './rate-limit.js'
+import { getVercelOidcToken } from '@vercel/oidc';
+import { clientIp, PROXY_RATE_LIMIT, proxyRateLimit } from './rate-limit.js';
 
-const SKILLS_API_BASE = 'https://skills.sh/api/v1'
+const SKILLS_API_BASE = 'https://skills.sh/api/v1';
 
 export async function proxySkillsRequest(
   path: string,
-  searchParams: URLSearchParams
+  searchParams: URLSearchParams,
 ): Promise<Response> {
-  const token = await getVercelOidcToken()
-  const query = searchParams.toString()
-  const url = `${SKILLS_API_BASE}${path}${query ? `?${query}` : ''}`
+  const token = await getVercelOidcToken();
+  const query = searchParams.toString();
+  const url = `${SKILLS_API_BASE}${path}${query ? `?${query}` : ''}`;
 
   const upstream = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: 'application/json',
     },
-  })
+  });
 
-  const body = await upstream.text()
+  const body = await upstream.text();
   const headers = new Headers({
     'Content-Type': 'application/json',
-    'Cache-Control':
-      upstream.headers.get('Cache-Control') ?? 'public, max-age=30',
-  })
+    'Cache-Control': upstream.headers.get('Cache-Control') ?? 'public, max-age=30',
+  });
 
-  const limit = upstream.headers.get('X-RateLimit-Limit')
-  const remaining = upstream.headers.get('X-RateLimit-Remaining')
-  const reset = upstream.headers.get('X-RateLimit-Reset')
-  const retryAfter = upstream.headers.get('Retry-After')
-  if (limit) headers.set('X-RateLimit-Limit', limit)
-  if (remaining) headers.set('X-RateLimit-Remaining', remaining)
-  if (reset) headers.set('X-RateLimit-Reset', reset)
-  if (retryAfter) headers.set('Retry-After', retryAfter)
+  const limit = upstream.headers.get('X-RateLimit-Limit');
+  const remaining = upstream.headers.get('X-RateLimit-Remaining');
+  const reset = upstream.headers.get('X-RateLimit-Reset');
+  const retryAfter = upstream.headers.get('Retry-After');
+  if (limit) headers.set('X-RateLimit-Limit', limit);
+  if (remaining) headers.set('X-RateLimit-Remaining', remaining);
+  if (reset) headers.set('X-RateLimit-Reset', reset);
+  if (retryAfter) headers.set('Retry-After', retryAfter);
 
   return new Response(body, {
     status: upstream.status,
     headers,
-  })
+  });
 }
 
 export function methodNotAllowed(): Response {
   return Response.json(
     { error: 'method_not_allowed', message: 'Only GET is supported.' },
-    { status: 405 }
-  )
+    { status: 405 },
+  );
 }
 
 export function enforceRateLimit(request: Request): Response | null {
-  const result = proxyRateLimit(clientIp(request))
-  if (result.ok) return null
+  const result = proxyRateLimit(clientIp(request));
+  if (result.ok) return null;
 
   return Response.json(
     {
@@ -64,6 +63,6 @@ export function enforceRateLimit(request: Request): Response | null {
         'X-RateLimit-Remaining': '0',
         'X-RateLimit-Reset': String(Math.ceil(result.resetAt / 1000)),
       },
-    }
-  )
+    },
+  );
 }

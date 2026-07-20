@@ -1,23 +1,23 @@
-import { SkillsDashboardView } from './SkillsDashboardView'
-import { SkillsLibraryView } from './SkillsLibraryView'
-import { PlaceholderGrid } from './PlaceholderGrid'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { useInstalledScanLifecycle } from './use-installed-scan-lifecycle'
-import type { SkillsNavId } from './types'
+import { SkillsDashboardView } from './SkillsDashboardView';
+import { SkillsLibraryView } from './SkillsLibraryView';
+import { PlaceholderGrid } from './PlaceholderGrid';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { useInstalledScanLifecycle } from './use-installed-scan-lifecycle';
+import type { SkillsNavId } from './types';
 
 interface SkillsContentProps {
-  active: SkillsNavId
+  active: SkillsNavId;
 }
 
 export function SkillsContent({ active }: SkillsContentProps) {
-  useInstalledScanLifecycle(active)
+  useInstalledScanLifecycle(active);
 
   if (active === 'installed') {
-    return <SkillsLibraryView />
+    return <SkillsLibraryView />;
   }
 
   if (active === 'explore') {
-    return <SkillsDashboardView />
+    return <SkillsDashboardView />;
   }
 
   if (active === 'install') {
@@ -29,7 +29,7 @@ export function SkillsContent({ active }: SkillsContentProps) {
           count={10}
         />
       </ScrollArea>
-    )
+    );
   }
 
   return (
@@ -40,5 +40,5 @@ export function SkillsContent({ active }: SkillsContentProps) {
         count={9}
       />
     </ScrollArea>
-  )
+  );
 }

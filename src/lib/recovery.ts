@@ -1,23 +1,19 @@
-import { logger } from '@/lib/logger'
-import {
-  commands,
-  type JsonValue,
-  type RecoveryError,
-} from '@/lib/tauri-bindings'
+import { logger } from '@/lib/logger';
+import { commands, type JsonValue, type RecoveryError } from '@/lib/tauri-bindings';
 
 /** Convert RecoveryError to a human-readable message */
 function formatRecoveryError(error: RecoveryError): string {
   switch (error.type) {
     case 'FileNotFound':
-      return 'File not found'
+      return 'File not found';
     case 'ValidationError':
-      return `Validation error: ${error.message}`
+      return `Validation error: ${error.message}`;
     case 'DataTooLarge':
-      return `Data too large (max ${error.max_bytes} bytes)`
+      return `Data too large (max ${error.max_bytes} bytes)`;
     case 'IoError':
-      return `IO error: ${error.message}`
+      return `IO error: ${error.message}`;
     case 'ParseError':
-      return `Parse error: ${error.message}`
+      return `Parse error: ${error.message}`;
   }
 }
 
@@ -30,7 +26,7 @@ function formatRecoveryError(error: RecoveryError): string {
 
 export interface RecoveryOptions {
   /** Suppress error notifications (useful for background saves) */
-  silent?: boolean
+  silent?: boolean;
 }
 
 /**
@@ -52,23 +48,23 @@ export interface RecoveryOptions {
 export async function saveEmergencyData(
   filename: string,
   data: JsonValue,
-  options: RecoveryOptions = {}
+  options: RecoveryOptions = {},
 ): Promise<void> {
-  logger.debug('Saving emergency data', { filename, dataType: typeof data })
+  logger.debug('Saving emergency data', { filename, dataType: typeof data });
 
-  const result = await commands.saveEmergencyData(filename, data)
+  const result = await commands.saveEmergencyData(filename, data);
 
   if (result.status === 'error') {
-    const message = formatRecoveryError(result.error)
+    const message = formatRecoveryError(result.error);
     logger.error('Failed to save emergency data', {
       filename,
       error: result.error,
-    })
-    throw new Error(message)
+    });
+    throw new Error(message);
   }
 
   if (!options.silent) {
-    logger.info('Emergency data saved successfully', { filename })
+    logger.info('Emergency data saved successfully', { filename });
   }
 }
 
@@ -87,30 +83,28 @@ export async function saveEmergencyData(
  * }
  * ```
  */
-export async function loadEmergencyData<T = unknown>(
-  filename: string
-): Promise<T | null> {
-  logger.debug('Loading emergency data', { filename })
+export async function loadEmergencyData<T = unknown>(filename: string): Promise<T | null> {
+  logger.debug('Loading emergency data', { filename });
 
-  const result = await commands.loadEmergencyData(filename)
+  const result = await commands.loadEmergencyData(filename);
 
   if (result.status === 'error') {
     // FileNotFound is an expected case - return null instead of throwing
     if (result.error.type === 'FileNotFound') {
-      logger.debug('Recovery file not found', { filename })
-      return null
+      logger.debug('Recovery file not found', { filename });
+      return null;
     }
 
-    const message = formatRecoveryError(result.error)
+    const message = formatRecoveryError(result.error);
     logger.error('Failed to load emergency data', {
       filename,
       error: result.error,
-    })
-    throw new Error(message)
+    });
+    throw new Error(message);
   }
 
-  logger.info('Emergency data loaded successfully', { filename })
-  return result.data as T
+  logger.info('Emergency data loaded successfully', { filename });
+  return result.data as T;
 }
 
 /**
@@ -126,26 +120,26 @@ export async function loadEmergencyData<T = unknown>(
  * ```
  */
 export async function cleanupOldFiles(): Promise<number> {
-  logger.debug('Starting recovery file cleanup')
+  logger.debug('Starting recovery file cleanup');
 
-  const result = await commands.cleanupOldRecoveryFiles()
+  const result = await commands.cleanupOldRecoveryFiles();
 
   if (result.status === 'error') {
-    const message = formatRecoveryError(result.error)
+    const message = formatRecoveryError(result.error);
     logger.error('Failed to cleanup old recovery files', {
       error: result.error,
-    })
-    throw new Error(message)
+    });
+    throw new Error(message);
   }
 
-  const removedCount = result.data
+  const removedCount = result.data;
   if (removedCount > 0) {
-    logger.info('Cleaned up old recovery files', { removedCount })
+    logger.info('Cleaned up old recovery files', { removedCount });
   } else {
-    logger.debug('No old recovery files to clean up')
+    logger.debug('No old recovery files to clean up');
   }
 
-  return removedCount
+  return removedCount;
 }
 
 /**
@@ -167,10 +161,10 @@ export async function cleanupOldFiles(): Promise<number> {
  */
 export async function saveCrashState(
   state: JsonValue,
-  crashInfo?: { error?: string; stack?: string; componentStack?: string }
+  crashInfo?: { error?: string; stack?: string; componentStack?: string },
 ): Promise<void> {
-  const timestamp = Date.now()
-  const filename = `crash-${timestamp}`
+  const timestamp = Date.now();
+  const filename = `crash-${timestamp}`;
 
   const crashData = {
     timestamp,
@@ -178,13 +172,13 @@ export async function saveCrashState(
     crashInfo,
     userAgent: navigator.userAgent,
     url: window.location.href,
-  }
+  };
 
   try {
-    await saveEmergencyData(filename, crashData, { silent: true })
-    logger.info('Crash state saved', { filename, timestamp })
+    await saveEmergencyData(filename, crashData, { silent: true });
+    logger.info('Crash state saved', { filename, timestamp });
   } catch (error) {
     // Don't throw from crash handler - just log
-    logger.error('Failed to save crash state', { error })
+    logger.error('Failed to save crash state', { error });
   }
 }

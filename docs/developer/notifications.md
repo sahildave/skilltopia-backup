@@ -7,19 +7,19 @@ Simple notification system supporting both in-app toasts (Sonner) and native sys
 ### Basic Usage
 
 ```typescript
-import { notify, notifications } from '@/lib/notifications'
+import { notify, notifications } from '@/lib/notifications';
 
 // Simple info toast
-notify('File saved', 'Successfully saved to disk')
+notify('File saved', 'Successfully saved to disk');
 
 // Specific notification types
-notifications.success('Success!', 'Operation completed')
-notifications.error('Error', 'Something went wrong')
-notifications.warning('Warning', 'Please check your input')
-notifications.info('Info', 'Here is some information')
+notifications.success('Success!', 'Operation completed');
+notifications.error('Error', 'Something went wrong');
+notifications.warning('Warning', 'Please check your input');
+notifications.info('Info', 'Here is some information');
 
 // Native system notification
-notify('Update Available', 'Click to install', { native: true })
+notify('Update Available', 'Click to install', { native: true });
 ```
 
 ### Available Functions
@@ -52,9 +52,9 @@ notify('Update Available', 'Click to install', { native: true })
 
 ```typescript
 interface NotificationOptions {
-  type?: 'success' | 'error' | 'info' | 'warning' // Notification type
-  native?: boolean // Use native notification
-  duration?: number // Toast duration (ms, 0 = no auto-dismiss)
+  type?: 'success' | 'error' | 'info' | 'warning'; // Notification type
+  native?: boolean; // Use native notification
+  duration?: number; // Toast duration (ms, 0 = no auto-dismiss)
 }
 ```
 
@@ -96,19 +96,19 @@ The notification system includes test commands accessible via the command palett
 // Custom duration (5 seconds)
 notify('Long message', 'This will stay visible for 5 seconds', {
   duration: 5000,
-})
+});
 
 // Persistent toast (no auto-dismiss)
 notify('Important', 'This requires manual dismissal', {
   duration: 0,
-})
+});
 
 // Native notification with fallback
 try {
-  await notify('System Alert', 'Check this out', { native: true })
+  await notify('System Alert', 'Check this out', { native: true });
 } catch (error) {
   // Automatically falls back to toast notification
-  console.log('Native notification failed, showed toast instead')
+  console.log('Native notification failed, showed toast instead');
 }
 ```
 

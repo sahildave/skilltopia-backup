@@ -1,4 +1,4 @@
-import type { AppPlatform } from '@/hooks/use-platform'
+import type { AppPlatform } from '@/hooks/use-platform';
 
 /**
  * Platform-specific UI strings.
@@ -6,23 +6,23 @@ import type { AppPlatform } from '@/hooks/use-platform'
  */
 export interface PlatformStrings {
   /** Label for revealing a file in the file manager */
-  revealInFileManager: string
+  revealInFileManager: string;
   /** Name of the platform's file manager */
-  fileManagerName: string
+  fileManagerName: string;
   /** Modifier key name (Cmd on macOS, Ctrl elsewhere) */
-  modifierKey: string
+  modifierKey: string;
   /** Modifier key symbol for keyboard shortcuts */
-  modifierKeySymbol: string
+  modifierKeySymbol: string;
   /** Option/Alt key name */
-  optionKey: string
+  optionKey: string;
   /** Option/Alt key symbol */
-  optionKeySymbol: string
+  optionKeySymbol: string;
   /** Preferences/Settings label */
-  preferencesLabel: string
+  preferencesLabel: string;
   /** Quit/Exit application label */
-  quitLabel: string
+  quitLabel: string;
   /** Trash/Recycle Bin name */
-  trashName: string
+  trashName: string;
 }
 
 const macOSStrings: PlatformStrings = {
@@ -35,7 +35,7 @@ const macOSStrings: PlatformStrings = {
   preferencesLabel: 'Preferences',
   quitLabel: 'Quit',
   trashName: 'Trash',
-}
+};
 
 const windowsStrings: PlatformStrings = {
   revealInFileManager: 'Show in Explorer',
@@ -47,7 +47,7 @@ const windowsStrings: PlatformStrings = {
   preferencesLabel: 'Settings',
   quitLabel: 'Exit',
   trashName: 'Recycle Bin',
-}
+};
 
 const linuxStrings: PlatformStrings = {
   revealInFileManager: 'Show in Files',
@@ -59,7 +59,7 @@ const linuxStrings: PlatformStrings = {
   preferencesLabel: 'Preferences',
   quitLabel: 'Quit',
   trashName: 'Trash',
-}
+};
 
 /**
  * Get platform-specific strings for UI labels.
@@ -72,18 +72,16 @@ const linuxStrings: PlatformStrings = {
  * const strings = getPlatformStrings(platform)
  * // strings.revealInFileManager === 'Reveal in Finder' on macOS
  */
-export function getPlatformStrings(
-  platform: AppPlatform | undefined
-): PlatformStrings {
+export function getPlatformStrings(platform: AppPlatform | undefined): PlatformStrings {
   switch (platform) {
     case 'windows':
-      return windowsStrings
+      return windowsStrings;
     case 'linux':
-      return linuxStrings
+      return linuxStrings;
     case 'macos':
     default:
       // Default to macOS strings while platform is being detected
-      return macOSStrings
+      return macOSStrings;
   }
 }
 
@@ -105,30 +103,30 @@ export function getPlatformStrings(
 export function formatShortcut(
   platform: AppPlatform | undefined,
   key: string,
-  modifiers: ('mod' | 'shift' | 'alt')[] = ['mod']
+  modifiers: ('mod' | 'shift' | 'alt')[] = ['mod'],
 ): string {
   // Normalize platform to match getPlatformStrings default behavior
-  const normalizedPlatform: AppPlatform = platform ?? 'macos'
-  const strings = getPlatformStrings(normalizedPlatform)
-  const isMac = normalizedPlatform === 'macos'
-  const parts: string[] = []
+  const normalizedPlatform: AppPlatform = platform ?? 'macos';
+  const strings = getPlatformStrings(normalizedPlatform);
+  const isMac = normalizedPlatform === 'macos';
+  const parts: string[] = [];
 
   if (modifiers.includes('shift')) {
-    parts.push(isMac ? '⇧' : 'Shift+')
+    parts.push(isMac ? '⇧' : 'Shift+');
   }
 
   if (modifiers.includes('alt')) {
-    parts.push(isMac ? strings.optionKeySymbol : 'Alt+')
+    parts.push(isMac ? strings.optionKeySymbol : 'Alt+');
   }
 
   if (modifiers.includes('mod')) {
-    parts.push(strings.modifierKeySymbol)
+    parts.push(strings.modifierKeySymbol);
     if (!isMac) {
-      parts.push('+')
+      parts.push('+');
     }
   }
 
-  parts.push(key)
+  parts.push(key);
 
-  return parts.join('')
+  return parts.join('');
 }

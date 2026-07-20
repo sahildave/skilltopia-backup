@@ -54,13 +54,13 @@ Windows communicate via Tauri events (not shared state):
 
 ```typescript
 // Quick pane: emit event on submit
-await emit('quick-pane-submit', { text: text.trim() })
+await emit('quick-pane-submit', { text: text.trim() });
 
 // Main window: listen for events
 listen('quick-pane-submit', ({ payload }) => {
   // Handle the submission - update Zustand, call API, etc.
-  setLastQuickPaneEntry(payload.text)
-})
+  setLastQuickPaneEntry(payload.text);
+});
 ```
 
 This pattern is intentionally flexible - the action can be anything:
@@ -76,15 +76,15 @@ Since windows don't share React context, theme must be synchronized manually:
 
 ```typescript
 // Main window: emit when theme changes
-emit('theme-changed', { theme })
+emit('theme-changed', { theme });
 
 // Quick pane: listen and apply
-listen('theme-changed', () => applyTheme())
+listen('theme-changed', () => applyTheme());
 
 // Also re-apply on focus gain (catches changes while hidden)
 onFocusChanged(({ payload: focused }) => {
-  if (focused) applyTheme()
-})
+  if (focused) applyTheme();
+});
 ```
 
 ## Platform Behavior
@@ -144,9 +144,9 @@ The default shortcut is `CommandOrControl+Shift+.`. Users can customize it in Pr
 Programmatically:
 
 ```typescript
-await commands.updateQuickPaneShortcut('CommandOrControl+Alt+Space')
+await commands.updateQuickPaneShortcut('CommandOrControl+Alt+Space');
 // Or reset to default
-await commands.updateQuickPaneShortcut(null)
+await commands.updateQuickPaneShortcut(null);
 ```
 
 ### Customizing the Pane Content
@@ -185,26 +185,26 @@ In the main window, handle the event however you need:
 ```typescript
 // Zustand (demonstrated)
 listen('quick-pane-submit', ({ payload }) => {
-  useUIStore.getState().setLastQuickPaneEntry(payload.text)
-})
+  useUIStore.getState().setLastQuickPaneEntry(payload.text);
+});
 
 // TanStack Query mutation
 listen('quick-pane-submit', ({ payload }) => {
-  createTaskMutation.mutate({ title: payload.text })
-})
+  createTaskMutation.mutate({ title: payload.text });
+});
 
 // API call
 listen('quick-pane-submit', async ({ payload }) => {
   await fetch('/api/tasks', {
     method: 'POST',
     body: JSON.stringify({ title: payload.text }),
-  })
-})
+  });
+});
 
 // Tauri command
 listen('quick-pane-submit', async ({ payload }) => {
-  await commands.createTask(payload.text)
-})
+  await commands.createTask(payload.text);
+});
 ```
 
 ### Changing Window Size
@@ -245,10 +245,10 @@ Prevent the system alert sound on Escape by calling `preventDefault()`:
 ```typescript
 const handleKeyDown = async (e: KeyboardEvent) => {
   if (e.key === 'Escape') {
-    e.preventDefault() // Prevents "boop" sound
-    await commands.dismissQuickPane()
+    e.preventDefault(); // Prevents "boop" sound
+    await commands.dismissQuickPane();
   }
-}
+};
 ```
 
 ### Window Positioning

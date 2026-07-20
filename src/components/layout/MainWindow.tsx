@@ -1,25 +1,17 @@
-import { useState } from 'react'
-import {
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
-} from '@/components/ui/resizable'
-import { TitleBar } from '@/components/titlebar/TitleBar'
-import { LeftSideBar } from './LeftSideBar'
-import { RightSideBar } from './RightSideBar'
-import { MainWindowContent } from './MainWindowContent'
-import { CommandPalette } from '@/components/command-palette/CommandPalette'
-import { PreferencesDialog } from '@/components/preferences/PreferencesDialog'
-import {
-  SkillsContent,
-  SkillsSidebar,
-  type SkillsNavId,
-} from '@/components/skills-manager'
-import { Toaster } from 'sonner'
-import { useTheme } from '@/hooks/use-theme'
-import { useUIStore } from '@/store/ui-store'
-import { useMainWindowEventListeners } from '@/hooks/useMainWindowEventListeners'
-import { cn } from '@/lib/utils'
+import { useState } from 'react';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import { TitleBar } from '@/components/titlebar/TitleBar';
+import { LeftSideBar } from './LeftSideBar';
+import { RightSideBar } from './RightSideBar';
+import { MainWindowContent } from './MainWindowContent';
+import { CommandPalette } from '@/components/command-palette/CommandPalette';
+import { PreferencesDialog } from '@/components/preferences/PreferencesDialog';
+import { SkillsContent, SkillsSidebar, type SkillsNavId } from '@/components/skills-manager';
+import { Toaster } from 'sonner';
+import { useTheme } from '@/hooks/use-theme';
+import { useUIStore } from '@/store/ui-store';
+import { useMainWindowEventListeners } from '@/hooks/useMainWindowEventListeners';
+import { cn } from '@/lib/utils';
 
 /**
  * Layout sizing configuration for resizable panels.
@@ -30,20 +22,20 @@ const LAYOUT = {
   leftSidebar: { default: 15, min: 13, max: 18 },
   rightSidebar: { default: 20, min: 15, max: 40 },
   main: { min: 30 },
-} as const
+} as const;
 
 export function MainWindow() {
-  const { theme } = useTheme()
-  const leftSidebarVisible = useUIStore(state => state.leftSidebarVisible)
-  const rightSidebarVisible = useUIStore(state => state.rightSidebarVisible)
-  const [activeNav, setActiveNav] = useState<SkillsNavId>('explore')
+  const { theme } = useTheme();
+  const leftSidebarVisible = useUIStore((state) => state.leftSidebarVisible);
+  const rightSidebarVisible = useUIStore((state) => state.rightSidebarVisible);
+  const [activeNav, setActiveNav] = useState<SkillsNavId>('explore');
 
   const mainDefault = rightSidebarVisible
     ? 100 - LAYOUT.leftSidebar.default - LAYOUT.rightSidebar.default
-    : 100 - LAYOUT.leftSidebar.default
+    : 100 - LAYOUT.leftSidebar.default;
 
   // Set up global event listeners (keyboard shortcuts, etc.)
-  useMainWindowEventListeners()
+  useMainWindowEventListeners();
 
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden rounded-[var(--app-corner-radius)] bg-background">
@@ -88,22 +80,18 @@ export function MainWindow() {
       <PreferencesDialog />
       <Toaster
         position="top-right"
-        theme={
-          theme === 'dark' ? 'dark' : theme === 'light' ? 'light' : 'system'
-        }
+        theme={theme === 'dark' ? 'dark' : theme === 'light' ? 'light' : 'system'}
         className="toaster group"
         toastOptions={{
           classNames: {
             toast:
               'group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg',
             description: 'group-[.toast]:text-muted-foreground',
-            actionButton:
-              'group-[.toast]:bg-primary group-[.toast]:text-primary-foreground',
-            cancelButton:
-              'group-[.toast]:bg-muted group-[.toast]:text-muted-foreground',
+            actionButton: 'group-[.toast]:bg-primary group-[.toast]:text-primary-foreground',
+            cancelButton: 'group-[.toast]:bg-muted group-[.toast]:text-muted-foreground',
           },
         }}
       />
     </div>
-  )
+  );
 }

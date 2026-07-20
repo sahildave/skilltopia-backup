@@ -11,7 +11,7 @@ Rust Command (Result<T, E>) → tauri-specta → TypeScript discriminated union 
 Rust `Result<T, E>` types become TypeScript discriminated unions:
 
 ```typescript
-type Result<T, E> = { status: 'ok'; data: T } | { status: 'error'; error: E }
+type Result<T, E> = { status: 'ok'; data: T } | { status: 'error'; error: E };
 ```
 
 ## Rust Error Types
@@ -64,7 +64,7 @@ TypeScript receives:
 type MyError =
   | { type: 'NotFound' }
   | { type: 'ValidationError'; message: string }
-  | { type: 'IoError'; message: string }
+  | { type: 'IoError'; message: string };
 ```
 
 ## TypeScript Error Handling
@@ -74,13 +74,13 @@ type MyError =
 ```typescript
 // ✅ GOOD: Handle errors inline with user feedback
 const handleSave = async () => {
-  const result = await commands.saveData(data)
+  const result = await commands.saveData(data);
   if (result.status === 'error') {
-    toast.error('Save failed', { description: result.error })
-    return
+    toast.error('Save failed', { description: result.error });
+    return;
   }
-  toast.success('Saved!')
-}
+  toast.success('Saved!');
+};
 ```
 
 ### Pattern 2: unwrapResult (TanStack Query)
@@ -90,7 +90,7 @@ const handleSave = async () => {
 const { data, error } = useQuery({
   queryKey: ['data'],
   queryFn: async () => unwrapResult(await commands.loadData()),
-})
+});
 ```
 
 ### Pattern 3: Graceful Degradation
@@ -100,14 +100,14 @@ const { data, error } = useQuery({
 const { data } = useQuery({
   queryKey: ['preferences'],
   queryFn: async () => {
-    const result = await commands.loadPreferences()
+    const result = await commands.loadPreferences();
     if (result.status === 'error') {
-      logger.warn('Failed to load preferences, using defaults')
-      return defaultPreferences
+      logger.warn('Failed to load preferences, using defaults');
+      return defaultPreferences;
     }
-    return result.data
+    return result.data;
   },
-})
+});
 ```
 
 ## User-Facing vs Technical Errors
@@ -130,10 +130,10 @@ pub async fn load_file(path: &str) -> Result<String, String> {
 
 ```typescript
 // ✅ GOOD: Separate user feedback from technical logging
-const result = await commands.saveData(data)
+const result = await commands.saveData(data);
 if (result.status === 'error') {
-  logger.error('Save failed', { error: result.error, data }) // Technical
-  toast.error('Failed to save') // User-facing
+  logger.error('Save failed', { error: result.error, data }); // Technical
+  toast.error('Failed to save'); // User-facing
 }
 ```
 
@@ -148,11 +148,11 @@ const { data } = useQuery({
   queryFn: loadData,
   retry: (failureCount, error) => {
     // Don't retry client errors (4xx)
-    if (error.message.includes('API error: 4')) return false
+    if (error.message.includes('API error: 4')) return false;
     // Retry network/server errors up to 3 times
-    return failureCount < 3
+    return failureCount < 3;
   },
-})
+});
 ```
 
 Default retry settings in `query-client.ts`:
@@ -172,18 +172,18 @@ const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error, query) => {
       if (query.meta?.errorToast !== false) {
-        toast.error('Something went wrong')
+        toast.error('Something went wrong');
       }
     },
   }),
-})
+});
 
 // Opt out for specific queries
 useQuery({
   queryKey: ['optional-feature'],
   queryFn: loadOptional,
   meta: { errorToast: false },
-})
+});
 ```
 
 ## React Error Boundaries
@@ -205,24 +205,24 @@ For multi-step operations, rollback on failure:
 ```typescript
 // ✅ GOOD: Rollback on failure
 const handleChange = async (newValue: string) => {
-  const oldValue = currentValue
+  const oldValue = currentValue;
 
   // Step 1: Update backend
-  const result = await commands.updateValue(newValue)
+  const result = await commands.updateValue(newValue);
   if (result.status === 'error') {
-    toast.error('Update failed')
-    return
+    toast.error('Update failed');
+    return;
   }
 
   // Step 2: Persist
   try {
-    await savePreferences.mutateAsync({ ...prefs, value: newValue })
+    await savePreferences.mutateAsync({ ...prefs, value: newValue });
   } catch {
     // Rollback step 1
-    await commands.updateValue(oldValue)
-    toast.error('Save failed, changes reverted')
+    await commands.updateValue(oldValue);
+    toast.error('Save failed, changes reverted');
   }
-}
+};
 ```
 
 ## Quick Reference

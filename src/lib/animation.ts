@@ -1,17 +1,15 @@
-export const enterDuration = 0.2
-export const exitDuration = 0.15
-export const layoutDuration = 0.2
-export const staggerDelay = 0.04
-export const entranceEase = [0.23, 1, 0.32, 1] as const
-export const reducedEnterDuration = 0.12
-export const reducedExitDuration = 0.1
+export const enterDuration = 0.2;
+export const exitDuration = 0.15;
+export const layoutDuration = 0.2;
+export const staggerDelay = 0.04;
+export const entranceEase = [0.23, 1, 0.32, 1] as const;
+export const reducedEnterDuration = 0.12;
+export const reducedExitDuration = 0.1;
 
 export function layoutPositionTransition(reduceMotion: boolean) {
   return {
-    layout: reduceMotion
-      ? { duration: 0 }
-      : { duration: layoutDuration, ease: 'easeOut' as const },
-  }
+    layout: reduceMotion ? { duration: 0 } : { duration: layoutDuration, ease: 'easeOut' as const },
+  };
 }
 
 function reducedMotionFadeVariants() {
@@ -19,12 +17,12 @@ function reducedMotionFadeVariants() {
     initial: { opacity: 0 },
     animate: { opacity: 1, transition: { duration: reducedEnterDuration } },
     exit: { opacity: 0, transition: { duration: reducedExitDuration } },
-  }
+  };
 }
 
 export function feedListItemVariants(reduceMotion: boolean, index: number) {
   if (reduceMotion) {
-    return reducedMotionFadeVariants()
+    return reducedMotionFadeVariants();
   }
 
   return {
@@ -43,12 +41,12 @@ export function feedListItemVariants(reduceMotion: boolean, index: number) {
       transform: 'translateY(-4px) scale(0.98)',
       transition: { duration: exitDuration, ease: entranceEase },
     },
-  }
+  };
 }
 
 export function todoRowVariants(reduceMotion: boolean) {
   if (reduceMotion) {
-    return reducedMotionFadeVariants()
+    return reducedMotionFadeVariants();
   }
 
   return {
@@ -63,12 +61,12 @@ export function todoRowVariants(reduceMotion: boolean) {
       transform: 'translateY(-4px)',
       transition: { duration: exitDuration, ease: entranceEase },
     },
-  }
+  };
 }
 
 export function feedEmptyStateVariants(reduceMotion: boolean) {
   if (reduceMotion) {
-    return reducedMotionFadeVariants()
+    return reducedMotionFadeVariants();
   }
 
   return {
@@ -83,13 +81,13 @@ export function feedEmptyStateVariants(reduceMotion: boolean) {
       transform: 'translateY(-4px) scale(0.99)',
       transition: { duration: exitDuration, ease: entranceEase },
     },
-  }
+  };
 }
 
 /** Soft scale + fade for overlay marks (e.g. composer product logo). */
 export function scaleFadeVariants(reduceMotion: boolean) {
   if (reduceMotion) {
-    return reducedMotionFadeVariants()
+    return reducedMotionFadeVariants();
   }
 
   return {
@@ -104,12 +102,12 @@ export function scaleFadeVariants(reduceMotion: boolean) {
       transform: 'scale(0.95)',
       transition: { duration: exitDuration, ease: entranceEase },
     },
-  }
+  };
 }
 
 export function scaleFadeVariantsAggressive(reduceMotion: boolean) {
   if (reduceMotion) {
-    return reducedMotionFadeVariants()
+    return reducedMotionFadeVariants();
   }
 
   return {
@@ -124,13 +122,13 @@ export function scaleFadeVariantsAggressive(reduceMotion: boolean) {
       transform: 'scale(0)',
       transition: { duration: reducedExitDuration, ease: entranceEase },
     },
-  }
+  };
 }
 
 /** Soft enter/exit for list rows inside an expanded panel (not the panel shell). */
 export function composerPanelVariants(reduceMotion: boolean) {
   if (reduceMotion) {
-    return reducedMotionFadeVariants()
+    return reducedMotionFadeVariants();
   }
 
   return {
@@ -145,18 +143,18 @@ export function composerPanelVariants(reduceMotion: boolean) {
       transform: 'translateY(-4px) scale(0.98)',
       transition: { duration: exitDuration, ease: entranceEase },
     },
-  }
+  };
 }
 
 /** Crossfade for product carousel empty ↔ carousel shell (mode="wait" — keep durations short). */
 export function carouselShellVariants(reduceMotion: boolean) {
-  return feedEmptyStateVariants(reduceMotion)
+  return feedEmptyStateVariants(reduceMotion);
 }
 
 /** Horizontal enter/exit for carousel image slides. */
 export function carouselSlideVariants(reduceMotion: boolean) {
   if (reduceMotion) {
-    return reducedMotionFadeVariants()
+    return reducedMotionFadeVariants();
   }
 
   return {
@@ -171,28 +169,24 @@ export function carouselSlideVariants(reduceMotion: boolean) {
       transform: 'translateX(-8px) scale(0.98)',
       transition: { duration: exitDuration, ease: entranceEase },
     },
-  }
+  };
 }
 
 export function aspectRatioTransition(reduceMotion: boolean) {
-  return reduceMotion
-    ? { duration: 0 }
-    : { duration: layoutDuration, ease: entranceEase }
+  return reduceMotion ? { duration: 0 } : { duration: layoutDuration, ease: entranceEase };
 }
 
 /** Press feedback for icon buttons and menu triggers. */
-export const pressableTapScale = 0.97
+export const pressableTapScale = 0.97;
 
 /** Opacity-only transitions (e.g. pending-delete dim). */
 export function opacityTransition(reduceMotion: boolean) {
-  return reduceMotion
-    ? { duration: 0 }
-    : { duration: enterDuration, ease: entranceEase }
+  return reduceMotion ? { duration: 0 } : { duration: enterDuration, ease: entranceEase };
 }
 
 /** Origin-aware popover panel — pair with `origin-top-right` (or matching origin class). */
 export function popoverPanelVariants(reduceMotion: boolean) {
-  return scaleFadeVariants(reduceMotion)
+  return scaleFadeVariants(reduceMotion);
 }
 
 /**
@@ -201,17 +195,15 @@ export function popoverPanelVariants(reduceMotion: boolean) {
  */
 export function panelRowSlideVariants(reduceMotion: boolean) {
   if (reduceMotion) {
-    return reducedMotionFadeVariants()
+    return reducedMotionFadeVariants();
   }
 
-  const offset = '8px'
+  const offset = '8px';
 
   return {
     initial: (isConfirmVisible: boolean) => ({
       opacity: 0,
-      transform: isConfirmVisible
-        ? `translateY(${offset})`
-        : `translateY(-${offset})`,
+      transform: isConfirmVisible ? `translateY(${offset})` : `translateY(-${offset})`,
     }),
     animate: {
       opacity: 1,
@@ -220,18 +212,16 @@ export function panelRowSlideVariants(reduceMotion: boolean) {
     },
     exit: (isConfirmVisible: boolean) => ({
       opacity: 0,
-      transform: isConfirmVisible
-        ? `translateY(-${offset})`
-        : `translateY(${offset})`,
+      transform: isConfirmVisible ? `translateY(-${offset})` : `translateY(${offset})`,
       transition: { duration: exitDuration, ease: entranceEase },
     }),
-  }
+  };
 }
 
 /** Height + fade for expanding composer panels (poll controls). Keep content in flow. */
 export function composerExpandVariants(reduceMotion: boolean) {
   if (reduceMotion) {
-    return reducedMotionFadeVariants()
+    return reducedMotionFadeVariants();
   }
 
   return {
@@ -252,5 +242,5 @@ export function composerExpandVariants(reduceMotion: boolean) {
         opacity: { duration: exitDuration, ease: entranceEase },
       },
     },
-  }
+  };
 }

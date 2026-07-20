@@ -1,13 +1,9 @@
-import { cn } from '@/lib/utils'
-import {
-  TitleBarLeftActions,
-  TitleBarRightActions,
-  TitleBarTitle,
-} from './TitleBarContent'
+import { cn } from '@/lib/utils';
+import { TitleBarLeftActions, TitleBarRightActions, TitleBarTitle } from './TitleBarContent';
 
 interface LinuxTitleBarProps {
-  className?: string
-  title?: string
+  className?: string;
+  title?: string;
 }
 
 /**
@@ -25,7 +21,7 @@ export function LinuxTitleBar({ className, title }: LinuxTitleBarProps) {
     <div
       className={cn(
         'relative flex h-8 w-full shrink-0 items-center justify-between border-b bg-background',
-        className
+        className,
       )}
     >
       {/* Left side - Actions */}
@@ -41,5 +37,5 @@ export function LinuxTitleBar({ className, title }: LinuxTitleBarProps) {
         <TitleBarRightActions />
       </div>
     </div>
-  )
+  );
 }

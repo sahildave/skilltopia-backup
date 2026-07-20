@@ -1,6 +1,6 @@
-import type { InstalledScanSnapshot } from './types'
-import { UNIVERSAL_PROVIDER_ID } from './types'
-import { skillEntriesFromScan } from './scan-utils'
+import type { InstalledScanSnapshot } from './types';
+import { UNIVERSAL_PROVIDER_ID } from './types';
+import { skillEntriesFromScan } from './scan-utils';
 
 /** Default mock snapshot: Universal + provider overlap, empty detected provider. */
 export const MOCK_INSTALLED_SCAN: InstalledScanSnapshot = {
@@ -74,7 +74,7 @@ export const MOCK_INSTALLED_SCAN: InstalledScanSnapshot = {
       path: '/Users/mock/.cursor/skills',
     },
   ],
-}
+};
 
 /** Universal-only skills (no provider-direct copies). */
 export const MOCK_UNIVERSAL_ONLY_SCAN: InstalledScanSnapshot = {
@@ -97,7 +97,7 @@ export const MOCK_UNIVERSAL_ONLY_SCAN: InstalledScanSnapshot = {
     },
   ],
   warnings: [],
-}
+};
 
 /** Provider-direct skills only (no Universal copies). */
 export const MOCK_PROVIDER_ONLY_SCAN: InstalledScanSnapshot = {
@@ -136,7 +136,7 @@ export const MOCK_PROVIDER_ONLY_SCAN: InstalledScanSnapshot = {
       path: '/Users/mock/.agents/skills',
     },
   ],
-}
+};
 
 /** Empty scan with structured warnings. */
 export const MOCK_EMPTY_SCAN: InstalledScanSnapshot = {
@@ -172,6 +172,6 @@ export const MOCK_EMPTY_SCAN: InstalledScanSnapshot = {
       path: '/Users/mock/.claude/skills',
     },
   ],
-}
+};
 
-export const MOCK_INSTALLED_SKILLS = skillEntriesFromScan(MOCK_INSTALLED_SCAN)
+export const MOCK_INSTALLED_SKILLS = skillEntriesFromScan(MOCK_INSTALLED_SCAN);

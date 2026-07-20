@@ -50,17 +50,12 @@ View
 Menus are built using translated labels and direct action handlers:
 
 ```typescript
-import {
-  Menu,
-  MenuItem,
-  Submenu,
-  PredefinedMenuItem,
-} from '@tauri-apps/api/menu'
-import i18n from '@/i18n/config'
-import { useUIStore } from '@/store/ui-store'
+import { Menu, MenuItem, Submenu, PredefinedMenuItem } from '@tauri-apps/api/menu';
+import i18n from '@/i18n/config';
+import { useUIStore } from '@/store/ui-store';
 
 export async function buildAppMenu(): Promise<Menu> {
-  const t = i18n.t.bind(i18n)
+  const t = i18n.t.bind(i18n);
 
   const appSubmenu = await Submenu.new({
     text: APP_NAME,
@@ -73,18 +68,18 @@ export async function buildAppMenu(): Promise<Menu> {
       }),
       // ... more items
     ],
-  })
+  });
 
   const menu = await Menu.new({
     items: [appSubmenu, viewSubmenu],
-  })
+  });
 
-  await menu.setAsAppMenu()
-  return menu
+  await menu.setAsAppMenu();
+  return menu;
 }
 
 function handleOpenPreferences(): void {
-  useUIStore.getState().setPreferencesOpen(true)
+  useUIStore.getState().setPreferencesOpen(true);
 }
 ```
 
@@ -95,8 +90,8 @@ Menus are automatically rebuilt when the language changes:
 ```typescript
 export function setupMenuLanguageListener(): void {
   i18n.on('languageChanged', async () => {
-    await buildAppMenu()
-  })
+    await buildAppMenu();
+  });
 }
 ```
 
@@ -110,7 +105,7 @@ await MenuItem.new({
   text: t('menu.myAction'),
   accelerator: 'CmdOrCtrl+M',
   action: handleMyAction,
-})
+});
 ```
 
 ### Predefined Items
@@ -118,11 +113,11 @@ await MenuItem.new({
 Tauri provides common system menu items:
 
 ```typescript
-await PredefinedMenuItem.new({ item: 'Separator' })
-await PredefinedMenuItem.new({ item: 'Hide', text: t('menu.hide') })
-await PredefinedMenuItem.new({ item: 'Quit', text: t('menu.quit') })
-await PredefinedMenuItem.new({ item: 'Copy' })
-await PredefinedMenuItem.new({ item: 'Paste' })
+await PredefinedMenuItem.new({ item: 'Separator' });
+await PredefinedMenuItem.new({ item: 'Hide', text: t('menu.hide') });
+await PredefinedMenuItem.new({ item: 'Quit', text: t('menu.quit') });
+await PredefinedMenuItem.new({ item: 'Copy' });
+await PredefinedMenuItem.new({ item: 'Paste' });
 ```
 
 ### Submenus
@@ -156,11 +151,11 @@ await MenuItem.new({
   text: t('menu.myNewAction'),
   accelerator: 'CmdOrCtrl+N',
   action: handleMyNewAction,
-})
+});
 
 function handleMyNewAction(): void {
   // Use getState() for current store values
-  const { someValue } = useUIStore.getState()
+  const { someValue } = useUIStore.getState();
   // Perform action
 }
 ```
@@ -175,8 +170,8 @@ Menu actions use Zustand's `getState()` pattern for accessing current state:
 
 ```typescript
 function handleToggleLeftSidebar(): void {
-  const store = useUIStore.getState()
-  store.setLeftSidebarVisible(!store.leftSidebarVisible)
+  const store = useUIStore.getState();
+  store.setLeftSidebarVisible(!store.leftSidebarVisible);
 }
 ```
 

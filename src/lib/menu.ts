@@ -4,25 +4,20 @@
  * This module creates native menus from JavaScript, enabling i18n support
  * through react-i18next. Menus are rebuilt when the language changes.
  */
-import {
-  Menu,
-  MenuItem,
-  Submenu,
-  PredefinedMenuItem,
-} from '@tauri-apps/api/menu'
-import { check } from '@tauri-apps/plugin-updater'
-import i18n from '@/i18n/config'
-import { useUIStore } from '@/store/ui-store'
-import { logger } from '@/lib/logger'
-import { notifications } from '@/lib/notifications'
+import { Menu, MenuItem, Submenu, PredefinedMenuItem } from '@tauri-apps/api/menu';
+import { check } from '@tauri-apps/plugin-updater';
+import i18n from '@/i18n/config';
+import { useUIStore } from '@/store/ui-store';
+import { logger } from '@/lib/logger';
+import { notifications } from '@/lib/notifications';
 
-const APP_NAME = 'Tauri Template'
+const APP_NAME = 'Tauri Template';
 
 /**
  * Build and set the application menu with translated labels.
  */
 export async function buildAppMenu(): Promise<Menu> {
-  const t = i18n.t.bind(i18n)
+  const t = i18n.t.bind(i18n);
 
   try {
     // Build the main application submenu (appears as app name on macOS)
@@ -66,7 +61,7 @@ export async function buildAppMenu(): Promise<Menu> {
           text: t('menu.quit', { appName: APP_NAME }),
         }),
       ],
-    })
+    });
 
     // Edit submenu — required on macOS so WKWebView receives Select All / Cut /
     // Copy / Paste / Undo accelerators when a text field is focused.
@@ -82,7 +77,7 @@ export async function buildAppMenu(): Promise<Menu> {
         await PredefinedMenuItem.new({ item: 'Separator' }),
         await PredefinedMenuItem.new({ item: 'SelectAll' }),
       ],
-    })
+    });
 
     // Build the View submenu
     const viewSubmenu = await Submenu.new({
@@ -101,21 +96,21 @@ export async function buildAppMenu(): Promise<Menu> {
           action: handleToggleRightSidebar,
         }),
       ],
-    })
+    });
 
     // Build the complete menu
     const menu = await Menu.new({
       items: [appSubmenu, editSubmenu, viewSubmenu],
-    })
+    });
 
     // Set as the application menu
-    await menu.setAsAppMenu()
+    await menu.setAsAppMenu();
 
-    logger.info('Application menu built successfully')
-    return menu
+    logger.info('Application menu built successfully');
+    return menu;
   } catch (error) {
-    logger.error('Failed to build application menu', { error })
-    throw error
+    logger.error('Failed to build application menu', { error });
+    throw error;
   }
 }
 
@@ -125,55 +120,50 @@ export async function buildAppMenu(): Promise<Menu> {
  */
 export function setupMenuLanguageListener(): () => void {
   const handler = async () => {
-    logger.info('Language changed, rebuilding menu')
+    logger.info('Language changed, rebuilding menu');
     try {
-      await buildAppMenu()
+      await buildAppMenu();
     } catch (error) {
-      logger.error('Failed to rebuild menu on language change', { error })
+      logger.error('Failed to rebuild menu on language change', { error });
     }
-  }
-  i18n.on('languageChanged', handler)
-  return () => i18n.off('languageChanged', handler)
+  };
+  i18n.on('languageChanged', handler);
+  return () => i18n.off('languageChanged', handler);
 }
 
 // Menu action handlers
 
 function handleAbout(): void {
-  logger.info('About menu item clicked')
-  alert(
-    `${APP_NAME}\n\nVersion: ${__APP_VERSION__}\n\nBuilt with Tauri v2 + React + TypeScript`
-  )
+  logger.info('About menu item clicked');
+  alert(`${APP_NAME}\n\nVersion: ${__APP_VERSION__}\n\nBuilt with Tauri v2 + React + TypeScript`);
 }
 
 async function handleCheckForUpdates(): Promise<void> {
-  logger.info('Check for Updates menu item clicked')
+  logger.info('Check for Updates menu item clicked');
   try {
-    const update = await check()
+    const update = await check();
     if (update) {
-      notifications.info(
-        'Update Available',
-        `Version ${update.version} is available`
-      )
+      notifications.info('Update Available', `Version ${update.version} is available`);
     } else {
-      notifications.success('Up to Date', 'You are running the latest version')
+      notifications.success('Up to Date', 'You are running the latest version');
     }
   } catch (error) {
-    logger.error('Update check failed', { error })
-    notifications.error('Update Check Failed', 'Could not check for updates')
+    logger.error('Update check failed', { error });
+    notifications.error('Update Check Failed', 'Could not check for updates');
   }
 }
 
 function handleOpenPreferences(): void {
-  logger.info('Preferences menu item clicked')
-  useUIStore.getState().setPreferencesOpen(true)
+  logger.info('Preferences menu item clicked');
+  useUIStore.getState().setPreferencesOpen(true);
 }
 
 function handleToggleLeftSidebar(): void {
-  logger.info('Toggle Left Sidebar menu item clicked')
-  useUIStore.getState().toggleLeftSidebar()
+  logger.info('Toggle Left Sidebar menu item clicked');
+  useUIStore.getState().toggleLeftSidebar();
 }
 
 function handleToggleRightSidebar(): void {
-  logger.info('Toggle Right Sidebar menu item clicked')
-  useUIStore.getState().toggleRightSidebar()
+  logger.info('Toggle Right Sidebar menu item clicked');
+  useUIStore.getState().toggleRightSidebar();
 }

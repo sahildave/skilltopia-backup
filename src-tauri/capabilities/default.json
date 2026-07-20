@@ -22,24 +22,15 @@
     "fs:default",
     {
       "identifier": "fs:allow-read-dir",
-      "allow": [
-        { "path": "$HOME/.agents/skills" },
-        { "path": "$HOME/.agents/skills/**" }
-      ]
+      "allow": [{ "path": "$HOME/.agents/skills" }, { "path": "$HOME/.agents/skills/**" }]
     },
     {
       "identifier": "fs:allow-exists",
-      "allow": [
-        { "path": "$HOME/.agents/skills" },
-        { "path": "$HOME/.agents/skills/**" }
-      ]
+      "allow": [{ "path": "$HOME/.agents/skills" }, { "path": "$HOME/.agents/skills/**" }]
     },
     {
       "identifier": "fs:allow-stat",
-      "allow": [
-        { "path": "$HOME/.agents/skills" },
-        { "path": "$HOME/.agents/skills/**" }
-      ]
+      "allow": [{ "path": "$HOME/.agents/skills" }, { "path": "$HOME/.agents/skills/**" }]
     },
     {
       "identifier": "shell:allow-execute",

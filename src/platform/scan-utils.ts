@@ -1,26 +1,22 @@
-import type { InstalledScanSnapshot, SkillEntry, SkillProvider } from './types'
+import type { InstalledScanSnapshot, SkillEntry, SkillProvider } from './types';
 
 /** Back-compat SkillEntry list derived from a scan snapshot. */
-export function skillEntriesFromScan(
-  snapshot: InstalledScanSnapshot
-): SkillEntry[] {
+export function skillEntriesFromScan(snapshot: InstalledScanSnapshot): SkillEntry[] {
   return snapshot.skills
-    .map(skill => ({
+    .map((skill) => ({
       name: skill.name,
       isDirectory: true,
       isFile: false,
-      isSymlink: skill.paths.some(entry => entry.originalPath !== undefined),
+      isSymlink: skill.paths.some((entry) => entry.originalPath !== undefined),
     }))
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export function providersFromScan(
-  snapshot: InstalledScanSnapshot
-): SkillProvider[] {
-  return snapshot.providers.map(provider => ({
+export function providersFromScan(snapshot: InstalledScanSnapshot): SkillProvider[] {
+  return snapshot.providers.map((provider) => ({
     id: provider.id,
     name: provider.name,
-  }))
+  }));
 }
 
 export const EMPTY_INSTALLED_SCAN: InstalledScanSnapshot = {
@@ -39,4 +35,4 @@ export const EMPTY_INSTALLED_SCAN: InstalledScanSnapshot = {
   providers: [],
   skills: [],
   warnings: [],
-}
+};

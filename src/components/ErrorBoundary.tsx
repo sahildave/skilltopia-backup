@@ -1,15 +1,15 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react'
-import { saveCrashState } from '@/lib/recovery'
-import { logger } from '@/lib/logger'
+import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { saveCrashState } from '@/lib/recovery';
+import { logger } from '@/lib/logger';
 
 interface Props {
-  children: ReactNode
+  children: ReactNode;
 }
 
 interface State {
-  hasError: boolean
-  error?: Error
-  errorInfo?: ErrorInfo
+  hasError: boolean;
+  error?: Error;
+  errorInfo?: ErrorInfo;
 }
 
 /**
@@ -20,8 +20,8 @@ interface State {
  */
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
-    super(props)
-    this.state = { hasError: false }
+    super(props);
+    this.state = { hasError: false };
   }
 
   static getDerivedStateFromError(error: Error): State {
@@ -29,19 +29,19 @@ export class ErrorBoundary extends Component<Props, State> {
     return {
       hasError: true,
       error,
-    }
+    };
   }
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     logger.error('Application crashed', {
       error: error.message,
       stack: error.stack,
-    })
+    });
 
-    this.setState({ errorInfo })
+    this.setState({ errorInfo });
 
     // Save crash state asynchronously (don't block error UI)
-    this.saveCrashData(error, errorInfo)
+    this.saveCrashData(error, errorInfo);
   }
 
   private async saveCrashData(error: Error, errorInfo: ErrorInfo) {
@@ -55,26 +55,26 @@ export class ErrorBoundary extends Component<Props, State> {
         // currentUser: getCurrentUser(),
         // activeFeatures: getActiveFeatures(),
         // etc.
-      }
+      };
 
       await saveCrashState(appState, {
         error: error.message,
         stack: error.stack || 'No stack trace available',
         componentStack: errorInfo.componentStack || undefined,
-      })
+      });
     } catch (saveError) {
       // Don't throw from error boundary - just log
-      logger.error('Failed to save crash data', { saveError })
+      logger.error('Failed to save crash data', { saveError });
     }
   }
 
   private handleReload = () => {
-    window.location.reload()
-  }
+    window.location.reload();
+  };
 
   private handleReset = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined })
-  }
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+  };
 
   override render() {
     if (this.state.hasError) {
@@ -97,12 +97,10 @@ export class ErrorBoundary extends Component<Props, State> {
                   />
                 </svg>
               </div>
-              <h1 className="text-2xl leading-none text-foreground mb-2">
-                Something went wrong
-              </h1>
+              <h1 className="text-2xl leading-none text-foreground mb-2">Something went wrong</h1>
               <p className="text-muted-foreground mb-6">
-                The application encountered an unexpected error. Your data has
-                been saved automatically.
+                The application encountered an unexpected error. Your data has been saved
+                automatically.
               </p>
             </div>
 
@@ -141,9 +139,9 @@ export class ErrorBoundary extends Component<Props, State> {
             )}
           </div>
         </div>
-      )
+      );
     }
 
-    return this.props.children
+    return this.props.children;
   }
 }

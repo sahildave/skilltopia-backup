@@ -1,6 +1,6 @@
-import { Sidebar, PanelRight, Settings } from 'lucide-react'
-import { useUIStore } from '@/store/ui-store'
-import type { AppCommand } from './types'
+import { Sidebar, PanelRight, Settings } from 'lucide-react';
+import { useUIStore } from '@/store/ui-store';
+import type { AppCommand } from './types';
 
 export const navigationCommands: AppCommand[] = [
   {
@@ -13,7 +13,7 @@ export const navigationCommands: AppCommand[] = [
     keywords: ['sidebar', 'left', 'panel', 'show'],
 
     execute: () => {
-      useUIStore.getState().setLeftSidebarVisible(true)
+      useUIStore.getState().setLeftSidebarVisible(true);
     },
 
     isAvailable: () => !useUIStore.getState().leftSidebarVisible,
@@ -29,7 +29,7 @@ export const navigationCommands: AppCommand[] = [
     keywords: ['sidebar', 'left', 'panel', 'hide'],
 
     execute: () => {
-      useUIStore.getState().setLeftSidebarVisible(false)
+      useUIStore.getState().setLeftSidebarVisible(false);
     },
 
     isAvailable: () => useUIStore.getState().leftSidebarVisible,
@@ -45,7 +45,7 @@ export const navigationCommands: AppCommand[] = [
     keywords: ['sidebar', 'right', 'panel', 'show'],
 
     execute: () => {
-      useUIStore.getState().setRightSidebarVisible(true)
+      useUIStore.getState().setRightSidebarVisible(true);
     },
 
     isAvailable: () => !useUIStore.getState().rightSidebarVisible,
@@ -61,7 +61,7 @@ export const navigationCommands: AppCommand[] = [
     keywords: ['sidebar', 'right', 'panel', 'hide'],
 
     execute: () => {
-      useUIStore.getState().setRightSidebarVisible(false)
+      useUIStore.getState().setRightSidebarVisible(false);
     },
 
     isAvailable: () => useUIStore.getState().rightSidebarVisible,
@@ -76,8 +76,8 @@ export const navigationCommands: AppCommand[] = [
     shortcut: '⌘+,',
     keywords: ['preferences', 'settings', 'config', 'options'],
 
-    execute: context => {
-      context.openPreferences()
+    execute: (context) => {
+      context.openPreferences();
     },
   },
-]
+];

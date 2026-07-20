@@ -1,4 +1,4 @@
-import { Menu, MenuItem, PredefinedMenuItem } from '@tauri-apps/api/menu'
+import { Menu, MenuItem, PredefinedMenuItem } from '@tauri-apps/api/menu';
 
 /**
  * Context menu utilities for native right-click menus.
@@ -23,36 +23,34 @@ import { Menu, MenuItem, PredefinedMenuItem } from '@tauri-apps/api/menu'
  */
 
 export interface ContextMenuItem {
-  id: string
-  label: string
-  accelerator?: string
-  disabled?: boolean
-  action?: () => void
+  id: string;
+  label: string;
+  accelerator?: string;
+  disabled?: boolean;
+  action?: () => void;
 }
 
 export interface ContextMenuSeparator {
-  type: 'separator'
+  type: 'separator';
 }
 
-export type ContextMenuEntry = ContextMenuItem | ContextMenuSeparator
+export type ContextMenuEntry = ContextMenuItem | ContextMenuSeparator;
 
 /**
  * Type guard to check if an entry is a separator.
  */
 function isSeparator(item: ContextMenuEntry): item is ContextMenuSeparator {
-  return 'type' in item && item.type === 'separator'
+  return 'type' in item && item.type === 'separator';
 }
 
 /**
  * Show a custom context menu at the current cursor position.
  */
-export async function showContextMenu(
-  items: ContextMenuEntry[]
-): Promise<void> {
+export async function showContextMenu(items: ContextMenuEntry[]): Promise<void> {
   const menuItems = await Promise.all(
-    items.map(async item => {
+    items.map(async (item) => {
       if (isSeparator(item)) {
-        return PredefinedMenuItem.new({ item: 'Separator' })
+        return PredefinedMenuItem.new({ item: 'Separator' });
       }
       return MenuItem.new({
         id: item.id,
@@ -60,12 +58,12 @@ export async function showContextMenu(
         accelerator: item.accelerator,
         enabled: !item.disabled,
         action: item.action,
-      })
-    })
-  )
+      });
+    }),
+  );
 
-  const menu = await Menu.new({ items: menuItems })
-  await menu.popup()
+  const menu = await Menu.new({ items: menuItems });
+  await menu.popup();
 }
 
 /**
@@ -81,8 +79,8 @@ export async function showEditContextMenu(): Promise<void> {
       await PredefinedMenuItem.new({ item: 'Separator' }),
       await PredefinedMenuItem.new({ item: 'SelectAll' }),
     ],
-  })
-  await menu.popup()
+  });
+  await menu.popup();
 }
 
 /**
@@ -101,6 +99,6 @@ export async function showTextInputContextMenu(): Promise<void> {
       await PredefinedMenuItem.new({ item: 'Separator' }),
       await PredefinedMenuItem.new({ item: 'SelectAll' }),
     ],
-  })
-  await menu.popup()
+  });
+  await menu.popup();
 }

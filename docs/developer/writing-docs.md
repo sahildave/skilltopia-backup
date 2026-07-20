@@ -45,10 +45,10 @@ Keep examples minimal. Use ✅/❌ format:
 
 ```typescript
 // ❌ BAD: Subscribes to entire store
-const { visible } = useUIStore()
+const { visible } = useUIStore();
 
 // ✅ GOOD: Selector for specific value
-const visible = useUIStore(state => state.visible)
+const visible = useUIStore((state) => state.visible);
 ```
 
 Reference actual files when helpful: "See `src/lib/menu.ts` for the full implementation."

@@ -106,12 +106,12 @@ Then use with Tailwind: `bg-success text-success-foreground`
 
 ```tsx
 // Access theme in components
-import { useTheme } from '@/hooks/use-theme'
+import { useTheme } from '@/hooks/use-theme';
 
 function MyComponent() {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme } = useTheme();
 
-  return <button onClick={() => setTheme('dark')}>Current: {theme}</button>
+  return <button onClick={() => setTheme('dark')}>Current: {theme}</button>;
 }
 ```
 
@@ -270,7 +270,7 @@ const buttonVariants = cva('...', {
       success: 'bg-success text-success-foreground',
     },
   },
-})
+});
 ```
 
 ### Available Components
@@ -282,7 +282,7 @@ This app includes commonly needed components. Run `npx shadcn@latest add [compon
 All components use the `cn()` utility for conditional classes:
 
 ```tsx
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils';
 
 function MyComponent({ className, disabled }) {
   return (
@@ -290,12 +290,12 @@ function MyComponent({ className, disabled }) {
       className={cn(
         'base-styles here',
         disabled && 'opacity-50',
-        className // Allow overrides
+        className, // Allow overrides
       )}
     >
       ...
     </div>
-  )
+  );
 }
 ```
 
@@ -313,16 +313,12 @@ Layout components should:
 
 ```tsx
 interface SideBarProps {
-  children?: React.ReactNode
-  className?: string
+  children?: React.ReactNode;
+  className?: string;
 }
 
 export function LeftSideBar({ children, className }: SideBarProps) {
-  return (
-    <div className={cn('flex flex-col h-full overflow-hidden', className)}>
-      {children}
-    </div>
-  )
+  return <div className={cn('flex flex-col h-full overflow-hidden', className)}>{children}</div>;
 }
 ```
 
@@ -332,13 +328,13 @@ For panels that toggle visibility, prefer CSS over conditional rendering:
 
 ```tsx
 // Good: Preserves component state
-;<ResizablePanel className={cn(!visible && 'hidden')}>
+<ResizablePanel className={cn(!visible && 'hidden')}>
   <SideBar />
-</ResizablePanel>
+</ResizablePanel>;
 
 // Avoid: Loses component state on hide/show
 {
-  visible && <SideBar />
+  visible && <SideBar />;
 }
 ```
 

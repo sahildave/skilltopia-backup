@@ -1,6 +1,6 @@
-import { useUIStore } from '@/store/ui-store'
-import { notify } from '@/lib/notifications'
-import type { CommandContext } from '@/lib/commands/types'
+import { useUIStore } from '@/store/ui-store';
+import { notify } from '@/lib/notifications';
+import type { CommandContext } from '@/lib/commands/types';
 
 /**
  * Module-level singleton actions safe to call outside React components.
@@ -9,14 +9,13 @@ import type { CommandContext } from '@/lib/commands/types'
  */
 const commandContext: CommandContext = {
   openPreferences: () => useUIStore.getState().togglePreferences(),
-  showToast: (message, type = 'info') =>
-    void notify(message, undefined, { type }),
-}
+  showToast: (message, type = 'info') => void notify(message, undefined, { type }),
+};
 
 /**
  * Command context hook - provides essential actions for commands.
  * Returns a stable reference to avoid unnecessary re-renders.
  */
 export function useCommandContext(): CommandContext {
-  return commandContext
+  return commandContext;
 }

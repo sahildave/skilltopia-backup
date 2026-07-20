@@ -1,14 +1,11 @@
-import { generateObject, type LanguageModel } from 'ai'
-import { z } from 'zod'
-import type {
-  EnrichmentRequired,
-  SkillEnrichmentRecord,
-} from './supabase-repository.js'
+import { generateObject, type LanguageModel } from 'ai';
+import { z } from 'zod';
+import type { EnrichmentRequired, SkillEnrichmentRecord } from './supabase-repository.js';
 
 export type ExtractedEnrichment = {
-  required: EnrichmentRequired
-  optional: Record<string, unknown>
-}
+  required: EnrichmentRequired;
+  optional: Record<string, unknown>;
+};
 
 const enrichmentSchema = z.object({
   primaryGoal: z.string().min(1),
@@ -19,13 +16,10 @@ const enrichmentSchema = z.object({
   // (no .optional()). Empty arrays mean "not present in the document".
   worksWith: z.array(z.string()),
   outputs: z.array(z.string()),
-})
+});
 
 function cleanList(values: string[]): string[] {
-  return [...new Set(values.map(value => value.trim()).filter(Boolean))].slice(
-    0,
-    12
-  )
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))].slice(0, 12);
 }
 
 function firstMeaningfulParagraph(markdown: string): string {
@@ -33,26 +27,24 @@ function firstMeaningfulParagraph(markdown: string): string {
     markdown
       .replace(/^---[\s\S]*?---/u, '')
       .split(/\n\s*\n/u)
-      .filter(part => !part.trim().startsWith('#'))
-      .map(part => part.replace(/[*_`]/gu, '').trim())
-      .find(part => part.length > 10) ??
+      .filter((part) => !part.trim().startsWith('#'))
+      .map((part) => part.replace(/[*_`]/gu, '').trim())
+      .find((part) => part.length > 10) ??
     'Provides reusable guidance for an AI-assisted development workflow.'
-  ).slice(0, 300)
+  ).slice(0, 300);
 }
 
 function listAfterLabel(markdown: string, labels: string[]): string[] {
-  const label = labels.join('|')
-  const match = markdown.match(
-    new RegExp(`(?:${label})[^\\n]*\\n([\\s\\S]{0,500})`, 'iu')
-  )
-  if (!match?.[1]) return []
+  const label = labels.join('|');
+  const match = markdown.match(new RegExp(`(?:${label})[^\\n]*\\n([\\s\\S]{0,500})`, 'iu'));
+  if (!match?.[1]) return [];
   return cleanList(
     match[1]
       .split(/\n(?=#+\s)/u)[0]
       .split('\n')
-      .filter(line => /^\s*(?:[-*+] |\d+[.)] )/u.test(line))
-      .map(line => line.replace(/^\s*(?:[-*+] |\d+[.)] )/u, ''))
-  )
+      .filter((line) => /^\s*(?:[-*+] |\d+[.)] )/u.test(line))
+      .map((line) => line.replace(/^\s*(?:[-*+] |\d+[.)] )/u, '')),
+  );
 }
 
 export function extractRuleBased(markdown: string): ExtractedEnrichment {
@@ -61,16 +53,12 @@ export function extractRuleBased(markdown: string): ExtractedEnrichment {
     'prerequisites?',
     'requires',
     'dependencies',
-  ])
-  const bestFor = listAfterLabel(markdown, [
-    'best for',
-    'use when',
-    'ideal for',
-  ])
-  const worksWith = listAfterLabel(markdown, ['works with', 'integrations?'])
-  const outputs = listAfterLabel(markdown, ['outputs?', 'deliverables?'])
+  ]);
+  const bestFor = listAfterLabel(markdown, ['best for', 'use when', 'ideal for']);
+  const worksWith = listAfterLabel(markdown, ['works with', 'integrations?']);
+  const outputs = listAfterLabel(markdown, ['outputs?', 'deliverables?']);
   const estimatedComplexity =
-    markdown.length > 12000 ? 'high' : markdown.length > 5000 ? 'medium' : 'low'
+    markdown.length > 12000 ? 'high' : markdown.length > 5000 ? 'medium' : 'low';
 
   return {
     required: {
@@ -84,25 +72,25 @@ export function extractRuleBased(markdown: string): ExtractedEnrichment {
       ...(outputs.length ? { outputs } : {}),
       confidence: 'rule-based',
     },
-  }
+  };
 }
 
 export type EnrichModelFailure = {
-  modelId: string
-  message: string
-  index: number
-}
+  modelId: string;
+  message: string;
+  index: number;
+};
 
 export async function enrichWithModel(
   markdown: string,
   models: LanguageModel[],
   ruleBased: ExtractedEnrichment = extractRuleBased(markdown),
   pause = async (milliseconds: number) =>
-    new Promise<void>(resolve => setTimeout(resolve, milliseconds)),
-  onModelFailure?: (failure: EnrichModelFailure) => void
+    new Promise<void>((resolve) => setTimeout(resolve, milliseconds)),
+  onModelFailure?: (failure: EnrichModelFailure) => void,
 ): Promise<ExtractedEnrichment> {
-  const prompt = `Extract structured metadata from this skill document. Preserve only facts supported by the document.\n\n${markdown.slice(0, 24000)}`
-  let lastError: unknown
+  const prompt = `Extract structured metadata from this skill document. Preserve only facts supported by the document.\n\n${markdown.slice(0, 24000)}`;
+  let lastError: unknown;
 
   for (const [index, model] of models.entries()) {
     const modelId =
@@ -111,14 +99,14 @@ export async function enrichWithModel(
       'modelId' in model &&
       typeof model.modelId === 'string'
         ? model.modelId
-        : `model-${index}`
+        : `model-${index}`;
     try {
       const result = await generateObject({
         model,
         schema: enrichmentSchema,
         prompt,
-      })
-      const { worksWith, outputs, ...required } = result.object
+      });
+      const { worksWith, outputs, ...required } = result.object;
       return {
         required,
         optional: {
@@ -127,24 +115,24 @@ export async function enrichWithModel(
           confidence: 'llm',
           modelId,
         },
-      }
+      };
     } catch (error) {
-      lastError = error
-      const message = error instanceof Error ? error.message : String(error)
-      onModelFailure?.({ modelId, message, index })
-      if (index < models.length - 1) await pause(1000 * 2 ** index)
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      onModelFailure?.({ modelId, message, index });
+      if (index < models.length - 1) await pause(1000 * 2 ** index);
     }
   }
 
-  if (models.length && lastError) return ruleBased
-  return ruleBased
+  if (models.length && lastError) return ruleBased;
+  return ruleBased;
 }
 
 export function distilledEnrichmentText(
   enrichment: ExtractedEnrichment,
-  record?: Pick<SkillEnrichmentRecord, 'skillId'>
+  record?: Pick<SkillEnrichmentRecord, 'skillId'>,
 ): string {
-  const { required, optional } = enrichment
+  const { required, optional } = enrichment;
   return [
     record?.skillId ? `Skill: ${record.skillId}` : '',
     `Goal: ${required.primaryGoal}`,
@@ -155,5 +143,5 @@ export function distilledEnrichmentText(
     optional.outputs ? `Outputs: ${String(optional.outputs)}` : '',
   ]
     .filter(Boolean)
-    .join('\n')
+    .join('\n');
 }

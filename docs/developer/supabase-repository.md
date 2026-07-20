@@ -17,11 +17,9 @@ The migration creates the `skill_metadata` and `skill_raw_files` tables and a pr
 ## Repository contract
 
 ```ts
-const repository = createSupabaseRepositoryFromEnv()
+const repository = createSupabaseRepositoryFromEnv();
 
-await repository.putRawSkillFiles(skillId, [
-  { path: 'SKILL.md', content: markdown },
-])
+await repository.putRawSkillFiles(skillId, [{ path: 'SKILL.md', content: markdown }]);
 
 await repository.upsertSkillEnrichment({
   skillId,
@@ -29,7 +27,7 @@ await repository.upsertSkillEnrichment({
   required: { primaryGoal, requires, estimatedComplexity, bestFor },
   optional: { worksWith, outputs, confidence },
   estimatedReadTimeMinutes: estimateReadTimeMinutes(markdown),
-})
+});
 ```
 
 Postgres stores metadata, hashes, enrichment JSON, and Storage pointers. Raw Markdown and supporting files are uploaded to Storage and are never copied into a Postgres text column. `getByContentHash` returns only already-enriched matches; `listMissingEnrichment` returns metadata rows whose required enrichment is still null.

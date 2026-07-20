@@ -197,35 +197,29 @@ pub async fn fetch_user(user_id: u32) -> Result<User, String> {
 export const userQueryKeys = {
   all: ['users'] as const,
   user: (id: number) => [...userQueryKeys.all, id] as const,
-}
+};
 
 export function useUser(userId: number) {
   return useQuery({
     queryKey: userQueryKeys.user(userId),
     queryFn: async () => unwrapResult(await commands.fetchUser(userId)),
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-  })
+  });
 }
 
 export function useUpdateUser() {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      userId,
-      data,
-    }: {
-      userId: number
-      data: Partial<User>
-    }) => {
-      const result = await commands.updateUser(userId, data)
-      if (result.status === 'error') throw new Error(result.error)
-      return result.data
+    mutationFn: async ({ userId, data }: { userId: number; data: Partial<User> }) => {
+      const result = await commands.updateUser(userId, data);
+      if (result.status === 'error') throw new Error(result.error);
+      return result.data;
     },
     onSuccess: (_, { userId }) => {
-      queryClient.invalidateQueries({ queryKey: userQueryKeys.user(userId) })
+      queryClient.invalidateQueries({ queryKey: userQueryKeys.user(userId) });
     },
-  })
+  });
 }
 ```
 
@@ -304,10 +298,10 @@ const { data } = useQuery({
   queryKey: ['api-data'],
   queryFn: fetchData,
   retry: (failureCount, error) => {
-    if (error.message.includes('validation')) return false
-    return failureCount < 3
+    if (error.message.includes('validation')) return false;
+    return failureCount < 3;
   },
-})
+});
 ```
 
 ## Offline Handling

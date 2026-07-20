@@ -1,6 +1,6 @@
-import type { AppCommand } from './types'
-import { getCurrentWindow } from '@tauri-apps/api/window'
-import i18n from '@/i18n/config'
+import type { AppCommand } from './types';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import i18n from '@/i18n/config';
 
 export const windowCommands: AppCommand[] = [
   {
@@ -9,16 +9,13 @@ export const windowCommands: AppCommand[] = [
     descriptionKey: 'commands.windowClose.description',
     shortcut: '⌘+W',
 
-    execute: async context => {
+    execute: async (context) => {
       try {
-        const appWindow = getCurrentWindow()
-        await appWindow.close()
+        const appWindow = getCurrentWindow();
+        await appWindow.close();
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
-        context.showToast(
-          i18n.t('toast.error.windowCloseFailed', { message }),
-          'error'
-        )
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        context.showToast(i18n.t('toast.error.windowCloseFailed', { message }), 'error');
       }
     },
   },
@@ -29,16 +26,13 @@ export const windowCommands: AppCommand[] = [
     descriptionKey: 'commands.windowMinimize.description',
     shortcut: '⌘+M',
 
-    execute: async context => {
+    execute: async (context) => {
       try {
-        const appWindow = getCurrentWindow()
-        await appWindow.minimize()
+        const appWindow = getCurrentWindow();
+        await appWindow.minimize();
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
-        context.showToast(
-          i18n.t('toast.error.windowMinimizeFailed', { message }),
-          'error'
-        )
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        context.showToast(i18n.t('toast.error.windowMinimizeFailed', { message }), 'error');
       }
     },
   },
@@ -48,16 +42,13 @@ export const windowCommands: AppCommand[] = [
     labelKey: 'commands.windowToggleMaximize.label',
     descriptionKey: 'commands.windowToggleMaximize.description',
 
-    execute: async context => {
+    execute: async (context) => {
       try {
-        const appWindow = getCurrentWindow()
-        await appWindow.toggleMaximize()
+        const appWindow = getCurrentWindow();
+        await appWindow.toggleMaximize();
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
-        context.showToast(
-          i18n.t('toast.error.windowMaximizeFailed', { message }),
-          'error'
-        )
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        context.showToast(i18n.t('toast.error.windowMaximizeFailed', { message }), 'error');
       }
     },
   },
@@ -68,16 +59,13 @@ export const windowCommands: AppCommand[] = [
     descriptionKey: 'commands.windowFullscreen.description',
     shortcut: 'F11',
 
-    execute: async context => {
+    execute: async (context) => {
       try {
-        const appWindow = getCurrentWindow()
-        await appWindow.setFullscreen(true)
+        const appWindow = getCurrentWindow();
+        await appWindow.setFullscreen(true);
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
-        context.showToast(
-          i18n.t('toast.error.fullscreenEnterFailed', { message }),
-          'error'
-        )
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        context.showToast(i18n.t('toast.error.fullscreenEnterFailed', { message }), 'error');
       }
     },
   },
@@ -88,17 +76,14 @@ export const windowCommands: AppCommand[] = [
     descriptionKey: 'commands.windowExitFullscreen.description',
     shortcut: 'Escape',
 
-    execute: async context => {
+    execute: async (context) => {
       try {
-        const appWindow = getCurrentWindow()
-        await appWindow.setFullscreen(false)
+        const appWindow = getCurrentWindow();
+        await appWindow.setFullscreen(false);
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
-        context.showToast(
-          i18n.t('toast.error.fullscreenExitFailed', { message }),
-          'error'
-        )
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        context.showToast(i18n.t('toast.error.fullscreenExitFailed', { message }), 'error');
       }
     },
   },
-]
+];

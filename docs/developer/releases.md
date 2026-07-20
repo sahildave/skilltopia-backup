@@ -121,30 +121,30 @@ App Launch → (5s delay) → Check GitHub → Show Dialog → Download → Inst
 
 ```typescript
 // src/App.tsx
-import { check } from '@tauri-apps/plugin-updater'
-import { relaunch } from '@tauri-apps/plugin-process'
+import { check } from '@tauri-apps/plugin-updater';
+import { relaunch } from '@tauri-apps/plugin-process';
 
 useEffect(() => {
   const checkForUpdates = async () => {
     try {
-      const update = await check()
+      const update = await check();
       if (update) {
-        const shouldUpdate = confirm(`Update available: ${update.version}...`)
+        const shouldUpdate = confirm(`Update available: ${update.version}...`);
         if (shouldUpdate) {
-          await update.downloadAndInstall()
+          await update.downloadAndInstall();
           if (confirm('Restart to apply update?')) {
-            await relaunch()
+            await relaunch();
           }
         }
       }
     } catch {
       // Silent fail - don't bother user with network issues
     }
-  }
+  };
 
-  const timer = setTimeout(checkForUpdates, 5000)
-  return () => clearTimeout(timer)
-}, [])
+  const timer = setTimeout(checkForUpdates, 5000);
+  return () => clearTimeout(timer);
+}, []);
 ```
 
 ### Manual Update Check

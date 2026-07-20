@@ -84,16 +84,16 @@ useState (component) → Zustand (global UI) → TanStack Query (persistent data
 
 ```typescript
 // ✅ GOOD: Selector syntax - only re-renders when specific value changes
-const leftSidebarVisible = useUIStore(state => state.leftSidebarVisible)
+const leftSidebarVisible = useUIStore((state) => state.leftSidebarVisible);
 
 // ❌ BAD: Destructuring causes render cascades (caught by ast-grep)
-const { leftSidebarVisible } = useUIStore()
+const { leftSidebarVisible } = useUIStore();
 
 // ✅ GOOD: Use getState() in callbacks for current state
 const handleAction = () => {
-  const { data, setData } = useStore.getState()
-  setData(newData)
-}
+  const { data, setData } = useStore.getState();
+  setData(newData);
+};
 ```
 
 ### Static Analysis
@@ -112,15 +112,15 @@ const handleAction = () => {
 
 ```typescript
 // ✅ GOOD: Type-safe commands with Result handling
-import { commands } from '@/lib/tauri-bindings'
+import { commands } from '@/lib/tauri-bindings';
 
-const result = await commands.loadPreferences()
+const result = await commands.loadPreferences();
 if (result.status === 'ok') {
-  console.log(result.data.theme)
+  console.log(result.data.theme);
 }
 
 // ❌ BAD: String-based invoke (no type safety)
-const prefs = await invoke('load_preferences')
+const prefs = await invoke('load_preferences');
 ```
 
 **Adding commands**: See `docs/developer/tauri-commands.md`

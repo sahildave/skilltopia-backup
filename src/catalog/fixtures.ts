@@ -1,4 +1,4 @@
-import type { SkillDetailData, SkillsShSkill } from './types'
+import type { SkillDetailData, SkillsShSkill } from './types';
 
 export const MOCK_LEADERBOARD: SkillsShSkill[] = [
   {
@@ -21,7 +21,7 @@ export const MOCK_LEADERBOARD: SkillsShSkill[] = [
     installUrl: 'https://skills.sh/anthropics/skills/frontend-design',
     url: 'https://skills.sh/anthropics/skills/frontend-design',
   },
-]
+];
 
 export const MOCK_DETAIL: SkillDetailData = {
   skillId: 'vercel-labs/agent-skills/find-skills',
@@ -38,4 +38,4 @@ export const MOCK_DETAIL: SkillDetailData = {
     estimatedReadTimeMinutes: 3,
   },
   related: [],
-}
+};

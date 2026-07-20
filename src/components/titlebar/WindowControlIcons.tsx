@@ -1,4 +1,4 @@
-import type { SVGProps } from 'react'
+import type { SVGProps } from 'react';
 
 /**
  * Window control icons for all platforms.
@@ -83,7 +83,7 @@ export const MacOSIcons = {
       </g>
     </svg>
   ),
-}
+};
 
 // =============================================================================
 // Windows Icons
@@ -91,37 +91,17 @@ export const MacOSIcons = {
 
 export const WindowsIcons = {
   minimize: (props: SVGProps<SVGSVGElement>) => (
-    <svg
-      width="10"
-      height="1"
-      viewBox="0 0 10 1"
-      fill="currentColor"
-      {...props}
-    >
+    <svg width="10" height="1" viewBox="0 0 10 1" fill="currentColor" {...props}>
       <rect width="10" height="1" />
     </svg>
   ),
   maximize: (props: SVGProps<SVGSVGElement>) => (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 10 10"
-      fill="none"
-      stroke="currentColor"
-      {...props}
-    >
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" {...props}>
       <rect x="0.5" y="0.5" width="9" height="9" strokeWidth="1" />
     </svg>
   ),
   restore: (props: SVGProps<SVGSVGElement>) => (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 10 10"
-      fill="none"
-      stroke="currentColor"
-      {...props}
-    >
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" {...props}>
       {/* Back window */}
       <path d="M2 0.5h7.5v7.5" strokeWidth="1" />
       {/* Front window */}
@@ -129,15 +109,8 @@ export const WindowsIcons = {
     </svg>
   ),
   close: (props: SVGProps<SVGSVGElement>) => (
-    <svg
-      width="10"
-      height="10"
-      viewBox="0 0 10 10"
-      fill="none"
-      stroke="currentColor"
-      {...props}
-    >
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" {...props}>
       <path d="M0 0L10 10M10 0L0 10" strokeWidth="1" />
     </svg>
   ),
-}
+};

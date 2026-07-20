@@ -102,7 +102,7 @@ The `#[serde(tag = "type")]` makes errors easy to match in TypeScript:
 
 ```typescript
 if (error.type === 'ValidationError') {
-  console.log(error.message)
+  console.log(error.message);
 }
 ```
 

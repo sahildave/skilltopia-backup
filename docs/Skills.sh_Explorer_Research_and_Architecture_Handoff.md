@@ -325,13 +325,13 @@ budget-driven.
 Pseudo-logic:
 
 ```ts
-const MAX_ENRICHED = 2000
+const MAX_ENRICHED = 2000;
 
 if (installRank <= MAX_ENRICHED) {
-  enrichWithLLM()
-  generateEmbedding()
+  enrichWithLLM();
+  generateEmbedding();
 } else {
-  keywordOnly()
+  keywordOnly();
 }
 ```
 

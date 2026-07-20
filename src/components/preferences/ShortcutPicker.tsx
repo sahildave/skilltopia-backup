@@ -1,14 +1,14 @@
-import { useState, useRef, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
-import { cn } from '@/lib/utils'
-import { getPlatform } from '@/hooks/use-platform'
+import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
+import { getPlatform } from '@/hooks/use-platform';
 
 interface ShortcutPickerProps {
-  value: string | null
-  defaultValue: string
-  onChange: (shortcut: string | null) => void
-  disabled?: boolean
-  className?: string
+  value: string | null;
+  defaultValue: string;
+  onChange: (shortcut: string | null) => void;
+  disabled?: boolean;
+  className?: string;
 }
 
 /**
@@ -16,7 +16,7 @@ interface ShortcutPickerProps {
  * Converts "CommandOrControl+Shift+." to "⌘⇧." on macOS or "Ctrl+Shift+." on other platforms.
  */
 function formatShortcutForDisplay(shortcut: string): string {
-  const isMac = getPlatform() === 'macos'
+  const isMac = getPlatform() === 'macos';
 
   let formatted = shortcut
     // Handle CommandOrControl first
@@ -50,15 +50,15 @@ function formatShortcutForDisplay(shortcut: string): string {
     .replace(/ArrowDown/gi, '↓')
     .replace(/ArrowLeft/gi, '←')
     .replace(/ArrowRight/gi, '→')
-    .replace(/Tab/gi, '⇥')
+    .replace(/Tab/gi, '⇥');
 
   // On Mac, join with no separator for modifier symbols
   if (isMac) {
     // Replace + between symbols with nothing for compact display
-    formatted = formatted.replace(/\+/g, '')
+    formatted = formatted.replace(/\+/g, '');
   }
 
-  return formatted
+  return formatted;
 }
 
 /**
@@ -67,45 +67,45 @@ function formatShortcutForDisplay(shortcut: string): string {
  */
 function keyEventToShortcut(e: KeyboardEvent): string | null {
   // Don't capture if only modifier keys are pressed
-  const modifierKeys = ['Control', 'Shift', 'Alt', 'Meta', 'ContextMenu', 'OS']
+  const modifierKeys = ['Control', 'Shift', 'Alt', 'Meta', 'ContextMenu', 'OS'];
   if (modifierKeys.includes(e.key)) {
-    return null
+    return null;
   }
 
   // Build the shortcut string
-  const parts: string[] = []
+  const parts: string[] = [];
 
   // Use CommandOrControl for cross-platform compatibility
   if (e.metaKey || e.ctrlKey) {
-    parts.push('CommandOrControl')
+    parts.push('CommandOrControl');
   }
   if (e.shiftKey) {
-    parts.push('Shift')
+    parts.push('Shift');
   }
   if (e.altKey) {
-    parts.push('Alt')
+    parts.push('Alt');
   }
 
   // Must have at least one modifier for a global shortcut
   if (parts.length === 0) {
-    return null
+    return null;
   }
 
   // Map key to Tauri-compatible format
-  let key = e.code
+  let key = e.code;
 
   // Handle special keys
   if (key.startsWith('Key')) {
-    key = key.slice(3) // KeyA -> A
+    key = key.slice(3); // KeyA -> A
   } else if (key.startsWith('Digit')) {
-    key = key.slice(5) // Digit1 -> 1
+    key = key.slice(5); // Digit1 -> 1
   } else if (key.startsWith('Numpad')) {
-    key = 'Num' + key.slice(6) // Numpad1 -> Num1
+    key = 'Num' + key.slice(6); // Numpad1 -> Num1
   }
 
-  parts.push(key)
+  parts.push(key);
 
-  return parts.join('+')
+  return parts.join('+');
 }
 
 export function ShortcutPicker({
@@ -115,79 +115,78 @@ export function ShortcutPicker({
   disabled = false,
   className,
 }: ShortcutPickerProps) {
-  const { t } = useTranslation()
-  const [isCapturing, setIsCapturing] = useState(false)
-  const [pendingShortcut, setPendingShortcut] = useState<string | null>(null)
-  const inputRef = useRef<HTMLDivElement>(null)
+  const { t } = useTranslation();
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [pendingShortcut, setPendingShortcut] = useState<string | null>(null);
+  const inputRef = useRef<HTMLDivElement>(null);
 
-  const displayValue = value ?? defaultValue
-  const isDefault = value === null
+  const displayValue = value ?? defaultValue;
+  const isDefault = value === null;
 
   // Handle keyboard events when capturing
   useEffect(() => {
-    if (!isCapturing) return
+    if (!isCapturing) return;
 
-    const inputElement = inputRef.current
+    const inputElement = inputRef.current;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
+      e.preventDefault();
+      e.stopPropagation();
 
       // Escape cancels capture
       if (e.key === 'Escape') {
-        setPendingShortcut(null)
-        setIsCapturing(false)
-        return
+        setPendingShortcut(null);
+        setIsCapturing(false);
+        return;
       }
 
-      const shortcut = keyEventToShortcut(e)
+      const shortcut = keyEventToShortcut(e);
       if (shortcut) {
-        setPendingShortcut(shortcut)
+        setPendingShortcut(shortcut);
       }
-    }
+    };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
+      e.preventDefault();
+      e.stopPropagation();
 
       // If we have a pending shortcut and key is released, confirm it
       if (pendingShortcut) {
         // Compare to default to determine if we should save null or the shortcut
-        const valueToSave =
-          pendingShortcut === defaultValue ? null : pendingShortcut
-        onChange(valueToSave)
-        setPendingShortcut(null)
-        setIsCapturing(false)
+        const valueToSave = pendingShortcut === defaultValue ? null : pendingShortcut;
+        onChange(valueToSave);
+        setPendingShortcut(null);
+        setIsCapturing(false);
       }
-    }
+    };
 
     const handleBlur = () => {
-      setPendingShortcut(null)
-      setIsCapturing(false)
-    }
+      setPendingShortcut(null);
+      setIsCapturing(false);
+    };
 
-    window.addEventListener('keydown', handleKeyDown, true)
-    window.addEventListener('keyup', handleKeyUp, true)
-    inputElement?.addEventListener('blur', handleBlur)
+    window.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('keyup', handleKeyUp, true);
+    inputElement?.addEventListener('blur', handleBlur);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown, true)
-      window.removeEventListener('keyup', handleKeyUp, true)
-      inputElement?.removeEventListener('blur', handleBlur)
-    }
-  }, [isCapturing, pendingShortcut, defaultValue, onChange])
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('keyup', handleKeyUp, true);
+      inputElement?.removeEventListener('blur', handleBlur);
+    };
+  }, [isCapturing, pendingShortcut, defaultValue, onChange]);
 
   const handleClick = () => {
-    if (disabled) return
-    setIsCapturing(true)
-    inputRef.current?.focus()
-  }
+    if (disabled) return;
+    setIsCapturing(true);
+    inputRef.current?.focus();
+  };
 
   const handleReset = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (disabled) return
-    onChange(null)
-  }
+    e.stopPropagation();
+    if (disabled) return;
+    onChange(null);
+  };
 
   return (
     <div className="flex items-center gap-2">
@@ -196,10 +195,10 @@ export function ShortcutPicker({
         role="button"
         tabIndex={disabled ? -1 : 0}
         onClick={handleClick}
-        onKeyDown={e => {
+        onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            handleClick()
+            e.preventDefault();
+            handleClick();
           }
         }}
         className={cn(
@@ -208,7 +207,7 @@ export function ShortcutPicker({
           'flex items-center justify-center font-mono',
           isCapturing && 'border-ring ring-ring/50 ring-[3px] bg-muted/50',
           disabled && 'pointer-events-none cursor-not-allowed opacity-50',
-          className
+          className,
         )}
       >
         {isCapturing ? (
@@ -237,5 +236,5 @@ export function ShortcutPicker({
         </button>
       )}
     </div>
-  )
+  );
 }

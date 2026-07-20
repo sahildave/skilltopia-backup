@@ -1,19 +1,19 @@
-import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
-import { platform } from '@platform'
-import type { InstalledScanSnapshot } from '@/platform/types'
+import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
+import { platform } from '@platform';
+import type { InstalledScanSnapshot } from '@/platform/types';
 
 interface InstalledScanState {
-  snapshot: InstalledScanSnapshot | null
-  error: string | null
-  refreshing: boolean
+  snapshot: InstalledScanSnapshot | null;
+  error: string | null;
+  refreshing: boolean;
   /** Replace the platform cache and update React state. Keeps prior snapshot visible. */
-  rescan: () => Promise<void>
+  rescan: () => Promise<void>;
   /** Load cached snapshot once without forcing a filesystem rescan. */
-  hydrate: () => Promise<void>
+  hydrate: () => Promise<void>;
 }
 
-let requestId = 0
+let requestId = 0;
 
 export const useInstalledScanStore = create<InstalledScanState>()(
   devtools(
@@ -23,48 +23,48 @@ export const useInstalledScanStore = create<InstalledScanState>()(
       refreshing: false,
 
       hydrate: async () => {
-        if (!platform.hasLocalLibrary) return
-        if (get().snapshot !== null) return
-        const id = ++requestId
-        set({ refreshing: true, error: null }, undefined, 'hydrate/start')
+        if (!platform.hasLocalLibrary) return;
+        if (get().snapshot !== null) return;
+        const id = ++requestId;
+        set({ refreshing: true, error: null }, undefined, 'hydrate/start');
         try {
-          const snapshot = await platform.getInstalledScan()
-          if (id !== requestId) return
-          set({ snapshot, refreshing: false }, undefined, 'hydrate/ok')
+          const snapshot = await platform.getInstalledScan();
+          if (id !== requestId) return;
+          set({ snapshot, refreshing: false }, undefined, 'hydrate/ok');
         } catch (err) {
-          if (id !== requestId) return
+          if (id !== requestId) return;
           set(
             {
               error: err instanceof Error ? err.message : String(err),
               refreshing: false,
             },
             undefined,
-            'hydrate/error'
-          )
+            'hydrate/error',
+          );
         }
       },
 
       rescan: async () => {
-        if (!platform.hasLocalLibrary) return
-        const id = ++requestId
-        set({ refreshing: true, error: null }, undefined, 'rescan/start')
+        if (!platform.hasLocalLibrary) return;
+        const id = ++requestId;
+        set({ refreshing: true, error: null }, undefined, 'rescan/start');
         try {
-          const snapshot = await platform.scanInstalled()
-          if (id !== requestId) return
-          set({ snapshot, refreshing: false }, undefined, 'rescan/ok')
+          const snapshot = await platform.scanInstalled();
+          if (id !== requestId) return;
+          set({ snapshot, refreshing: false }, undefined, 'rescan/ok');
         } catch (err) {
-          if (id !== requestId) return
+          if (id !== requestId) return;
           set(
             {
               error: err instanceof Error ? err.message : String(err),
               refreshing: false,
             },
             undefined,
-            'rescan/error'
-          )
+            'rescan/error',
+          );
         }
       },
     }),
-    { name: 'installed-scan-store' }
-  )
-)
+    { name: 'installed-scan-store' },
+  ),
+);

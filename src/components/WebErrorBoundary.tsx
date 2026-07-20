@@ -1,25 +1,25 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react'
-import { withTranslation, type WithTranslation } from 'react-i18next'
-import { logger } from '@/lib/logger'
+import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { withTranslation, type WithTranslation } from 'react-i18next';
+import { logger } from '@/lib/logger';
 
 interface Props extends WithTranslation {
-  children: ReactNode
+  children: ReactNode;
 }
 
 interface State {
-  hasError: boolean
-  error?: Error
+  hasError: boolean;
+  error?: Error;
 }
 
 /** Browser error boundary — no Tauri recovery / filesystem. */
 class WebErrorBoundaryBase extends Component<Props, State> {
   constructor(props: Props) {
-    super(props)
-    this.state = { hasError: false }
+    super(props);
+    this.state = { hasError: false };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error }
+    return { hasError: true, error };
   }
 
   override componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -27,11 +27,11 @@ class WebErrorBoundaryBase extends Component<Props, State> {
       error: error.message,
       stack: error.stack,
       componentStack: errorInfo.componentStack,
-    })
+    });
   }
 
   override render() {
-    const { t } = this.props
+    const { t } = this.props;
 
     if (this.state.hasError) {
       return (
@@ -48,11 +48,11 @@ class WebErrorBoundaryBase extends Component<Props, State> {
             {t('web.error.reload')}
           </button>
         </div>
-      )
+      );
     }
 
-    return this.props.children
+    return this.props.children;
   }
 }
 
-export const WebErrorBoundary = withTranslation()(WebErrorBoundaryBase)
+export const WebErrorBoundary = withTranslation()(WebErrorBoundaryBase);

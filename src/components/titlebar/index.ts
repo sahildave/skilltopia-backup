@@ -1,5 +1,5 @@
 // Main title bar component
-export { TitleBar } from './TitleBar'
+export { TitleBar } from './TitleBar';
 
 // Shared content components
 export {
@@ -7,12 +7,12 @@ export {
   TitleBarLeftActions,
   TitleBarRightActions,
   TitleBarTitle,
-} from './TitleBarContent'
+} from './TitleBarContent';
 
 // Platform-specific components (generally not needed externally)
-export { LinuxTitleBar } from './LinuxTitleBar'
-export { MacOSWindowControls } from './MacOSWindowControls'
-export { WindowsWindowControls } from './WindowsWindowControls'
+export { LinuxTitleBar } from './LinuxTitleBar';
+export { MacOSWindowControls } from './MacOSWindowControls';
+export { WindowsWindowControls } from './WindowsWindowControls';
 
 // Icons (for custom title bar implementations)
-export { MacOSIcons, WindowsIcons } from './WindowControlIcons'
+export { MacOSIcons, WindowsIcons } from './WindowControlIcons';

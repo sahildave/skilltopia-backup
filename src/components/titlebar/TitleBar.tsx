@@ -1,23 +1,19 @@
-import { useTranslation } from 'react-i18next'
-import { cn } from '@/lib/utils'
-import { usePlatform, type AppPlatform } from '@/hooks/use-platform'
-import { MacOSWindowControls } from './MacOSWindowControls'
-import { WindowsWindowControls } from './WindowsWindowControls'
-import {
-  TitleBarLeftActions,
-  TitleBarRightActions,
-  TitleBarTitle,
-} from './TitleBarContent'
-import { LinuxTitleBar } from './LinuxTitleBar'
+import { useTranslation } from 'react-i18next';
+import { cn } from '@/lib/utils';
+import { usePlatform, type AppPlatform } from '@/hooks/use-platform';
+import { MacOSWindowControls } from './MacOSWindowControls';
+import { WindowsWindowControls } from './WindowsWindowControls';
+import { TitleBarLeftActions, TitleBarRightActions, TitleBarTitle } from './TitleBarContent';
+import { LinuxTitleBar } from './LinuxTitleBar';
 
 interface TitleBarProps {
-  className?: string
-  title?: string
+  className?: string;
+  title?: string;
   /**
    * Force a specific platform for development/testing.
    * Only works in development builds.
    */
-  forcePlatform?: AppPlatform
+  forcePlatform?: AppPlatform;
 }
 
 /**
@@ -31,17 +27,16 @@ interface TitleBarProps {
  * Use `forcePlatform` prop in development to test other platform layouts.
  */
 export function TitleBar({ className, title, forcePlatform }: TitleBarProps) {
-  const { t } = useTranslation()
-  const displayTitle = title ?? t('titlebar.default')
-  const detectedPlatform = usePlatform()
+  const { t } = useTranslation();
+  const displayTitle = title ?? t('titlebar.default');
+  const detectedPlatform = usePlatform();
 
   // In development, allow forcing a platform for testing
-  const platform =
-    import.meta.env.DEV && forcePlatform ? forcePlatform : detectedPlatform
+  const platform = import.meta.env.DEV && forcePlatform ? forcePlatform : detectedPlatform;
 
   // Linux uses native decorations, so render just the toolbar
   if (platform === 'linux') {
-    return <LinuxTitleBar className={className} title={displayTitle} />
+    return <LinuxTitleBar className={className} title={displayTitle} />;
   }
 
   // Windows: controls on the right
@@ -51,7 +46,7 @@ export function TitleBar({ className, title, forcePlatform }: TitleBarProps) {
         data-tauri-drag-region
         className={cn(
           'relative flex h-8 w-full shrink-0 items-center justify-between border-b bg-background',
-          className
+          className,
         )}
       >
         {/* Left side - Actions */}
@@ -68,7 +63,7 @@ export function TitleBar({ className, title, forcePlatform }: TitleBarProps) {
           <WindowsWindowControls />
         </div>
       </div>
-    )
+    );
   }
 
   // macOS (default): traffic lights on the left
@@ -77,7 +72,7 @@ export function TitleBar({ className, title, forcePlatform }: TitleBarProps) {
       data-tauri-drag-region
       className={cn(
         'relative flex h-8 w-full shrink-0 items-center justify-between border-b bg-background',
-        className
+        className,
       )}
     >
       {/* Left side - Window Controls + Actions */}
@@ -94,5 +89,5 @@ export function TitleBar({ className, title, forcePlatform }: TitleBarProps) {
         <TitleBarRightActions />
       </div>
     </div>
-  )
+  );
 }

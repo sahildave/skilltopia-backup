@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Settings, Palette, Zap } from 'lucide-react'
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Settings, Palette, Zap } from 'lucide-react';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,13 +8,8 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from '@/components/ui/dialog'
+} from '@/components/ui/breadcrumb';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import {
   Sidebar,
   SidebarContent,
@@ -24,13 +19,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-} from '@/components/ui/sidebar'
-import { useUIStore } from '@/store/ui-store'
-import { GeneralPane } from './panes/GeneralPane'
-import { AppearancePane } from './panes/AppearancePane'
-import { AdvancedPane } from './panes/AdvancedPane'
+} from '@/components/ui/sidebar';
+import { useUIStore } from '@/store/ui-store';
+import { GeneralPane } from './panes/GeneralPane';
+import { AppearancePane } from './panes/AppearancePane';
+import { AdvancedPane } from './panes/AdvancedPane';
 
-type PreferencePane = 'general' | 'appearance' | 'advanced'
+type PreferencePane = 'general' | 'appearance' | 'advanced';
 
 const navigationItems = [
   {
@@ -48,25 +43,23 @@ const navigationItems = [
     labelKey: 'preferences.advanced',
     icon: Zap,
   },
-] as const
+] as const;
 
 export function PreferencesDialog() {
-  const { t } = useTranslation()
-  const [activePane, setActivePane] = useState<PreferencePane>('general')
-  const preferencesOpen = useUIStore(state => state.preferencesOpen)
-  const setPreferencesOpen = useUIStore(state => state.setPreferencesOpen)
+  const { t } = useTranslation();
+  const [activePane, setActivePane] = useState<PreferencePane>('general');
+  const preferencesOpen = useUIStore((state) => state.preferencesOpen);
+  const setPreferencesOpen = useUIStore((state) => state.setPreferencesOpen);
 
   const getPaneTitle = (pane: PreferencePane): string => {
-    return t(`preferences.${pane}`)
-  }
+    return t(`preferences.${pane}`);
+  };
 
   return (
     <Dialog open={preferencesOpen} onOpenChange={setPreferencesOpen}>
       <DialogContent className="app-dialog-preferences overflow-hidden rounded-xl p-0 font-sans md:max-h-[600px] md:max-w-[900px] lg:max-w-[1000px]">
         <DialogTitle className="sr-only">{t('preferences.title')}</DialogTitle>
-        <DialogDescription className="sr-only">
-          {t('preferences.description')}
-        </DialogDescription>
+        <DialogDescription className="sr-only">{t('preferences.description')}</DialogDescription>
 
         <SidebarProvider className="items-start">
           <Sidebar collapsible="none" className="hidden md:flex">
@@ -74,16 +67,10 @@ export function PreferencesDialog() {
               <SidebarGroup>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {navigationItems.map(item => (
+                    {navigationItems.map((item) => (
                       <SidebarMenuItem key={item.id}>
-                        <SidebarMenuButton
-                          asChild
-                          isActive={activePane === item.id}
-                        >
-                          <button
-                            onClick={() => setActivePane(item.id)}
-                            className="w-full"
-                          >
+                        <SidebarMenuButton asChild isActive={activePane === item.id}>
+                          <button onClick={() => setActivePane(item.id)} className="w-full">
                             <item.icon />
                             <span>{t(item.labelKey)}</span>
                           </button>
@@ -108,9 +95,7 @@ export function PreferencesDialog() {
                     </BreadcrumbItem>
                     <BreadcrumbSeparator className="hidden md:block" />
                     <BreadcrumbItem>
-                      <BreadcrumbPage>
-                        {getPaneTitle(activePane)}
-                      </BreadcrumbPage>
+                      <BreadcrumbPage>{getPaneTitle(activePane)}</BreadcrumbPage>
                     </BreadcrumbItem>
                   </BreadcrumbList>
                 </Breadcrumb>
@@ -126,5 +111,5 @@ export function PreferencesDialog() {
         </SidebarProvider>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

@@ -30,53 +30,47 @@ Tauri commands must be mocked since tests run outside the Tauri environment. Moc
 
 ```typescript
 // src/test/setup.ts
-import { vi } from 'vitest'
+import { vi } from 'vitest';
 
 // Mock Tauri event APIs
 vi.mock('@tauri-apps/api/event', () => ({
   listen: vi.fn().mockResolvedValue(() => {}),
-}))
+}));
 
 vi.mock('@tauri-apps/plugin-updater', () => ({
   check: vi.fn().mockResolvedValue(null),
-}))
+}));
 
 // Mock typed Tauri bindings (tauri-specta generated)
 vi.mock('@/lib/tauri-bindings', () => ({
   commands: {
     greet: vi.fn().mockResolvedValue('Hello, test!'),
-    loadPreferences: vi
-      .fn()
-      .mockResolvedValue({ status: 'ok', data: { theme: 'system' } }),
+    loadPreferences: vi.fn().mockResolvedValue({ status: 'ok', data: { theme: 'system' } }),
     savePreferences: vi.fn().mockResolvedValue({ status: 'ok', data: null }),
-    sendNativeNotification: vi
-      .fn()
-      .mockResolvedValue({ status: 'ok', data: null }),
+    sendNativeNotification: vi.fn().mockResolvedValue({ status: 'ok', data: null }),
     saveEmergencyData: vi.fn().mockResolvedValue({ status: 'ok', data: null }),
     loadEmergencyData: vi.fn().mockResolvedValue({ status: 'ok', data: null }),
-    cleanupOldRecoveryFiles: vi
-      .fn()
-      .mockResolvedValue({ status: 'ok', data: 0 }),
+    cleanupOldRecoveryFiles: vi.fn().mockResolvedValue({ status: 'ok', data: 0 }),
   },
-}))
+}));
 ```
 
 ### Testing with Mocked Commands
 
 ```typescript
-import { vi } from 'vitest'
-import { commands } from '@/lib/tauri-bindings'
+import { vi } from 'vitest';
+import { commands } from '@/lib/tauri-bindings';
 
-const mockCommands = vi.mocked(commands)
+const mockCommands = vi.mocked(commands);
 
 test('loads preferences', async () => {
   mockCommands.loadPreferences.mockResolvedValue({
     status: 'ok',
     data: { theme: 'dark' },
-  })
+  });
 
   // Test code that calls loadPreferences
-})
+});
 ```
 
 ### Test Wrapper for Providers
@@ -125,20 +119,20 @@ test('component with query', () => {
 ### Testing Zustand Stores
 
 ```typescript
-import { renderHook, act } from '@testing-library/react'
-import { useUIStore } from '@/store/ui-store'
+import { renderHook, act } from '@testing-library/react';
+import { useUIStore } from '@/store/ui-store';
 
 test('toggles sidebar visibility', () => {
-  const { result } = renderHook(() => useUIStore())
+  const { result } = renderHook(() => useUIStore());
 
-  expect(result.current.leftSidebarVisible).toBe(true)
+  expect(result.current.leftSidebarVisible).toBe(true);
 
   act(() => {
-    result.current.setLeftSidebarVisible(false)
-  })
+    result.current.setLeftSidebarVisible(false);
+  });
 
-  expect(result.current.leftSidebarVisible).toBe(false)
-})
+  expect(result.current.leftSidebarVisible).toBe(false);
+});
 ```
 
 ## Rust Testing
@@ -199,7 +193,7 @@ vi.mock('@/lib/tauri-bindings', () => ({
     // ... existing mocks
     myNewCommand: vi.fn().mockResolvedValue({ status: 'ok', data: null }),
   },
-}))
+}));
 ```
 
 ## Best Practices

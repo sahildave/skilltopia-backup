@@ -37,8 +37,8 @@ function MyComponent() {
 1. **Create commands** (e.g., `my-feature-commands.ts`):
 
 ```typescript
-import { useUIStore } from '@/store/ui-store'
-import type { AppCommand } from '@/types/commands'
+import { useUIStore } from '@/store/ui-store';
+import type { AppCommand } from '@/types/commands';
 
 export const myFeatureCommands: AppCommand[] = [
   {
@@ -46,9 +46,9 @@ export const myFeatureCommands: AppCommand[] = [
     labelKey: 'commands.myAction.label',
     descriptionKey: 'commands.myAction.description', // optional
 
-    execute: context => {
+    execute: (context) => {
       // Direct store access using getState() pattern
-      const currentState = useUIStore.getState()
+      const currentState = useUIStore.getState();
 
       // Call actions: context.toggleSidebar()
       // Show feedback: context.showToast('Done!', 'success')
@@ -56,20 +56,20 @@ export const myFeatureCommands: AppCommand[] = [
 
     isAvailable: () => {
       // Optional availability check
-      return useUIStore.getState().someCondition
+      return useUIStore.getState().someCondition;
     },
   },
-]
+];
 ```
 
 2. **Register commands in `index.ts`**:
 
 ```typescript
-import { myFeatureCommands } from './my-feature-commands'
+import { myFeatureCommands } from './my-feature-commands';
 
 export function initializeCommandSystem(): void {
-  registerCommands(navigationCommands)
-  registerCommands(myFeatureCommands) // Add here
+  registerCommands(navigationCommands);
+  registerCommands(myFeatureCommands); // Add here
 }
 ```
 
@@ -87,13 +87,13 @@ If your commands need new actions, add them to:
 Commands use direct store access for optimal performance:
 
 ```typescript
-execute: context => {
+execute: (context) => {
   // ✅ Good: Direct store access in commands
-  const { sidebarVisible, toggleSidebar } = useUIStore.getState()
+  const { sidebarVisible, toggleSidebar } = useUIStore.getState();
   if (!sidebarVisible) {
-    toggleSidebar()
+    toggleSidebar();
   }
-}
+};
 ```
 
 ### Minimal Context
@@ -103,8 +103,8 @@ Context only provides essential actions, no state subscriptions:
 ```typescript
 // Only essential actions - no state values
 export function useCommandContext(): CommandContext {
-  const { toggleSidebar } = useUIStore()
-  return { toggleSidebar /* other actions */ }
+  const { toggleSidebar } = useUIStore();
+  return { toggleSidebar /* other actions */ };
 }
 ```
 
@@ -122,12 +122,12 @@ export function useCommandContext(): CommandContext {
 
 ```typescript
 interface AppCommand {
-  id: string // Unique identifier
-  labelKey: string // Translation key (e.g., 'commands.myAction.label')
-  descriptionKey?: string // Optional translation key for description
-  execute: (context) => void // Execution function
-  isAvailable?: (context) => boolean // Optional availability check
-  shortcut?: string // Optional keyboard shortcut
+  id: string; // Unique identifier
+  labelKey: string; // Translation key (e.g., 'commands.myAction.label')
+  descriptionKey?: string; // Optional translation key for description
+  execute: (context) => void; // Execution function
+  isAvailable?: (context) => boolean; // Optional availability check
+  shortcut?: string; // Optional keyboard shortcut
 }
 ```
 

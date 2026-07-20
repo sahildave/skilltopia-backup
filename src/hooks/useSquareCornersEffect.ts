@@ -1,7 +1,7 @@
-import { useEffect } from 'react'
-import { getCurrentWindow } from '@tauri-apps/api/window'
-import { useUIStore } from '@/store/ui-store'
-import { usePlatform } from './use-platform'
+import { useEffect } from 'react';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { useUIStore } from '@/store/ui-store';
+import { usePlatform } from './use-platform';
 
 /**
  * Manages square corners based on platform and fullscreen state.
@@ -12,38 +12,38 @@ import { usePlatform } from './use-platform'
  * - Linux: square when fullscreen
  */
 export function useSquareCornersEffect() {
-  const platform = usePlatform()
-  const setSquareCorners = useUIStore(state => state.setSquareCorners)
+  const platform = usePlatform();
+  const setSquareCorners = useUIStore((state) => state.setSquareCorners);
 
   useEffect(() => {
     // macOS always has rounded corners via windowEffects
     if (platform === 'macos') {
-      setSquareCorners(false)
-      return
+      setSquareCorners(false);
+      return;
     }
 
-    let cancelled = false
-    const window = getCurrentWindow()
+    let cancelled = false;
+    const window = getCurrentWindow();
 
     const updateCorners = async () => {
-      const isFullscreen = await window.isFullscreen()
-      if (cancelled) return
+      const isFullscreen = await window.isFullscreen();
+      if (cancelled) return;
       // Windows/Linux: square corners only in fullscreen
-      setSquareCorners(isFullscreen)
-    }
+      setSquareCorners(isFullscreen);
+    };
 
     // Check initial state
-    void updateCorners()
+    void updateCorners();
 
     // Listen for window state changes
     const unlisten = window.onResized(() => {
-      if (cancelled) return
-      void updateCorners()
-    })
+      if (cancelled) return;
+      void updateCorners();
+    });
 
     return () => {
-      cancelled = true
-      void unlisten.then(fn => fn())
-    }
-  }, [platform, setSquareCorners])
+      cancelled = true;
+      void unlisten.then((fn) => fn());
+    };
+  }, [platform, setSquareCorners]);
 }

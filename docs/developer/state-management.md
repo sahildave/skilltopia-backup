@@ -29,7 +29,7 @@ const { data, isLoading, error } = useQuery({
   queryKey: ['user', userId],
   queryFn: () => commands.getUser({ userId }),
   enabled: !!userId,
-})
+});
 ```
 
 See [error-handling.md](./error-handling.md) for retry configuration and error display patterns.
@@ -43,24 +43,23 @@ Use for transient global state:
 - UI modes and navigation
 
 ```typescript
-import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
+import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
 
 interface UIState {
-  sidebarVisible: boolean
-  toggleSidebar: () => void
+  sidebarVisible: boolean;
+  toggleSidebar: () => void;
 }
 
 export const useUIStore = create<UIState>()(
   devtools(
-    set => ({
+    (set) => ({
       sidebarVisible: true,
-      toggleSidebar: () =>
-        set(state => ({ sidebarVisible: !state.sidebarVisible })),
+      toggleSidebar: () => set((state) => ({ sidebarVisible: !state.sidebarVisible })),
     }),
-    { name: 'ui-store' }
-  )
-)
+    { name: 'ui-store' },
+  ),
+);
 ```
 
 ### Layer 3: useState (Component State)
@@ -72,8 +71,8 @@ Use for state that:
 - Is tightly coupled to component lifecycle
 
 ```typescript
-const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-const [windowWidth, setWindowWidth] = useState(window.innerWidth)
+const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 ```
 
 ## Performance Patterns (Critical)
@@ -86,21 +85,21 @@ const [windowWidth, setWindowWidth] = useState(window.innerWidth)
 
 ```typescript
 // ❌ BAD: Causes render cascade on every store change
-const { currentFile, isDirty, saveFile } = useEditorStore()
+const { currentFile, isDirty, saveFile } = useEditorStore();
 
 const handleSave = useCallback(() => {
   if (currentFile && isDirty) {
-    void saveFile()
+    void saveFile();
   }
-}, [currentFile, isDirty, saveFile]) // Re-creates on every change!
+}, [currentFile, isDirty, saveFile]); // Re-creates on every change!
 
 // ✅ GOOD: No cascade, stable callback
 const handleSave = useCallback(() => {
-  const { currentFile, isDirty, saveFile } = useEditorStore.getState()
+  const { currentFile, isDirty, saveFile } = useEditorStore.getState();
   if (currentFile && isDirty) {
-    void saveFile()
+    void saveFile();
   }
-}, []) // Stable dependency array
+}, []); // Stable dependency array
 ```
 
 **When to use `getState()`:**
@@ -114,14 +113,14 @@ const handleSave = useCallback(() => {
 
 ```typescript
 // ❌ BAD: Object destructuring subscribes to entire store
-const { currentFile } = useEditorStore()
+const { currentFile } = useEditorStore();
 
 // ✅ GOOD: Selector only re-renders when this specific value changes
-const currentFile = useEditorStore(state => state.currentFile)
+const currentFile = useEditorStore((state) => state.currentFile);
 
 // ✅ GOOD: Derived selector for minimal re-renders
-const hasCurrentFile = useEditorStore(state => !!state.currentFile)
-const currentFileName = useEditorStore(state => state.currentFile?.name)
+const hasCurrentFile = useEditorStore((state) => !!state.currentFile);
+const currentFileName = useEditorStore((state) => state.currentFile?.name);
 ```
 
 ### CSS Visibility vs Conditional Rendering

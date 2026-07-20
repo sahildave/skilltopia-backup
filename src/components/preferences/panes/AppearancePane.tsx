@@ -1,70 +1,68 @@
-import { useTranslation } from 'react-i18next'
-import { locale } from '@tauri-apps/plugin-os'
-import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next';
+import { locale } from '@tauri-apps/plugin-os';
+import { toast } from 'sonner';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { useTheme } from '@/hooks/use-theme'
-import { SettingsField, SettingsSection } from '../shared/SettingsComponents'
-import { usePreferences, useSavePreferences } from '@/services/preferences'
-import { availableLanguages } from '@/i18n'
-import { logger } from '@/lib/logger'
+} from '@/components/ui/select';
+import { useTheme } from '@/hooks/use-theme';
+import { SettingsField, SettingsSection } from '../shared/SettingsComponents';
+import { usePreferences, useSavePreferences } from '@/services/preferences';
+import { availableLanguages } from '@/i18n';
+import { logger } from '@/lib/logger';
 
 // Language display names (native names). Extend when adding locales.
 const languageNames: Record<string, string> = {
   en: 'English',
-}
+};
 
 export function AppearancePane() {
-  const { t, i18n } = useTranslation()
-  const { theme, setTheme } = useTheme()
-  const { data: preferences } = usePreferences()
-  const savePreferences = useSavePreferences()
+  const { t, i18n } = useTranslation();
+  const { theme, setTheme } = useTheme();
+  const { data: preferences } = usePreferences();
+  const savePreferences = useSavePreferences();
 
   const handleThemeChange = (value: 'light' | 'dark' | 'system') => {
     // Update the theme provider immediately for instant UI feedback
-    setTheme(value)
+    setTheme(value);
 
     // Persist the theme preference to disk, preserving other preferences
     if (preferences) {
-      savePreferences.mutate({ ...preferences, theme: value })
+      savePreferences.mutate({ ...preferences, theme: value });
     }
-  }
+  };
 
   const handleLanguageChange = async (value: string) => {
-    const language = value === 'system' ? null : value
+    const language = value === 'system' ? null : value;
 
     try {
       // Change the language immediately for instant UI feedback
       if (language) {
-        await i18n.changeLanguage(language)
+        await i18n.changeLanguage(language);
       } else {
         // System language selected - detect and apply system locale
-        const systemLocale = await locale()
-        const langCode = systemLocale?.split('-')[0]?.toLowerCase() ?? 'en'
-        const targetLang = availableLanguages.includes(langCode)
-          ? langCode
-          : 'en'
-        await i18n.changeLanguage(targetLang)
+        const systemLocale = await locale();
+        const langCode = systemLocale?.split('-')[0]?.toLowerCase() ?? 'en';
+        const targetLang = availableLanguages.includes(langCode) ? langCode : 'en';
+        await i18n.changeLanguage(targetLang);
       }
     } catch (error) {
-      logger.error('Failed to change language', { error })
-      toast.error(t('toast.error.generic'))
-      return
+      logger.error('Failed to change language', { error });
+      toast.error(t('toast.error.generic'));
+      return;
     }
 
     // Persist the language preference to disk
     if (preferences) {
-      savePreferences.mutate({ ...preferences, language })
+      savePreferences.mutate({ ...preferences, language });
     }
-  }
+  };
 
   // Determine the current language value for the select
-  const currentLanguageValue = preferences?.language ?? 'system'
+  const currentLanguageValue = preferences?.language ?? 'system';
 
   return (
     <div className="space-y-6">
@@ -82,10 +80,8 @@ export function AppearancePane() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="system">
-                {t('preferences.appearance.language.system')}
-              </SelectItem>
-              {availableLanguages.map(lang => (
+              <SelectItem value="system">{t('preferences.appearance.language.system')}</SelectItem>
+              {availableLanguages.map((lang) => (
                 <SelectItem key={lang} value={lang}>
                   {languageNames[lang] ?? lang}
                 </SelectItem>
@@ -106,24 +102,16 @@ export function AppearancePane() {
             disabled={savePreferences.isPending}
           >
             <SelectTrigger>
-              <SelectValue
-                placeholder={t('preferences.appearance.selectTheme')}
-              />
+              <SelectValue placeholder={t('preferences.appearance.selectTheme')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="light">
-                {t('preferences.appearance.theme.light')}
-              </SelectItem>
-              <SelectItem value="dark">
-                {t('preferences.appearance.theme.dark')}
-              </SelectItem>
-              <SelectItem value="system">
-                {t('preferences.appearance.theme.system')}
-              </SelectItem>
+              <SelectItem value="light">{t('preferences.appearance.theme.light')}</SelectItem>
+              <SelectItem value="dark">{t('preferences.appearance.theme.dark')}</SelectItem>
+              <SelectItem value="system">{t('preferences.appearance.theme.system')}</SelectItem>
             </SelectContent>
           </Select>
         </SettingsField>
       </SettingsSection>
     </div>
-  )
+  );
 }

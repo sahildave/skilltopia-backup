@@ -46,10 +46,10 @@ function handleAction() {
 Convenience hooks are also available:
 
 ```typescript
-import { useIsMacOS, useIsWindows, useIsLinux } from '@/hooks/use-platform'
+import { useIsMacOS, useIsWindows, useIsLinux } from '@/hooks/use-platform';
 
 function MyComponent() {
-  const isMacOS = useIsMacOS()
+  const isMacOS = useIsMacOS();
   // ...
 }
 ```
@@ -147,11 +147,7 @@ In development, use the `forcePlatform` prop to preview other platform layouts:
 If building custom title bars, use the shared components:
 
 ```tsx
-import {
-  TitleBarLeftActions,
-  TitleBarRightActions,
-  TitleBarTitle,
-} from '@/components/titlebar'
+import { TitleBarLeftActions, TitleBarRightActions, TitleBarTitle } from '@/components/titlebar';
 
 function CustomTitleBar() {
   return (
@@ -160,7 +156,7 @@ function CustomTitleBar() {
       <TitleBarTitle title="My App" />
       <TitleBarRightActions />
     </div>
-  )
+  );
 }
 ```
 
@@ -183,7 +179,7 @@ The frontend can then use paths consistently:
 
 ```typescript
 // Works on all platforms
-const parts = filePath.split('/')
+const parts = filePath.split('/');
 ```
 
 ## Tauri Configuration

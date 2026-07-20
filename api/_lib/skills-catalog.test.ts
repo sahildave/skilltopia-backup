@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { fetchLeaderboard, fetchSkillDetail } from './skills-catalog.js'
+import { describe, expect, it } from 'vitest';
+import { fetchLeaderboard, fetchSkillDetail } from './skills-catalog.js';
 
 describe('skills catalog client', () => {
   it('loads leaderboard and detail response shapes', async () => {
@@ -22,11 +22,11 @@ describe('skills catalog client', () => {
         hash: 'sha256:abc',
         files: [{ path: 'SKILL.md', contents: '# Skill' }],
       },
-    ]
-    const fetcher = async () => responses.shift()
-    await expect(fetchLeaderboard(1, fetcher)).resolves.toHaveLength(1)
-    await expect(
-      fetchSkillDetail('owner/skill', fetcher)
-    ).resolves.toMatchObject({ hash: 'sha256:abc' })
-  })
-})
+    ];
+    const fetcher = async () => responses.shift();
+    await expect(fetchLeaderboard(1, fetcher)).resolves.toHaveLength(1);
+    await expect(fetchSkillDetail('owner/skill', fetcher)).resolves.toMatchObject({
+      hash: 'sha256:abc',
+    });
+  });
+});

@@ -4,7 +4,7 @@ The Backend API and local enrichment scripts use `api/_lib/supabase-repository.t
 
 ## Setup
 
-Apply `supabase/migrations/20260719000000_create_skill_repository.sql` to the Supabase project. Store these keys in Infisical (`dev` / `prod` only — never the desktop `local` env) and sync to Vercel for the Backend API. See [infisical.md](./infisical.md) for how to obtain them and inject locally:
+Apply migrations under `supabase/migrations/` to the Supabase project (skill repository first, then page-cache). Store these keys in Infisical (`dev` / `prod` only — never the desktop `local` env) and sync to Vercel for the Backend API. See [infisical.md](./infisical.md) for how to obtain them and inject locally:
 
 ```text
 SUPABASE_URL=https://<project-ref>.supabase.co
@@ -12,7 +12,7 @@ SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=sb_secret_...
 ```
 
-The migration creates the `skill_metadata` and `skill_raw_files` tables and a private `raw-skills` Storage bucket. Both tables have RLS enabled without public policies, so public clients cannot read or write them. The repository uses an elevated **secret** key (`sb_secret_...`, env name `SUPABASE_SERVICE_ROLE_KEY`) in trusted server-side code; never expose it through `VITE_*` or the Tauri bundle. Do not use a publishable / `anon` key here — the repository must bypass RLS.
+The migrations create `skill_metadata`, `skill_raw_files`, and `skill_install_snapshots`, plus a private `raw-skills` Storage bucket. `skill_metadata` also holds sparse `page_snapshot` / `audits` JSON and scrape timestamps for the page-cache pipeline. Tables have RLS enabled without public policies, so public clients cannot read or write them. The repository uses an elevated **secret** key (`sb_secret_...`, env name `SUPABASE_SERVICE_ROLE_KEY`) in trusted server-side code; never expose it through `VITE_*` or the Tauri bundle. Do not use a publishable / `anon` key here — the repository must bypass RLS.
 
 ## Repository contract
 

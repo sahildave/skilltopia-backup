@@ -94,7 +94,7 @@ Default when unset: `https://skills-explorer-six.vercel.app`.
    - **Project URL** → `SUPABASE_URL` (form `https://<project-ref>.supabase.co`)
    - Create / copy a **secret** key (`sb_secret_...`) → `SUPABASE_SERVICE_ROLE_KEY`
 3. Prefer the new secret key format. The legacy JWT **`service_role`** key still works but is deprecated; both can coexist until you disable the JWT keys in the dashboard. See [Understanding API keys](https://supabase.com/docs/guides/api/api-keys).
-4. Apply `supabase/migrations/20260719000000_create_skill_repository.sql` to that project before the repository will work.
+4. Apply migrations under `supabase/migrations/` (skill repository + page-cache) to that project before the repository will work.
 5. Never put a **publishable** (`sb_publishable_...`) or legacy **`anon`** key here — the repository needs elevated access that bypasses RLS. Never put `SUPABASE_SERVICE_ROLE_KEY` in Tauri / Infisical `local`.
 
 See [supabase-repository.md](./supabase-repository.md).

@@ -34,6 +34,28 @@ export type SkillSourceMetadata = {
   rawStoragePrefix?: string;
 };
 
+/** Sparse skills.sh HTML page snapshot; all fields optional. */
+export type SkillPageSnapshot = {
+  summary?: string;
+  topics?: string[];
+  repository?: string;
+  stars?: number;
+  firstSeen?: string;
+  installCommand?: string;
+  related?: unknown[];
+  weeklyInstalls?: number[];
+  skillMdPreview?: string;
+};
+
+/** Opaque skills.sh /audit payload until the audit-cache task shapes it. */
+export type SkillAudits = Record<string, unknown>;
+
+export type SkillInstallSnapshotRecord = {
+  skillId: string;
+  date: string;
+  installs: number;
+};
+
 export type RawSkillFile = {
   path: string;
   content: string | Uint8Array;
@@ -54,6 +76,10 @@ type Database = {
           repository: string | null;
           install_count: number | null;
           raw_storage_prefix: string | null;
+          page_snapshot: SkillPageSnapshot | null;
+          audits: SkillAudits | null;
+          audits_fetched_at: string | null;
+          page_scraped_at: string | null;
         };
         Insert: Record<string, unknown>;
         Update: Record<string, unknown>;
@@ -64,6 +90,16 @@ type Database = {
           skill_id: string;
           file_path: string;
           storage_path: string;
+        };
+        Insert: Record<string, unknown>;
+        Update: Record<string, unknown>;
+        Relationships: [];
+      };
+      skill_install_snapshots: {
+        Row: {
+          skill_id: string;
+          date: string;
+          installs: number;
         };
         Insert: Record<string, unknown>;
         Update: Record<string, unknown>;

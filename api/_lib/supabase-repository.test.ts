@@ -85,6 +85,36 @@ describe('Supabase skill repository', () => {
     );
   });
 
+  it('reads enrichment when page-cache columns are present but null', async () => {
+    const client = createClient();
+    const rowWithPageCache = {
+      ...enrichmentRow,
+      page_snapshot: null,
+      audits: null,
+      audits_fetched_at: null,
+      page_scraped_at: null,
+    };
+    client.metadata.select.mockReturnValue({
+      eq: () => ({
+        maybeSingle: async () => ({ data: rowWithPageCache, error: null }),
+      }),
+      in: async () => ({ data: [rowWithPageCache], error: null }),
+    });
+
+    const repository = createSupabaseRepository(client as never);
+
+    await expect(repository.getSkillEnrichment(enrichment.skillId)).resolves.toEqual(enrichment);
+    await expect(repository.getSkillMetadata([enrichment.skillId])).resolves.toEqual([
+      {
+        ...enrichment,
+        sourceUrl: undefined,
+        repository: undefined,
+        installCount: undefined,
+        rawStoragePrefix: undefined,
+      },
+    ]);
+  });
+
   it('distinguishes missing enrichment from a content-hash match', async () => {
     const client = createClient();
     client.metadata.select

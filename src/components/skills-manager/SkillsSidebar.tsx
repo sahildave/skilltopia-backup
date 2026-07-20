@@ -152,56 +152,56 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
                   onEnsureInstalledTab={() => onSelect('library')}
                 />
               ))}
+            </div>
 
-              <div className="mt-2">
-                <button
-                  type="button"
-                  className="text-muted-foreground hover:text-foreground flex w-full items-center gap-2 rounded-md px-3 py-2 text-xs font-medium"
-                  onClick={() => setInactiveOpen(open => !open)}
-                  aria-expanded={inactiveOpen}
-                >
-                  <ChevronDown
-                    className={cn(
-                      'size-3.5 shrink-0 transition-transform',
-                      !inactiveOpen && '-rotate-90'
-                    )}
+            <div className="mt-3 shrink-0 pb-2">
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground flex w-full items-center gap-1.5 px-3 py-1"
+                onClick={() => setInactiveOpen(open => !open)}
+                aria-expanded={inactiveOpen}
+              >
+                <ChevronDown
+                  className={cn(
+                    'size-3.5 shrink-0 transition-transform',
+                    !inactiveOpen && '-rotate-90'
+                  )}
+                />
+                <span className="truncate text-xs font-medium uppercase">
+                  {t('skills.installed.inactiveProviders')}
+                </span>
+                <span className="bg-muted ms-auto rounded-md px-1.5 py-0.5 text-xs tabular-nums">
+                  {model.inactiveProviders.length}
+                </span>
+              </button>
+
+              {inactiveOpen ? (
+                <div className="mt-1 space-y-1 px-2">
+                  <Input
+                    value={inactiveQuery}
+                    onChange={event => setInactiveQuery(event.target.value)}
+                    placeholder={t('skills.installed.searchProviders')}
+                    className="h-8 text-xs"
+                    aria-label={t('skills.installed.searchProviders')}
                   />
-                  <span className="truncate">
-                    {t('skills.installed.inactiveProviders')}
-                  </span>
-                  <span className="bg-muted ms-auto rounded-md px-1.5 py-0.5 tabular-nums">
-                    {model.inactiveProviders.length}
-                  </span>
-                </button>
-
-                {inactiveOpen ? (
-                  <div className="mt-1 space-y-1 px-2">
-                    <Input
-                      value={inactiveQuery}
-                      onChange={event => setInactiveQuery(event.target.value)}
-                      placeholder={t('skills.installed.searchProviders')}
-                      className="h-8 text-xs"
-                      aria-label={t('skills.installed.searchProviders')}
+                  {inactiveFiltered.map(item => (
+                    <ProviderRow
+                      key={item.id}
+                      item={item}
+                      selected={providerFilter === item.id}
+                      onSelect={setProviderFilter}
+                      installedTabActive={active === 'library'}
+                      onEnsureInstalledTab={() => onSelect('library')}
+                      compact
                     />
-                    {inactiveFiltered.map(item => (
-                      <ProviderRow
-                        key={item.id}
-                        item={item}
-                        selected={providerFilter === item.id}
-                        onSelect={setProviderFilter}
-                        installedTabActive={active === 'library'}
-                        onEnsureInstalledTab={() => onSelect('library')}
-                        compact
-                      />
-                    ))}
-                    {inactiveFiltered.length === 0 ? (
-                      <p className="text-muted-foreground px-1 py-2 text-xs">
-                        {t('skills.installed.noMatchingProviders')}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
+                  ))}
+                  {inactiveFiltered.length === 0 ? (
+                    <p className="text-muted-foreground px-1 py-2 text-xs">
+                      {t('skills.installed.noMatchingProviders')}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </>
         ) : null}

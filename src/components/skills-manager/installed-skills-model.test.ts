@@ -97,6 +97,47 @@ describe('buildProviderSidebarModel', () => {
     )
   })
 
+  it('sorts active providers by skill count descending, then name', () => {
+    const snapshot: typeof MOCK_INSTALLED_SCAN = {
+      ...MOCK_INSTALLED_SCAN,
+      providers: [
+        {
+          id: 'cursor',
+          name: 'Cursor',
+          universal: true,
+          detected: true,
+          skillsDir: '/Users/mock/.cursor/skills',
+          skillsDirExists: true,
+          skillCount: 1,
+        },
+        {
+          id: 'claude-code',
+          name: 'Claude Code',
+          universal: false,
+          detected: true,
+          skillsDir: '/Users/mock/.claude/skills',
+          skillsDirExists: true,
+          skillCount: 3,
+        },
+        {
+          id: 'amp',
+          name: 'Amp',
+          universal: false,
+          detected: true,
+          skillsDir: '/Users/mock/.config/amp/skills',
+          skillsDirExists: true,
+          skillCount: 3,
+        },
+      ],
+    }
+    const model = buildProviderSidebarModel(snapshot)
+    expect(model.activeProviders.map(p => p.id)).toEqual([
+      'amp',
+      'claude-code',
+      'cursor',
+    ])
+  })
+
   it('keeps Universal visible when the scan is empty', () => {
     const model = buildProviderSidebarModel(MOCK_EMPTY_SCAN)
     expect(model.universal.skillCount).toBe(0)

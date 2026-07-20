@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { getProviderById, providerRegistry, type ProviderDefinition } from './index'
+import {
+  getProviderById,
+  providerRegistry,
+  type ProviderDefinition,
+} from './index'
 import {
   createProbeContext,
   evaluateDetection,

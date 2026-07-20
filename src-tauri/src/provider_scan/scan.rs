@@ -99,14 +99,17 @@ fn unix_secs_to_rfc3339(secs: u64) -> String {
     format!("{y:04}-{m:02}-{d:02}T{hour:02}:{min:02}:{sec:02}Z")
 }
 
-fn is_dir_or_symlink_to_dir(path: &Path) -> bool {
+/// Real directory entries only — symlinks are not children of the skills folder.
+fn is_real_skill_dir(path: &Path) -> bool {
     match fs::symlink_metadata(path) {
+        Ok(meta) if meta.file_type().is_symlink() => false,
         Ok(meta) if meta.is_dir() => true,
-        Ok(meta) if meta.file_type().is_symlink() => {
-            fs::metadata(path).map(|m| m.is_dir()).unwrap_or(false)
-        }
         _ => false,
     }
+}
+
+fn is_hidden_dir_name(name: &str) -> bool {
+    name.starts_with('.')
 }
 
 struct DirScanOutcome {
@@ -131,7 +134,10 @@ fn scan_skills_dir(
 
     for entry in entries.flatten() {
         let path = entry.path();
-        if !is_dir_or_symlink_to_dir(&path) {
+        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
+            continue;
+        };
+        if is_hidden_dir_name(name) || !is_real_skill_dir(&path) {
             continue;
         }
 
@@ -321,7 +327,11 @@ pub fn scan_installed(ctx: &ScanContext) -> Result<InstalledScanSnapshot, String
         });
     }
 
-    providers.sort_by_key(|a| a.name.to_lowercase());
+    providers.sort_by(|a, b| {
+        b.skill_count
+            .cmp(&a.skill_count)
+            .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+    });
 
     let skills: Vec<ScannedSkill> = skills_map.into_values().collect();
 
@@ -477,7 +487,7 @@ mod tests {
 
     #[test]
     #[cfg(unix)]
-    fn follows_symlink_skill_directories() {
+    fn ignores_symlink_skill_directories() {
         use std::os::unix::fs::symlink;
 
         let home = temp_home("symlink");
@@ -488,7 +498,49 @@ mod tests {
         symlink(&real, universal.join("linked-skill")).unwrap();
 
         let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
-        assert!(snapshot.skills.iter().any(|s| s.name == "linked-skill"));
+        assert!(!snapshot.skills.iter().any(|s| s.name == "linked-skill"));
+        assert_eq!(snapshot.universal.skill_count, 0);
+    }
+
+    #[test]
+    fn skips_dot_folder_entries() {
+        let home = temp_home("dotdir");
+        let universal = home.join(".agents/skills");
+        fs::create_dir_all(&universal).unwrap();
+        write_skill(&universal, ".vscode", "hidden-skill", "Should not scan");
+        write_skill(&universal, "real-skill", "real-skill", "Real skill");
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        assert_eq!(snapshot.universal.skill_count, 1);
+        assert!(snapshot.skills.iter().any(|s| s.name == "real-skill"));
+        assert!(!snapshot.skills.iter().any(|s| s.name == "hidden-skill"));
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn provider_skill_count_excludes_symlinks() {
+        use std::os::unix::fs::symlink;
+
+        let home = temp_home("provider-symlink");
+        fs::create_dir_all(home.join(".codebuddy")).unwrap();
+        let skills_dir = home.join(".codebuddy/skills");
+        fs::create_dir_all(&skills_dir).unwrap();
+        let real = home.join("real-skill");
+        write_skill(&home, "real-skill", "linked-skill", "Via symlink");
+        symlink(&real, skills_dir.join("linked-skill")).unwrap();
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        let codebuddy = snapshot
+            .providers
+            .iter()
+            .find(|p| p.id == "codebuddy")
+            .expect("codebuddy detected");
+        assert_eq!(codebuddy.skill_count, 0);
+        assert!(!snapshot.skills.iter().any(|s| s.name == "linked-skill"));
+        assert!(snapshot.warnings.iter().any(|w| {
+            w.code == ScanWarningCode::ProviderEmpty
+                && w.provider_id.as_deref() == Some("codebuddy")
+        }));
     }
 
     #[test]

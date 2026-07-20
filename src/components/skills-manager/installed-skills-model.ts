@@ -131,6 +131,13 @@ function warningsFor(
   return snapshot.warnings.filter(warning => warning.providerId === providerId)
 }
 
+function sortProvidersByCountThenName(
+  a: ProviderSidebarItem,
+  b: ProviderSidebarItem
+): number {
+  return b.skillCount - a.skillCount || a.name.localeCompare(b.name)
+}
+
 function scannedProviderItem(
   provider: ScannedProvider,
   snapshot: InstalledScanSnapshot
@@ -171,13 +178,13 @@ export function buildProviderSidebarModel(
   const activeProviders = snapshot.providers
     .filter(p => p.detected && !p.universal)
     .map(p => scannedProviderItem(p, snapshot))
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .sort(sortProvidersByCountThenName)
 
   // Detected universal-registry agents (e.g. Cursor) still appear as providers.
   const detectedUniversalAgents = snapshot.providers
     .filter(p => p.detected && p.universal)
     .map(p => scannedProviderItem(p, snapshot))
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .sort(sortProvidersByCountThenName)
 
   const inactiveProviders = providerRegistry.providers
     .filter(def => !detectedIds.has(def.id))
@@ -202,7 +209,7 @@ export function buildProviderSidebarModel(
     allAgentsCount: snapshot.skills.length,
     universal,
     activeProviders: [...detectedUniversalAgents, ...activeProviders].sort(
-      (a, b) => a.name.localeCompare(b.name)
+      sortProvidersByCountThenName
     ),
     inactiveProviders,
   }

@@ -47,7 +47,7 @@ export type GlobalSkillsDir =
   | { type: 'none' }
   | { type: 'special'; name: 'openclaw-skills-dir' }
 
-export type ProviderDefinition = {
+export interface ProviderDefinition {
   id: string
   displayName: string
   /** Project-relative skills directory (upstream `skillsDir`). */
@@ -60,16 +60,15 @@ export type ProviderDefinition = {
   detection: DetectionRule
 }
 
-export type ProviderRegistrySource = {
+export interface ProviderRegistrySource {
   repositoryUrl: typeof PROVIDER_REGISTRY_SOURCE_URL
   commit: string
   license: 'MIT'
   attribution: string
-  generatedAt: string
   agentsTsPath: 'src/agents.ts'
 }
 
-export type ProviderRegistry = {
+export interface ProviderRegistry {
   source: ProviderRegistrySource
   providers: readonly ProviderDefinition[]
 }

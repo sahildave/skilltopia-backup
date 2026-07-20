@@ -13,22 +13,22 @@ definition.
 
 ## Scope
 
-- [ ] Define a shared declarative registry containing the upstream provider ID,
+- [x] Define a shared declarative registry containing the upstream provider ID,
       display name, global skills directory, Universal classification, visibility
       flags, platform-specific paths, and detection probes.
-- [ ] Preserve skills.sh semantics: Universal means the provider has
+- [x] Preserve skills.sh semantics: Universal means the provider has
       `skillsDir` equal to `.agents/skills`; detection remains the upstream
       directory/config presence check, including known macOS/Windows exceptions.
-- [ ] Represent ordinary path checks as data and support a small named
+- [x] Represent ordinary path checks as data and support a small named
       special-probe mechanism for rules that cannot be expressed declaratively.
-- [ ] Record source metadata in the generated registry: repository URL,
+- [x] Record source metadata in the generated registry: repository URL,
       upstream commit, and MIT attribution.
-- [ ] Add a generator that reads the upstream `src/agents.ts` and writes the
+- [x] Add a generator that reads the upstream `src/agents.ts` and writes the
       checked-in registry data; do not parse upstream TypeScript at runtime.
-- [ ] Add a weekly GitHub Actions workflow that generates a proposed update,
+- [x] Add a weekly GitHub Actions workflow that generates a proposed update,
       runs validation/tests, and opens a reviewable PR. Do not merge or change
       production data automatically.
-- [ ] Fail the workflow and create no PR when generation or validation fails.
+- [x] Fail the workflow and create no PR when generation or validation fails.
 
 ## Out of scope
 

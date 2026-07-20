@@ -1,5 +1,3 @@
-/* global fetch */
-
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { assertSeedSize } from './seed-utils.mjs'

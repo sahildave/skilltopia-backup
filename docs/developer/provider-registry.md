@@ -15,7 +15,8 @@ Checked-in provider definitions vendored from
 | `scripts/generate-provider-registry.mjs` | Generator — parses upstream TS at sync time only            |
 
 Do **not** fetch or parse upstream TypeScript at app runtime. Desktop scan
-(task-8) and UI adapters should import from `@/providers`.
+embeds `registry.json` in Rust (`src-tauri/src/provider_scan`) and UI adapters
+import helpers from `@/providers` when needed.
 
 ## Semantics
 

@@ -49,14 +49,19 @@ Build-time adapters — not runtime `if (isTauri)` branching for catalog/platfor
 
 `TARGET` values: `web` \| `desktop` \| `mock`. Vite `resolve.alias` picks the file. Shared UI and services import **only** these aliases.
 
-### PlatformPort (Phase-1 — do not expand without a new task)
+### PlatformPort
 
 - `hasLocalLibrary`
 - `copiesInstallCommand`
-- `listInstalled()`
-- `listProviders()`
+- `getInstalledScan()` / `scanInstalled()` — normalized global scan snapshot
+- `revealProviderSkillsDir(providerId)` — Finder/Explorer reveal (no rescan)
+- `listInstalled()` / `listProviders()` — derived from the in-memory snapshot
 - `install(skill, scope: 'global' \| 'project')`
 - `openExternal(url)`
+
+Desktop scanning runs in Rust (`scan_installed_skills`) over the vendored
+provider registry: Universal (`~/.agents/skills`) plus each detected provider’s
+direct global skills directory. Shared UI must not import `@tauri-apps/*`.
 
 ### Desktop skill install paths
 

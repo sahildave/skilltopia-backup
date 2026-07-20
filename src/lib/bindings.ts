@@ -175,6 +175,29 @@ async fetchSkillDetail(skillId: string) : Promise<Result<SkillDetailData, string
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * Scan global provider + Universal skill directories into one normalized snapshot.
+ */
+async scanInstalledSkills() : Promise<Result<InstalledScanSnapshot, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("scan_installed_skills") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Reveal a provider (or `universal`) skills directory in Finder/Explorer.
+ * Returns `false` when the directory is missing. Does not rescan skills.
+ */
+async revealProviderSkillsDir(providerId: string) : Promise<Result<boolean, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("reveal_provider_skills_dir", { providerId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -203,7 +226,9 @@ quick_pane_shortcut: string | null;
  * If None, uses system locale detection
  */
 language: string | null }
+export type InstalledScanSnapshot = { scannedAt: string; source: ProviderRegistrySourceMeta; universal: UniversalScanInfo; providers: ScannedProvider[]; skills: ScannedSkill[]; warnings: ScanWarning[] }
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
+export type ProviderRegistrySourceMeta = { repositoryUrl: string; commit: string; license: string; attribution: string }
 /**
  * Error types for recovery operations (typed for frontend matching)
  */
@@ -229,10 +254,15 @@ export type RecoveryError =
  */
 { type: "ParseError"; message: string }
 export type RelatedSkill = { skillId: string; score: number; repository: string | null; sourceUrl: string | null; installCount: number | null }
+export type ScanWarning = { code: ScanWarningCode; message: string; providerId?: string | null; path?: string | null }
+export type ScanWarningCode = "provider_empty" | "skills_dir_missing" | "entry_skipped" | "universal_empty"
+export type ScannedProvider = { id: string; name: string; universal: boolean; detected: boolean; skillsDir: string | null; skillsDirExists: boolean; skillCount: number }
+export type ScannedSkill = { name: string; description: string; scope: string; providerIds: string[]; paths: string[] }
 export type SkillDetailData = { skillId: string; enrichment: SkillEnrichment | null; related: RelatedSkill[] }
 export type SkillEnrichment = { skillId: string; contentHash: string; required: SkillEnrichmentRequired; optional: JsonValue; estimatedReadTimeMinutes: number }
 export type SkillEnrichmentRequired = { primaryGoal: string; requires: string[]; estimatedComplexity: string; bestFor: string[] }
 export type SkillsShSkill = { id: string; slug: string; name: string; source: string; installs: number; sourceType: string; installUrl?: string | null; url: string; isDuplicate?: boolean | null }
+export type UniversalScanInfo = { skillsDir: string; skillsDirExists: boolean; skillCount: number }
 
 /** tauri-specta globals **/
 

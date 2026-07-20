@@ -1,9 +1,22 @@
 import { buildSkillsInstallCommand } from './install-command'
+import { EMPTY_INSTALLED_SCAN } from './scan-utils'
 import type { PlatformPort } from './types'
 
 export const platform: PlatformPort = {
   hasLocalLibrary: false,
   copiesInstallCommand: true,
+
+  async getInstalledScan() {
+    return EMPTY_INSTALLED_SCAN
+  },
+
+  async scanInstalled() {
+    return EMPTY_INSTALLED_SCAN
+  },
+
+  async revealProviderSkillsDir() {
+    return false
+  },
 
   async listInstalled() {
     return []

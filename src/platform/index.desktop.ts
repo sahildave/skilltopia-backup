@@ -1,36 +1,57 @@
 import { open } from '@tauri-apps/plugin-dialog'
-import { homeDir, join } from '@tauri-apps/api/path'
-import { exists, readDir } from '@tauri-apps/plugin-fs'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { Command } from '@tauri-apps/plugin-shell'
 import i18n from '@/i18n/config'
+import {
+  commands,
+  unwrapResult,
+  type InstalledScanSnapshot as RustInstalledScanSnapshot,
+} from '@/lib/tauri-bindings'
 import { buildSkillsAddArgs, InstallCancelledError } from './install-command'
+import { skillEntriesFromScan, providersFromScan } from './scan-utils'
 import type {
   InstallableSkill,
+  InstalledScanSnapshot,
   InstallScope,
   PlatformPort,
   SkillEntry,
+  SkillProvider,
 } from './types'
 
-async function listInstalledFromDisk(): Promise<SkillEntry[]> {
-  const home = await homeDir()
-  const skillsPath = await join(home, '.agents', 'skills')
+let cachedScan: InstalledScanSnapshot | null = null
 
-  const folderExists = await exists(skillsPath)
-  if (!folderExists) {
-    throw new Error(`Path not found: ${skillsPath}`)
+function normalizeSnapshot(
+  snapshot: RustInstalledScanSnapshot
+): InstalledScanSnapshot {
+  return {
+    scannedAt: snapshot.scannedAt,
+    source: snapshot.source,
+    universal: snapshot.universal,
+    providers: snapshot.providers,
+    skills: snapshot.skills.map(skill => ({
+      ...skill,
+      scope: 'global',
+    })),
+    warnings: snapshot.warnings.map(warning => ({
+      code: warning.code,
+      message: warning.message,
+      providerId: warning.providerId ?? undefined,
+      path: warning.path ?? undefined,
+    })),
   }
+}
 
-  const entries = await readDir(skillsPath)
+async function ensureScan(): Promise<InstalledScanSnapshot> {
+  if (cachedScan) return cachedScan
+  return refreshScan()
+}
 
-  return entries
-    .map(entry => ({
-      name: entry.name,
-      isDirectory: entry.isDirectory,
-      isFile: entry.isFile,
-      isSymlink: entry.isSymlink,
-    }))
-    .sort((a, b) => a.name.localeCompare(b.name))
+async function refreshScan(): Promise<InstalledScanSnapshot> {
+  const snapshot = normalizeSnapshot(
+    unwrapResult(await commands.scanInstalledSkills())
+  )
+  cachedScan = snapshot
+  return snapshot
 }
 
 async function pickProjectDirectory(): Promise<string> {
@@ -75,14 +96,19 @@ export const platform: PlatformPort = {
   hasLocalLibrary: true,
   copiesInstallCommand: false,
 
-  listInstalled: listInstalledFromDisk,
+  getInstalledScan: ensureScan,
+  scanInstalled: refreshScan,
 
-  async listProviders() {
-    return [
-      { id: 'claude-code', name: 'Claude Code' },
-      { id: 'cursor', name: 'Cursor' },
-      { id: 'codex', name: 'Codex' },
-    ]
+  async revealProviderSkillsDir(providerId) {
+    return unwrapResult(await commands.revealProviderSkillsDir(providerId))
+  },
+
+  async listInstalled(): Promise<SkillEntry[]> {
+    return skillEntriesFromScan(await ensureScan())
+  },
+
+  async listProviders(): Promise<SkillProvider[]> {
+    return providersFromScan(await ensureScan())
   },
 
   install: installSkillToDisk,

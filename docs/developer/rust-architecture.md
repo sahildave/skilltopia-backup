@@ -10,12 +10,15 @@ src-tauri/src/
 ├── lib.rs           # App setup, plugins, startup logic
 ├── bindings.rs      # tauri-specta command registration
 ├── types.rs         # Shared types, constants, validation
+├── provider_scan/   # Global installed-skill scan (registry + FS)
 ├── commands/        # Command handlers by domain
 │   ├── mod.rs       # Re-exports all command modules
 │   ├── preferences.rs
 │   ├── notifications.rs
+│   ├── provider_scan.rs
 │   ├── quick_pane.rs
-│   └── recovery.rs
+│   ├── recovery.rs
+│   └── skills_sh.rs
 └── utils/           # Utility modules
     ├── mod.rs
     └── platform.rs  # Platform-specific helpers

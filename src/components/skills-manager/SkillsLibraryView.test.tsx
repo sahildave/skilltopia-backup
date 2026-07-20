@@ -9,6 +9,9 @@ vi.mock('@platform', () => ({
   platform: {
     hasLocalLibrary: false,
     copiesInstallCommand: true,
+    getInstalledScan: vi.fn(),
+    scanInstalled: vi.fn(),
+    revealProviderSkillsDir: vi.fn(),
     listInstalled: vi.fn(),
     listProviders: vi.fn(),
     install: vi.fn(),

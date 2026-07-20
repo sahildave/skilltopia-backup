@@ -48,6 +48,7 @@
   "preferences.advanced.option1": "Example Option 1",
   "preferences.advanced.option2": "Example Option 2",
   "preferences.advanced.option3": "Example Option 3",
+  "preferences.shortcutPicker.pressShortcut": "Press shortcut...",
 
   "common.enabled": "Enabled",
   "common.disabled": "Disabled",
@@ -147,6 +148,7 @@
   "skills.dashboard.searchLabel": "Search skills",
   "skills.dashboard.clearSearch": "Clear search",
   "skills.dashboard.searchFailed": "Couldn’t load search results",
+  "skills.dashboard.refreshing": "Refreshing results...",
   "skills.dashboard.loadFailed": "Couldn’t load skills",
   "skills.dashboard.noResultsTitle": "No skills found",
   "skills.dashboard.noResultsDescription": "Try a different search term.",

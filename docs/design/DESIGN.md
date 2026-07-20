@@ -235,6 +235,22 @@ provider and kind badges. Discovery rails and search results should share the
 same restrained card vocabulary and keep existing results visible during
 refreshes instead of using page-load choreography.
 
+### Motion and Materials
+
+Interaction feedback should be immediate and modest. Pressable controls use a
+120ms transform/opacity response that never changes layout; larger overlay
+movement stays under 220ms and uses only opacity and transform. Command palette
+motion is anchored above the workspace, preferences motion is anchored toward
+the sidebar, and skill details rise from the content area so enter and exit
+paths remain spatially predictable.
+
+Translucent sticky chrome and modal surfaces use semantic background tokens
+with blur as a material cue. Sticky headers separate from scrolled content with
+a soft scroll-edge fade instead of a hard divider. Respect
+`prefers-reduced-motion` by replacing slide/zoom/pulse motion with short
+opacity-only transitions, `prefers-reduced-transparency` by making material
+layers solid, and `prefers-contrast: more` by restoring crisp separators.
+
 ### Artwork and effects
 
 Aurora-like gradients, logos, and illustrations are optional bounded media

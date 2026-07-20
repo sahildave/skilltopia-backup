@@ -278,6 +278,7 @@ function SearchResults({
   const { t } = useTranslation()
   const skills = query.data ?? []
   const error = errorMessage(query.error)
+  const isRefreshing = query.isFetching && skills.length > 0
   if (query.isLoading && skills.length === 0) return <SkillsGridSkeleton />
   if (error && skills.length === 0)
     return (
@@ -302,10 +303,17 @@ function SearchResults({
       </Empty>
     )
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {skills.map(skill => (
-        <SkillCard key={skill.id} skill={skill} onOpen={onOpen} />
-      ))}
+    <div className="flex flex-col gap-3">
+      {isRefreshing ? (
+        <p className="text-muted-foreground text-xs">
+          {t('skills.dashboard.refreshing')}
+        </p>
+      ) : null}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {skills.map(skill => (
+          <SkillCard key={skill.id} skill={skill} onOpen={onOpen} />
+        ))}
+      </div>
     </div>
   )
 }
@@ -321,7 +329,7 @@ export function SkillsDashboardView() {
 
   return (
     <div className="relative flex h-full flex-col">
-      <div className="bg-background/80 sticky top-0 z-10 flex flex-col gap-4 border-b p-6 backdrop-blur-md">
+      <div className="app-material app-scroll-edge sticky top-0 z-10 flex flex-col gap-4 p-6">
         <div className="flex flex-col items-start gap-1">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-semibold text-balance">
@@ -351,6 +359,7 @@ export function SkillsDashboardView() {
                 size="icon-xs"
                 aria-label={t('skills.dashboard.clearSearch')}
                 onClick={() => setSearchInput('')}
+                className="app-pressable"
               >
                 <X />
               </InputGroupButton>

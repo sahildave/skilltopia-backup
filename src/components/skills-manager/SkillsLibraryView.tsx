@@ -87,7 +87,7 @@ function LocalLibraryView() {
       setProviders(nextProviders)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      setEntries(null)
+      setEntries(currentEntries => currentEntries ?? null)
       setError(message)
     } finally {
       setLoading(false)
@@ -105,7 +105,7 @@ function LocalLibraryView() {
 
   return (
     <div className="relative flex h-full flex-col">
-      <div className="flex flex-col gap-5 border-b p-6">
+      <div className="app-material app-scroll-edge sticky top-0 z-10 flex flex-col gap-5 p-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 flex-col gap-2">
             <div className="flex items-center gap-3">
@@ -242,6 +242,7 @@ function LocalLibraryView() {
                 </EmptyHeader>
                 <EmptyContent>
                   <Button onClick={handleRead} disabled={loading}>
+                    {loading ? <LoaderCircle data-icon="inline-start" /> : null}
                     {t('skills.library.rescan')}
                   </Button>
                 </EmptyContent>

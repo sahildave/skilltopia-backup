@@ -6,11 +6,11 @@ Patterns for calling HTTP APIs from this app’s **two clients** (Tauri desktop 
 
 ## Who talks to what
 
-| Caller                         | Path to Backend API                                      | CORS? |
-| ------------------------------ | -------------------------------------------------------- | ----- |
-| **Web** (browser)              | Same-origin relative `/api/…` (prod: one Vercel project; dev: Vite proxy) | N/A — same origin |
+| Caller                         | Path to Backend API                                                         | CORS?               |
+| ------------------------------ | --------------------------------------------------------------------------- | ------------------- |
+| **Web** (browser)              | Same-origin relative `/api/…` (prod: one Vercel project; dev: Vite proxy)   | N/A — same origin   |
 | **Desktop** (Tauri WebView)    | React → CatalogPort → Tauri command → Rust `reqwest` → absolute Backend URL | N/A — Rust outbound |
-| **Backend** (`api/` on Vercel) | OIDC / secrets → skills.sh, Supabase, Qdrant             | Server-side |
+| **Backend** (`api/` on Vercel) | OIDC / secrets → skills.sh, Supabase, Qdrant                                | Server-side         |
 
 **Hard rules**
 
@@ -21,11 +21,11 @@ Patterns for calling HTTP APIs from this app’s **two clients** (Tauri desktop 
 
 ## Rust vs Frontend: When to Use Which
 
-| Approach                         | Pros                                           | Cons / when not |
-| -------------------------------- | ---------------------------------------------- | --------------- |
-| Rust `reqwest` (desktop CatalogPort) | No CORS, secrets stay out of WebView        | Desktop path only |
-| Browser `fetch('/api/…')` (web CatalogPort) | Same-origin; no client secrets            | Web path only; never absolute Backend URL |
-| Frontend `fetch` to third-party hosts | Familiar                                  | CORS + exposed keys — avoid for skills.sh / Backend secrets |
+| Approach                                    | Pros                                 | Cons / when not                                             |
+| ------------------------------------------- | ------------------------------------ | ----------------------------------------------------------- |
+| Rust `reqwest` (desktop CatalogPort)        | No CORS, secrets stay out of WebView | Desktop path only                                           |
+| Browser `fetch('/api/…')` (web CatalogPort) | Same-origin; no client secrets       | Web path only; never absolute Backend URL                   |
+| Frontend `fetch` to third-party hosts       | Familiar                             | CORS + exposed keys — avoid for skills.sh / Backend secrets |
 
 ### Use Rust `reqwest` For (desktop CatalogPort)
 
@@ -332,14 +332,14 @@ See [data-persistence.md](./data-persistence.md) for SQLite setup.
 
 ## Quick Reference
 
-| Task            | Pattern                                  |
-| --------------- | ---------------------------------------- |
-| Catalog (web)   | CatalogPort → relative `/api` (no CORS)  |
-| Catalog (desktop) | CatalogPort → Tauri → reqwest → Backend |
-| skills.sh       | Backend API + OIDC (see section above)   |
-| Caching         | TanStack Query (frontend) or SQLite      |
-| Token storage   | `keyring` crate (OS keychain)            |
-| Type safety     | tauri-specta (desktop commands)          |
-| Error handling  | Result types, see error-handling.md      |
-| Offline support | Cache to SQLite, fallback on network err |
+| Task              | Pattern                                    |
+| ----------------- | ------------------------------------------ |
+| Catalog (web)     | CatalogPort → relative `/api` (no CORS)    |
+| Catalog (desktop) | CatalogPort → Tauri → reqwest → Backend    |
+| skills.sh         | Backend API + OIDC (see section above)     |
+| Caching           | TanStack Query (frontend) or SQLite        |
+| Token storage     | `keyring` crate (OS keychain)              |
+| Type safety       | tauri-specta (desktop commands)            |
+| Error handling    | Result types, see error-handling.md        |
+| Offline support   | Cache to SQLite, fallback on network err   |
 | Dual-client rules | [web-and-desktop.md](./web-and-desktop.md) |

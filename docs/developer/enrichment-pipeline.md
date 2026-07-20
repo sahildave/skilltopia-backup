@@ -33,10 +33,10 @@ The local process also needs `VERCEL_OIDC_TOKEN` (e.g. from `.env.local` after
 
 ## Modes
 
-| Flag | Behavior |
-| --- | --- |
-| (default) | Seed: skip skills that already have enrichment |
-| `--sync` | Re-enrich only when the detail content hash changed |
+| Flag      | Behavior                                                  |
+| --------- | --------------------------------------------------------- |
+| (default) | Seed: skip skills that already have enrichment            |
+| `--sync`  | Re-enrich only when the detail content hash changed       |
 | `--force` | Re-enrich even when enrichment already exists (same hash) |
 
 Set `MAX_ENRICHED` in Infisical (`dev`) or the shell (e.g. `MAX_ENRICHED=20 npm

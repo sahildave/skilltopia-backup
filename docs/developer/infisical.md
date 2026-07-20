@@ -63,13 +63,13 @@ Change model id and vector size **together** when switching embedding models.
 
 Used by `npm run enrich:local` (Infisical `dev`) and any Backend enrich path that syncs from Infisical. Do **not** put these in `local`.
 
-| Key                            | Secret? | Notes                                                                                                                                                                   |
-| ------------------------------ | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GROQ_API_KEY`                 | **yes** | `@ai-sdk/groq` default. Primary free model.                                                                                                                             |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | **yes** | `@ai-sdk/google` default. Gemini fallback.                                                                                                                              |
+| Key                            | Secret? | Notes                                                                                                                                                                                                         |
+| ------------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GROQ_API_KEY`                 | **yes** | `@ai-sdk/groq` default. Primary free model.                                                                                                                                                                   |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | **yes** | `@ai-sdk/google` default. Gemini fallback.                                                                                                                                                                    |
 | `ENRICHMENT_MODEL_CHAIN`       | no      | Ordered `provider/model` list. Prefer Groq models that support structured outputs (`openai/gpt-oss-20b`). Default in code: `groq/openai/gpt-oss-20b,gemini/gemini-3.1-flash-lite`. Rule-based is always last. |
-| `MAX_ENRICHED`                 | no      | Config knob (capped at `500` in code); optional in Infisical                                                                                                            |
-| Enrich-route protect secret    | **yes** | Only if a secret-protected Backend enrich route is added                                                                                                                |
+| `MAX_ENRICHED`                 | no      | Config knob (capped at `500` in code); optional in Infisical                                                                                                                                                  |
+| Enrich-route protect secret    | **yes** | Only if a secret-protected Backend enrich route is added                                                                                                                                                      |
 
 Missing provider keys are skipped at runtime; at least one of Groq/Gemini should be set for LLM enrichment. See [enrichment-pipeline.md](./enrichment-pipeline.md).
 
@@ -77,8 +77,8 @@ Hybrid search, enrichment UI, and seed (tasks 5–8) reuse the Backend set above
 
 ## Desktop secrets (`local`)
 
-| Key                     | Secret? | Purpose                                                                                                                          |
-| ----------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Key                     | Secret? | Purpose                                                                                                                             |
+| ----------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | `SKILLS_PROXY_BASE_URL` | no      | Optional. Point `tauri:dev` / `dev:local` at a Backend deploy. `tauri:dev:local` / `dev:local:proxy` force `http://127.0.0.1:3000`. |
 
 You do **not** need any secrets in Infisical `local` for daily `npm run dev:local`. An empty `local` env is fine (CLI still injects).
@@ -137,9 +137,7 @@ To exercise a **local** Backend (`vercel dev` on `:3000`), use `npm run dev:loca
 ENRICHMENT_MODEL_CHAIN=groq/openai/gpt-oss-20b,gemini/gemini-3.1-flash-lite
 ```
 
-`llama-3.1-8b-instant` on Groq does **not** support `json_schema` and will always fall through to rule-based. Prefer Gemini 3.x (`gemini-3.1-flash-lite` / `gemini-3.5-flash`) — many new keys cannot call `gemini-2.5-*`.
-4. Store all three in Infisical **`dev`** (local enrich) and **`prod`** (if prod enrich / Backend needs them). Never in `local`.
-5. Run enrichment with `npm run enrich:local` so Infisical injects `dev`. Daily UI (`dev:local`) does not need LLM keys.
+`llama-3.1-8b-instant` on Groq does **not** support `json_schema` and will always fall through to rule-based. Prefer Gemini 3.x (`gemini-3.1-flash-lite` / `gemini-3.5-flash`) — many new keys cannot call `gemini-2.5-*`. 4. Store all three in Infisical **`dev`** (local enrich) and **`prod`** (if prod enrich / Backend needs them). Never in `local`. 5. Run enrichment with `npm run enrich:local` so Infisical injects `dev`. Daily UI (`dev:local`) does not need LLM keys.
 
 ## Vercel sync
 

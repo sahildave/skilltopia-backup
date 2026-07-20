@@ -1,25 +1,7 @@
-import { useState } from 'react';
-import { AlertCircle, ChevronDown, ExternalLink, Search, X } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
-import { platform } from '@platform';
+import type { SkillsShSkill } from '@/catalog/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { ContinuousTabs } from '@/components/ui/continuous-tabs';
 import {
   Empty,
   EmptyDescription,
@@ -35,135 +17,42 @@ import {
 } from '@/components/ui/input-group';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner } from '@/components/ui/spinner';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import type { SkillsShSkill } from '@/catalog/types';
-import { DISCOVERY_VIEWS, useSkillsLeaderboard, useSkillsSearch } from '@/services/skills-sh';
-import { isInstallCancelled, isPermissionError } from './library-errors';
+import { cn } from '@/lib/utils';
+import {
+  DISCOVERY_VIEWS,
+  type DiscoveryViewId,
+  useSkillsLeaderboard,
+  useSkillsSearch,
+} from '@/services/skills-sh';
+import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
+import { AlertCircle, LayoutGrid, LayoutList, Search, X } from 'lucide-react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { CatalogSkillCard, CatalogSkillListRow } from './CatalogSkillCard';
 import { SkillDetailDialog } from './SkillDetailDialog';
-import type { InstallScope } from './types';
 
-function formatInstalls(count: number): string {
-  return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(count);
+const LIST_PER_PAGE = 100;
+
+function errorMessage(error: unknown): string | null {
+  return error instanceof Error ? error.message : error ? String(error) : null;
 }
 
-function SkillInstallMenu({ skill }: { skill: SkillsShSkill }) {
-  const { t } = useTranslation();
-  const [installing, setInstalling] = useState(false);
-  const copiesCommand = platform.copiesInstallCommand;
+function SkillsSkeleton({ layoutMode }: { layoutMode: 'grid' | 'list' }) {
+  if (layoutMode === 'list') {
+    return (
+      <div className="flex flex-col gap-3">
+        {Array.from({ length: 6 }, (_, index) => (
+          <Skeleton key={index} className="h-12 w-full" />
+        ))}
+      </div>
+    );
+  }
 
-  const handleInstall = async (scope: InstallScope) => {
-    setInstalling(true);
-    try {
-      await platform.install(
-        {
-          id: skill.id,
-          name: skill.name,
-          installUrl: skill.installUrl,
-        },
-        scope,
-      );
-      toast.success(
-        t(copiesCommand ? 'skills.install.copied' : 'skills.install.success', {
-          name: skill.name,
-        }),
-      );
-    } catch (error) {
-      if (isInstallCancelled(error)) return;
-      const message = error instanceof Error ? error.message : String(error);
-      if (isPermissionError(message)) {
-        toast.error(t('skills.install.permissionError'), {
-          description: message,
-        });
-      } else {
-        toast.error(
-          t(copiesCommand ? 'skills.install.copyFailed' : 'skills.install.failed', {
-            name: skill.name,
-          }),
-          { description: message },
-        );
-      }
-    } finally {
-      setInstalling(false);
-    }
-  };
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" disabled={installing}>
-          {t(copiesCommand ? 'skills.install.copyAction' : 'skills.install.action')}
-          <ChevronDown size={16} data-icon="inline-end" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem disabled={installing} onSelect={() => void handleInstall('global')}>
-          {t(copiesCommand ? 'skills.install.copyGlobal' : 'skills.install.global')}
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled={installing} onSelect={() => void handleInstall('project')}>
-          {t(copiesCommand ? 'skills.install.copyProject' : 'skills.install.project')}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-function SkillCard({
-  skill,
-  compact = false,
-  onOpen,
-}: {
-  skill: SkillsShSkill;
-  compact?: boolean;
-  onOpen: (skill: SkillsShSkill) => void;
-}) {
-  const { t } = useTranslation();
-
-  return (
-    <div className={compact ? 'w-75 shrink-0' : undefined}>
-      <Card className="gap-4 py-4">
-        <CardHeader className="px-4">
-          <CardTitle className="flex items-start justify-between gap-2 text-base">
-            <span className="truncate text-balance line-clamp-1">{skill.name}</span>
-            <Badge variant="secondary" className="shrink-0 tabular-nums">
-              {formatInstalls(skill.installs)}
-            </Badge>
-          </CardTitle>
-          <CardDescription className="truncate text-pretty">{skill.source}</CardDescription>
-        </CardHeader>
-        <CardContent className="px-4">
-          <div className="flex flex-wrap gap-1.5">
-            <Badge variant="outline">{skill.sourceType}</Badge>
-            <Badge variant="outline" className="max-w-full truncate">
-              {skill.slug}
-            </Badge>
-          </div>
-        </CardContent>
-        <CardFooter className="justify-end gap-1 border-t px-4 pt-4">
-          <SkillInstallMenu skill={skill} />
-          <Button variant="outline" size="sm" onClick={() => onOpen(skill)}>
-            {t('skills.dashboard.details')}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => void platform.openExternal(skill.url)}
-            aria-label={t('skills.dashboard.openExternalLabel', {
-              name: skill.name,
-            })}
-          >
-            <ExternalLink data-icon="inline-start" />
-            {t('skills.dashboard.view')}
-          </Button>
-        </CardFooter>
-      </Card>
-    </div>
-  );
-}
-
-function SkillsGridSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 3 }, (_, index) => (
+      {Array.from({ length: 6 }, (_, index) => (
         <Card key={index} className="gap-4 py-4">
           <CardHeader className="px-4">
             <Skeleton className="h-4 w-2/3" />
@@ -184,73 +73,30 @@ function SkillsGridSkeleton() {
   );
 }
 
-function errorMessage(error: unknown): string | null {
-  return error instanceof Error ? error.message : error ? String(error) : null;
-}
-
-function DiscoveryRail({
-  view,
+function SkillsResults({
+  skills,
+  layoutMode,
+  isLoading,
+  error,
+  emptyTitle,
+  emptyDescription,
   onOpen,
 }: {
-  view: (typeof DISCOVERY_VIEWS)[number];
+  skills: SkillsShSkill[];
+  layoutMode: 'grid' | 'list';
+  isLoading: boolean;
+  error: string | null;
+  emptyTitle: string;
+  emptyDescription: string;
   onOpen: (skill: SkillsShSkill) => void;
 }) {
   const { t } = useTranslation();
-  const query = useSkillsLeaderboard({ view: view.id, perPage: 12 });
-  const skills = query.data ?? [];
-  const error = errorMessage(query.error);
 
-  return (
-    <section aria-labelledby={`rail-${view.id}`} className="flex flex-col gap-3">
-      <div className="flex items-baseline px-2 justify-between gap-3">
-        <div className="flex flex-row justify-baseline items-baseline gap-2">
-          <h3 id={`rail-${view.id}`} className="text-lg">
-            {view.label}
-          </h3>
-          <p className="text-muted-foreground text-xs">
-            {view.id === 'all-time'
-              ? t('skills.dashboard.rail.allTimeDescription')
-              : t('skills.dashboard.rail.currentDescription', {
-                  view: view.label,
-                })}
-          </p>
-        </div>
-        <Badge variant="secondary" className="tabular-nums">
-          {skills.length}
-        </Badge>
-      </div>
-      {error ? (
-        <Alert variant="destructive">
-          <AlertCircle />
-          <AlertTitle>{t('skills.dashboard.refreshFailed')}</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
-      {query.isLoading && skills.length === 0 ? <SkillsGridSkeleton /> : null}
-      {skills.length > 0 ? (
-        <div className="flex gap-4 -ml-2.5 overflow-x-auto p-1">
-          {skills.map((skill) => (
-            <SkillCard key={skill.id} skill={skill} onOpen={onOpen} compact />
-          ))}
-        </div>
-      ) : null}
-    </section>
-  );
-}
+  if (isLoading && skills.length === 0) {
+    return <SkillsSkeleton layoutMode={layoutMode} />;
+  }
 
-function SearchResults({
-  query,
-  onOpen,
-}: {
-  query: ReturnType<typeof useSkillsSearch>;
-  onOpen: (skill: SkillsShSkill) => void;
-}) {
-  const { t } = useTranslation();
-  const skills = query.data ?? [];
-  const error = errorMessage(query.error);
-  const isRefreshing = query.isFetching && skills.length > 0;
-  if (query.isLoading && skills.length === 0) return <SkillsGridSkeleton />;
-  if (error && skills.length === 0)
+  if (error && skills.length === 0) {
     return (
       <Alert variant="destructive">
         <AlertCircle />
@@ -258,27 +104,47 @@ function SearchResults({
         <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
-  if (skills.length === 0)
+  }
+
+  if (skills.length === 0) {
     return (
       <Empty className="border">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <Search />
           </EmptyMedia>
-          <EmptyTitle>{t('skills.dashboard.noResultsTitle')}</EmptyTitle>
-          <EmptyDescription>{t('skills.dashboard.noResultsDescription')}</EmptyDescription>
+          <EmptyTitle>{emptyTitle}</EmptyTitle>
+          <EmptyDescription>{emptyDescription}</EmptyDescription>
         </EmptyHeader>
       </Empty>
     );
+  }
+
   return (
     <div className="flex flex-col gap-3">
-      {isRefreshing ? (
-        <p className="text-muted-foreground text-xs">{t('skills.dashboard.refreshing')}</p>
+      {error ? (
+        <Alert variant="destructive">
+          <AlertCircle />
+          <AlertTitle>{t('skills.dashboard.refreshFailed')}</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       ) : null}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {skills.map((skill) => (
-          <SkillCard key={skill.id} skill={skill} onOpen={onOpen} />
-        ))}
+      <div
+        data-testid="discovery-skill-container"
+        data-layout={layoutMode}
+        className={cn(
+          layoutMode === 'grid'
+            ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+            : 'flex flex-col',
+        )}
+      >
+        {skills.map((skill) =>
+          layoutMode === 'grid' ? (
+            <CatalogSkillCard key={skill.id} skill={skill} onOpen={onOpen} />
+          ) : (
+            <CatalogSkillListRow key={skill.id} skill={skill} onOpen={onOpen} />
+          ),
+        )}
       </div>
     </div>
   );
@@ -286,67 +152,124 @@ function SearchResults({
 
 export function SkillsDashboardView() {
   const { t } = useTranslation();
+  const [viewId, setViewId] = useState<DiscoveryViewId>('trending');
+  const layoutMode = useInstalledSkillsUiStore((state) => state.layoutMode);
+  const setLayoutMode = useInstalledSkillsUiStore((state) => state.setLayoutMode);
   const [searchInput, setSearchInput] = useState('');
   const debouncedQuery = useDebouncedValue(searchInput, 300);
   const isSearching = debouncedQuery.trim().length >= 2;
   const search = useSkillsSearch(debouncedQuery, { enabled: isSearching });
-  const hasSearchError = isSearching && Boolean(search.error);
+  const leaderboard = useSkillsLeaderboard({
+    view: viewId,
+    perPage: LIST_PER_PAGE,
+    enabled: !isSearching,
+  });
   const [selectedSkill, setSelectedSkill] = useState<SkillsShSkill | null>(null);
 
+  const activeQuery = isSearching ? search : leaderboard;
+  const skills = activeQuery.data ?? [];
+  const isRefreshing = activeQuery.isFetching && skills.length > 0;
+  const hasSearchError = isSearching && Boolean(search.error);
+
   return (
-    <div className="relative flex h-full flex-col">
-      <div className="app-material border-b border-border sticky top-0 z-10 flex flex-row items-end justify-between pb-10 gap-4 p-8 ">
-        <div className="flex flex-col items-start gap-3">
-          <div className="flex items-center gap-3">
+    <div className="relative flex h-full min-w-0 flex-col overflow-hidden">
+      <div className="app-material border-border sticky top-0 z-10 flex min-w-0 flex-col border-b">
+        <div className="flex min-w-0 flex-row flex-wrap items-end justify-between gap-4 p-8 pb-6">
+          <div className="flex min-w-0 flex-col items-start gap-3">
             <h1 className="text-2xl leading-none text-balance">{t('skills.dashboard.title')}</h1>
-            {/* <Badge variant="outline">skills.sh</Badge> */}
+            <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
+              {t('skills.dashboard.description')}
+            </p>
           </div>
-          <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
-            {t('skills.dashboard.description')}
-          </p>
-        </div>
-        <InputGroup className="max-w-md rounded-xl">
-          <InputGroupAddon>
-            <Search />
-          </InputGroupAddon>
-          <InputGroupInput
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder={t('skills.dashboard.searchPlaceholder')}
-            aria-label={t('skills.dashboard.searchLabel')}
-            autoComplete="off"
-            spellCheck={false}
-          />
-          {searchInput ? (
-            <InputGroupAddon align="inline-end">
-              <InputGroupButton
-                size="icon-xs"
-                aria-label={t('skills.dashboard.clearSearch')}
-                onClick={() => setSearchInput('')}
-                className="app-pressable"
-              >
-                <X />
-              </InputGroupButton>
+          <InputGroup className="w-full max-w-md shrink-0 rounded-xl">
+            <InputGroupAddon>
+              <Search />
             </InputGroupAddon>
+            <InputGroupInput
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder={t('skills.dashboard.searchPlaceholder')}
+              aria-label={t('skills.dashboard.searchLabel')}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            {searchInput ? (
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  size="icon-xs"
+                  aria-label={t('skills.dashboard.clearSearch')}
+                  onClick={() => setSearchInput('')}
+                  className="app-pressable"
+                >
+                  <X />
+                </InputGroupButton>
+              </InputGroupAddon>
+            ) : null}
+          </InputGroup>
+          {hasSearchError ? (
+            <Alert variant="destructive" className="max-w-xl">
+              <AlertCircle />
+              <AlertTitle>{t('skills.dashboard.searchFailed')}</AlertTitle>
+              <AlertDescription>{errorMessage(search.error)}</AlertDescription>
+            </Alert>
           ) : null}
-        </InputGroup>
-        {hasSearchError ? (
-          <Alert variant="destructive" className="max-w-xl">
-            <AlertCircle />
-            <AlertTitle>{t('skills.dashboard.searchFailed')}</AlertTitle>
-            <AlertDescription>{errorMessage(search.error)}</AlertDescription>
-          </Alert>
-        ) : null}
+        </div>
+        <div className="flex min-w-0 flex-wrap items-center gap-3 px-8 pb-6">
+          <ContinuousTabs
+            value={viewId}
+            defaultActiveId="trending"
+            tabs={DISCOVERY_VIEWS.map((view) => ({
+              id: view.id,
+              label: view.label,
+              helpTooltip: t(`skills.dashboard.viewHelp.${view.id}`),
+            }))}
+            onChange={(id) => {
+              if (id === 'all-time' || id === 'trending' || id === 'hot') {
+                setViewId(id);
+              }
+            }}
+          />
+          {isRefreshing ? (
+            <Spinner
+              className="text-muted-foreground size-3.5"
+              aria-label={t('skills.dashboard.refreshing')}
+            />
+          ) : null}
+          <ContinuousTabs
+            className="ms-auto"
+            value={layoutMode}
+            defaultActiveId="grid"
+            tabs={[
+              {
+                id: 'list',
+                label: t('skills.installed.layoutList'),
+                icon: LayoutList,
+              },
+              {
+                id: 'grid',
+                label: t('skills.installed.layoutGrid'),
+                icon: LayoutGrid,
+              },
+            ]}
+            onChange={(id) => {
+              if (id === 'grid' || id === 'list') {
+                setLayoutMode(id);
+              }
+            }}
+          />
+        </div>
       </div>
-      <ScrollArea className="min-h-0 flex-1">
-        <div className="flex flex-col gap-6 px-6 py-4">
-          {isSearching ? (
-            <SearchResults query={search} onOpen={setSelectedSkill} />
-          ) : (
-            DISCOVERY_VIEWS.map((view) => (
-              <DiscoveryRail key={view.id} view={view} onOpen={setSelectedSkill} />
-            ))
-          )}
+      <ScrollArea className="min-h-0 min-w-0 flex-1">
+        <div className="flex w-full min-w-0 max-w-full flex-col gap-6 px-6 py-4">
+          <SkillsResults
+            skills={skills}
+            layoutMode={layoutMode}
+            isLoading={activeQuery.isLoading}
+            error={errorMessage(activeQuery.error)}
+            emptyTitle={t('skills.dashboard.noResultsTitle')}
+            emptyDescription={t('skills.dashboard.noResultsDescription')}
+            onOpen={setSelectedSkill}
+          />
         </div>
       </ScrollArea>
       <SkillDetailDialog
@@ -369,7 +292,3 @@ export function SkillsDashboardView() {
     </div>
   );
 }
-
-// bg-[repeating-linear-gradient(45deg,_var(--pattern-fg)_0,_var(--pattern-fg)_1px,_transparent_0,_transparent_50%)] bg-[size:10px_10px] bg-fixed [--pattern-fg:#e1e1e1]
-
-//       dark:bg-[repeating-linear-gradient(45deg,_var(--pattern-fg)_0,_var(--pattern-fg)_1px,_transparent_0,_transparent_50%)] dark:bg-[size:10px_10px] bg-fixed dark:[--pattern-fg:#030303]

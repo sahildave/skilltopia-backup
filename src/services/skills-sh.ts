@@ -1,8 +1,8 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { catalog } from '@catalog';
+import type { SkillsShSkill } from '@/catalog/types';
 import { getSeedDetail, getSeedForView } from '@/data/skills-seed';
 import { logger } from '@/lib/logger';
-import type { SkillsShSkill } from '@/catalog/types';
+import { catalog } from '@catalog';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 export const skillsShQueryKeys = {
   all: ['skills-sh'] as const,
@@ -14,10 +14,12 @@ export const skillsShQueryKeys = {
 };
 
 export const DISCOVERY_VIEWS = [
-  { id: 'all-time', label: 'Top Installed' },
   { id: 'trending', label: 'Trending' },
   { id: 'hot', label: 'Hot' },
+  { id: 'all-time', label: 'Top' },
 ] as const;
+
+export type DiscoveryViewId = (typeof DISCOVERY_VIEWS)[number]['id'];
 
 const LEADERBOARD_STALE_MS = 1000 * 60;
 const SEARCH_STALE_MS = 1000 * 30;

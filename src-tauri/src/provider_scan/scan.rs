@@ -325,7 +325,25 @@ pub fn scan_installed(ctx: &ScanContext) -> Result<InstalledScanSnapshot, String
         let mut skill_count = 0u32;
         let mut emitted_missing_dir = false;
 
-        if let Some(ref dir) = skills_dir {
+        // Providers that resolve to the Universal dir (e.g. Cline) share that tree —
+        // do not double-scan; tag Universal skills and reuse the Universal count.
+        let shares_universal_dir = skills_dir
+            .as_ref()
+            .is_some_and(|dir| dir == &universal_dir);
+
+        if shares_universal_dir {
+            skill_count = universal_count;
+            for skill in skills_map.values_mut() {
+                if skill
+                    .provider_ids
+                    .iter()
+                    .any(|id| id == UNIVERSAL_PROVIDER_ID)
+                    && !skill.provider_ids.iter().any(|id| id == &provider.id)
+                {
+                    skill.provider_ids.push(provider.id.clone());
+                }
+            }
+        } else if let Some(ref dir) = skills_dir {
             if skills_dir_exists {
                 let outcome = scan_skills_dir(dir, ctx.include_internal, Some(&provider.id));
                 warnings.extend(outcome.warnings);
@@ -349,7 +367,12 @@ pub fn scan_installed(ctx: &ScanContext) -> Result<InstalledScanSnapshot, String
         }
 
         // Providers with no global skills dir (e.g. Eve) are detected but not empty-warnable.
-        if has_global_skills_dir && skill_count == 0 && !emitted_missing_dir {
+        // Shared-Universal providers are covered by Universal empty/missing warnings.
+        if has_global_skills_dir
+            && !shares_universal_dir
+            && skill_count == 0
+            && !emitted_missing_dir
+        {
             warnings.push(ScanWarning {
                 code: ScanWarningCode::ProviderEmpty,
                 message: format!(
@@ -717,6 +740,47 @@ mod tests {
             .expect("claude");
         assert_eq!(claude.skill_count, 0);
         assert_eq!(snapshot.universal.skill_count, 1);
+    }
+
+    #[test]
+    fn shared_universal_dir_provider_tags_without_double_scan() {
+        let home = temp_home("shared-universal");
+        fs::create_dir_all(home.join(".cline")).unwrap();
+        write_skill(
+            &home.join(".agents/skills"),
+            "shared-skill",
+            "shared-skill",
+            "Shared with Cline",
+        );
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        let cline = snapshot
+            .providers
+            .iter()
+            .find(|p| p.id == "cline")
+            .expect("cline detected");
+        assert_eq!(cline.skill_count, 1);
+        assert_eq!(
+            cline.skills_dir,
+            Some(normalize_path_for_serialization(
+                &home.join(".agents/skills")
+            ))
+        );
+        assert_eq!(snapshot.universal.skill_count, 1);
+
+        let skill = snapshot
+            .skills
+            .iter()
+            .find(|s| s.name == "shared-skill")
+            .expect("shared-skill");
+        assert!(skill
+            .provider_ids
+            .contains(&UNIVERSAL_PROVIDER_ID.to_string()));
+        assert!(skill.provider_ids.contains(&"cline".to_string()));
+        assert_eq!(skill.paths.len(), 1);
+        assert!(!snapshot.warnings.iter().any(|w| {
+            w.code == ScanWarningCode::ProviderEmpty && w.provider_id.as_deref() == Some("cline")
+        }));
     }
 
     #[test]

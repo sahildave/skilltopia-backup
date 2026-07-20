@@ -65,7 +65,7 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
               className={cn(
                 'app-pressable app-pressable-subtle relative flex items-center gap-2 rounded-md px-3 py-2 text-sm',
                 isActive
-                  ? 'bg-background text-foreground font-medium shadow-xs'
+                  ? 'bg-background text-foreground font-medium shadow-md'
                   : 'text-muted-foreground hover:bg-background/70 hover:text-foreground',
                 'focus-visible:border-ring focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]'
               )}

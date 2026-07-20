@@ -17,7 +17,7 @@ import { useUIStore } from '@/store/ui-store'
 import { cn } from '@/lib/utils'
 
 const LAYOUT = {
-  leftSidebar: { default: 22, min: 15, max: 35 },
+  leftSidebar: { default: 15, min: 13, max: 18 },
   main: { min: 30 },
 } as const
 
@@ -33,14 +33,7 @@ export function WebShell() {
 
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-background">
-      <header className="flex shrink-0 items-center border-b px-4 py-3">
-        <div className="flex flex-col gap-0.5">
-          <p className="text-sm font-semibold">{t('web.shell.brand')}</p>
-          <p className="text-muted-foreground text-xs text-pretty">
-            {t('web.shell.tagline')}
-          </p>
-        </div>
-      </header>
+      
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <ResizablePanelGroup direction="horizontal">

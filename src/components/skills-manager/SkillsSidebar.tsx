@@ -1,19 +1,4 @@
-import { useState } from 'react';
-import {
-  AlertTriangle,
-  BookOpen,
-  ChevronDown,
-  Download,
-  LayoutDashboard,
-  Layers,
-  Search,
-  Settings,
-  Sparkles,
-  X,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { platform } from '@platform';
+import appLogo from '@/assets/logo.png';
 import { Button } from '@/components/ui/button';
 import {
   InputGroup,
@@ -22,9 +7,26 @@ import {
   InputGroupInput,
 } from '@/components/ui/input-group';
 import { Separator } from '@/components/ui/separator';
+import { executeCommand, useCommandContext } from '@/lib/commands';
 import { cn } from '@/lib/utils';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
+import { platform } from '@platform';
+import type { LucideIcon } from 'lucide-react';
+import {
+  AlertTriangle,
+  BookOpen,
+  ChevronDown,
+  Download,
+  Layers,
+  LayoutDashboard,
+  Search,
+  Settings,
+  Sparkles,
+  X,
+} from 'lucide-react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ALL_AGENTS_FILTER_ID,
   buildProviderSidebarModel,
@@ -33,8 +35,6 @@ import {
   type ProviderSidebarItem,
 } from './installed-skills-model';
 import type { SkillsNavId } from './types';
-import { executeCommand, useCommandContext } from '@/lib/commands';
-import appLogo from '@/assets/logo.png';
 
 const PRIMARY_NAV: {
   id: SkillsNavId;
@@ -93,10 +93,6 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
       <div className="flex items-center gap-3 px-4 py-4">
         <div className="size-11 overflow-hidden rounded-lg border bg-background">
           <img src={appLogo} alt="" className="size-full object-cover" aria-hidden="true" />
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-balance">{t('skills.nav.brand')}</p>
-          <p className="text-muted-foreground truncate text-xs">{t('skills.nav.tagline')}</p>
         </div>
       </div>
 

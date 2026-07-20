@@ -1,8 +1,4 @@
-import { useState } from 'react';
-import { AlertCircle, ChevronDown, ExternalLink, Search, X } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
-import { platform } from '@platform';
+import type { SkillsShSkill } from '@/catalog/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -36,8 +32,13 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import type { SkillsShSkill } from '@/catalog/types';
 import { DISCOVERY_VIEWS, useSkillsLeaderboard, useSkillsSearch } from '@/services/skills-sh';
+import { platform } from '@platform';
+import { AlertCircle, ChevronDown, ExternalLink, Search, X } from 'lucide-react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
+import { DitherGradient } from '../dither-kit';
 import { isInstallCancelled, isPermissionError } from './library-errors';
 import { SkillDetailDialog } from './SkillDetailDialog';
 import type { InstallScope } from './types';
@@ -295,17 +296,18 @@ export function SkillsDashboardView() {
 
   return (
     <div className="relative flex h-full flex-col">
-      <div className="app-material border-b border-border sticky top-0 z-10 flex flex-row items-end justify-between pb-10 gap-4 p-8 ">
-        <div className="flex flex-col items-start gap-3">
+      <div className="app-material border-b h-36 border-border sticky top-0 z-10 flex flex-row items-end justify-between gap-4 p-8 pb-6 bg-background ">
+        <DitherGradient from="grey" />
+        <div className="flex flex-col items-start gap-2.5">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl leading-none text-balance">{t('skills.dashboard.title')}</h1>
+            <h1 className="text-3xl leading-none text-balance">{t('skills.dashboard.title')}</h1>
             {/* <Badge variant="outline">skills.sh</Badge> */}
           </div>
           <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
             {t('skills.dashboard.description')}
           </p>
         </div>
-        <InputGroup className="max-w-md rounded-xl">
+        <InputGroup className="max-w-sm bg-background! h-10 rounded-xl">
           <InputGroupAddon>
             <Search />
           </InputGroupAddon>
@@ -339,7 +341,7 @@ export function SkillsDashboardView() {
         ) : null}
       </div>
       <ScrollArea className="min-h-0 flex-1">
-        <div className="flex flex-col gap-6 px-6 py-4">
+        <div className="flex flex-col gap-6 px-6 py-6">
           {isSearching ? (
             <SearchResults query={search} onOpen={setSelectedSkill} />
           ) : (

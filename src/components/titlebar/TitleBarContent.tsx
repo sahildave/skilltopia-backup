@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { useUIStore } from '@/store/ui-store'
-import { executeCommand, useCommandContext } from '@/lib/commands'
 import {
   PanelLeft,
   PanelLeftClose,
@@ -49,14 +48,6 @@ export function TitleBarRightActions() {
   const { t } = useTranslation()
   const rightSidebarVisible = useUIStore(state => state.rightSidebarVisible)
   const toggleRightSidebar = useUIStore(state => state.toggleRightSidebar)
-  const commandContext = useCommandContext()
-
-  const handleOpenPreferences = async () => {
-    const result = await executeCommand('open-preferences', commandContext)
-    if (!result.success && result.error) {
-      commandContext.showToast(result.error, 'error')
-    }
-  }
 
   return (
     <div className="flex items-center gap-1">

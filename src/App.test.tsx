@@ -8,7 +8,10 @@ describe('App', () => {
   it('renders main window layout', () => {
     render(<App />)
     expect(
-      screen.getByRole('heading', { name: /library/i })
+      screen.getByRole('heading', { name: /skills explorer/i })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /installed/i })
     ).toBeInTheDocument()
   })
 

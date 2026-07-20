@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { AlertCircle, ChevronDown, ExternalLink, Search, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -135,34 +134,17 @@ function SkillInstallMenu({ skill }: { skill: SkillsShSkill }) {
 
 function SkillCard({
   skill,
-  index,
-  reduceMotion,
   compact = false,
   onOpen,
 }: {
   skill: SkillsShSkill
-  index: number
-  reduceMotion: boolean
   compact?: boolean
   onOpen: (skill: SkillsShSkill) => void
 }) {
+  const { t } = useTranslation()
+
   return (
-    <motion.div
-      initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
-      animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-      exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 8 }}
-      transition={
-        reduceMotion
-          ? { duration: 0.15 }
-          : {
-              type: 'spring',
-              bounce: 0,
-              duration: 0.35,
-              delay: Math.min(index, 12) * 0.03,
-            }
-      }
-      className={compact ? 'w-72 shrink-0' : undefined}
-    >
+    <div className={compact ? 'w-72 shrink-0' : undefined}>
       <Card className="gap-4 py-4">
         <CardHeader className="px-4">
           <CardTitle className="flex items-start justify-between gap-2 text-sm">
@@ -186,19 +168,22 @@ function SkillCard({
         <CardFooter className="justify-end gap-1 border-t px-4 pt-4">
           <SkillInstallMenu skill={skill} />
           <Button variant="outline" size="sm" onClick={() => onOpen(skill)}>
-            Details
+            {t('skills.dashboard.details')}
           </Button>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => void platform.openExternal(skill.url)}
-            aria-label={`Open ${skill.name} on skills.sh`}
+            aria-label={t('skills.dashboard.openExternalLabel', {
+              name: skill.name,
+            })}
           >
-            <ExternalLink data-icon="inline-start" /> View
+            <ExternalLink data-icon="inline-start" />
+            {t('skills.dashboard.view')}
           </Button>
         </CardFooter>
       </Card>
-    </motion.div>
+    </div>
   )
 }
 
@@ -232,13 +217,12 @@ function errorMessage(error: unknown): string | null {
 
 function DiscoveryRail({
   view,
-  reduceMotion,
   onOpen,
 }: {
   view: (typeof DISCOVERY_VIEWS)[number]
-  reduceMotion: boolean
   onOpen: (skill: SkillsShSkill) => void
 }) {
+  const { t } = useTranslation()
   const query = useSkillsLeaderboard({ view: view.id, perPage: 12 })
   const skills = query.data ?? []
   const error = errorMessage(query.error)
@@ -255,8 +239,10 @@ function DiscoveryRail({
           </h2>
           <p className="text-muted-foreground text-xs">
             {view.id === 'all-time'
-              ? 'Most installed across the catalog'
-              : `The ${view.id} leaderboard right now`}
+              ? t('skills.dashboard.rail.allTimeDescription')
+              : t('skills.dashboard.rail.currentDescription', {
+                  view: view.label,
+                })}
           </p>
         </div>
         <Badge variant="secondary" className="tabular-nums">
@@ -266,25 +252,16 @@ function DiscoveryRail({
       {error ? (
         <Alert variant="destructive">
           <AlertCircle />
-          <AlertTitle>Refresh failed</AlertTitle>
+          <AlertTitle>{t('skills.dashboard.refreshFailed')}</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
       {query.isLoading && skills.length === 0 ? <SkillsGridSkeleton /> : null}
       {skills.length > 0 ? (
         <div className="flex gap-4 overflow-x-auto pb-2">
-          <AnimatePresence mode="popLayout">
-            {skills.map((skill, index) => (
-              <SkillCard
-                key={skill.id}
-                skill={skill}
-                index={index}
-                reduceMotion={reduceMotion}
-                onOpen={onOpen}
-                compact
-              />
-            ))}
-          </AnimatePresence>
+          {skills.map(skill => (
+            <SkillCard key={skill.id} skill={skill} onOpen={onOpen} compact />
+          ))}
         </div>
       ) : null}
     </section>
@@ -293,13 +270,12 @@ function DiscoveryRail({
 
 function SearchResults({
   query,
-  reduceMotion,
   onOpen,
 }: {
   query: ReturnType<typeof useSkillsSearch>
-  reduceMotion: boolean
   onOpen: (skill: SkillsShSkill) => void
 }) {
+  const { t } = useTranslation()
   const skills = query.data ?? []
   const error = errorMessage(query.error)
   if (query.isLoading && skills.length === 0) return <SkillsGridSkeleton />
@@ -307,7 +283,7 @@ function SearchResults({
     return (
       <Alert variant="destructive">
         <AlertCircle />
-        <AlertTitle>Couldn’t load skills</AlertTitle>
+        <AlertTitle>{t('skills.dashboard.loadFailed')}</AlertTitle>
         <AlertDescription>{error}</AlertDescription>
       </Alert>
     )
@@ -318,30 +294,24 @@ function SearchResults({
           <EmptyMedia variant="icon">
             <Search />
           </EmptyMedia>
-          <EmptyTitle>No skills found</EmptyTitle>
-          <EmptyDescription>Try a different search term.</EmptyDescription>
+          <EmptyTitle>{t('skills.dashboard.noResultsTitle')}</EmptyTitle>
+          <EmptyDescription>
+            {t('skills.dashboard.noResultsDescription')}
+          </EmptyDescription>
         </EmptyHeader>
       </Empty>
     )
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <AnimatePresence mode="popLayout">
-        {skills.map((skill, index) => (
-          <SkillCard
-            key={skill.id}
-            skill={skill}
-            index={index}
-            reduceMotion={reduceMotion}
-            onOpen={onOpen}
-          />
-        ))}
-      </AnimatePresence>
+      {skills.map(skill => (
+        <SkillCard key={skill.id} skill={skill} onOpen={onOpen} />
+      ))}
     </div>
   )
 }
 
 export function SkillsDashboardView() {
-  const reduceMotion = useReducedMotion() ?? false
+  const { t } = useTranslation()
   const [searchInput, setSearchInput] = useState('')
   const debouncedQuery = useDebouncedValue(searchInput, 300)
   const isSearching = debouncedQuery.trim().length >= 2
@@ -353,14 +323,15 @@ export function SkillsDashboardView() {
     <div className="relative flex h-full flex-col">
       <div className="bg-background/80 sticky top-0 z-10 flex flex-col gap-4 border-b p-6 backdrop-blur-md">
         <div className="flex flex-col items-start gap-1">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold text-balance">Explore</h1>
-          <Badge variant="outline">skills.sh</Badge>
-        </div>
-        <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
-          Discover popular skills, refreshed from the live catalog and available
-          offline from your last visit.
-        </p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-balance">
+              {t('skills.dashboard.title')}
+            </h1>
+            <Badge variant="outline">skills.sh</Badge>
+          </div>
+          <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
+            {t('skills.dashboard.description')}
+          </p>
         </div>
         <InputGroup className="max-w-xl">
           <InputGroupAddon>
@@ -369,8 +340,8 @@ export function SkillsDashboardView() {
           <InputGroupInput
             value={searchInput}
             onChange={event => setSearchInput(event.target.value)}
-            placeholder="Search skills…"
-            aria-label="Search skills"
+            placeholder={t('skills.dashboard.searchPlaceholder')}
+            aria-label={t('skills.dashboard.searchLabel')}
             autoComplete="off"
             spellCheck={false}
           />
@@ -378,7 +349,7 @@ export function SkillsDashboardView() {
             <InputGroupAddon align="inline-end">
               <InputGroupButton
                 size="icon-xs"
-                aria-label="Clear search"
+                aria-label={t('skills.dashboard.clearSearch')}
                 onClick={() => setSearchInput('')}
               >
                 <X />
@@ -389,7 +360,7 @@ export function SkillsDashboardView() {
         {hasSearchError ? (
           <Alert variant="destructive" className="max-w-xl">
             <AlertCircle />
-            <AlertTitle>Couldn’t load search results</AlertTitle>
+            <AlertTitle>{t('skills.dashboard.searchFailed')}</AlertTitle>
             <AlertDescription>{errorMessage(search.error)}</AlertDescription>
           </Alert>
         ) : null}
@@ -397,17 +368,12 @@ export function SkillsDashboardView() {
       <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col gap-10 p-6">
           {isSearching ? (
-            <SearchResults
-              query={search}
-              reduceMotion={reduceMotion}
-              onOpen={setSelectedSkill}
-            />
+            <SearchResults query={search} onOpen={setSelectedSkill} />
           ) : (
             DISCOVERY_VIEWS.map(view => (
               <DiscoveryRail
                 key={view.id}
                 view={view}
-                reduceMotion={reduceMotion}
                 onOpen={setSelectedSkill}
               />
             ))

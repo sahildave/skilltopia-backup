@@ -36,7 +36,7 @@ export function MainWindow() {
   const { theme } = useTheme()
   const leftSidebarVisible = useUIStore(state => state.leftSidebarVisible)
   const rightSidebarVisible = useUIStore(state => state.rightSidebarVisible)
-  const [activeNav, setActiveNav] = useState<SkillsNavId>('library')
+  const [activeNav, setActiveNav] = useState<SkillsNavId>('explore')
 
   const mainDefault = rightSidebarVisible
     ? 100 - LAYOUT.leftSidebar.default - LAYOUT.rightSidebar.default

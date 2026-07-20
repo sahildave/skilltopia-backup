@@ -1,4 +1,5 @@
 import { AlertCircle, ExternalLink, LoaderCircle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { platform } from '@platform'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -19,8 +20,13 @@ function titleForSkill(skillId: string): string {
 }
 
 function DetailList({ values }: { values: string[] }) {
+  const { t } = useTranslation()
   if (values.length === 0)
-    return <span className="text-muted-foreground text-sm">Not specified</span>
+    return (
+      <span className="text-muted-foreground text-sm">
+        {t('skills.detail.notSpecified')}
+      </span>
+    )
   return (
     <div className="flex flex-wrap gap-1.5">
       {values.map(value => (
@@ -41,6 +47,7 @@ export function SkillDetailDialog({
   onOpenChange: (open: boolean) => void
   onSelectRelated: (skillId: string) => void
 }) {
+  const { t } = useTranslation()
   const query = useSkillDetail(skill?.id ?? null)
   const enrichment = query.data?.enrichment
   const isOpen = skill !== null
@@ -50,7 +57,7 @@ export function SkillDetailDialog({
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-balance">
-            {skill?.name ?? 'Skill details'}
+            {skill?.name ?? t('skills.detail.titleFallback')}
           </DialogTitle>
           <DialogDescription className="text-pretty">
             {skill?.id}
@@ -59,12 +66,13 @@ export function SkillDetailDialog({
 
         {query.isLoading ? (
           <div className="text-muted-foreground flex items-center gap-2 py-8 text-sm">
-            <LoaderCircle className="size-4 animate-spin" /> Loading enrichment…
+            <LoaderCircle className="size-4 animate-spin" />
+            {t('skills.detail.loading')}
           </div>
         ) : query.error ? (
           <Alert variant="destructive">
             <AlertCircle />
-            <AlertTitle>Couldn’t load details</AlertTitle>
+            <AlertTitle>{t('skills.detail.loadFailed')}</AlertTitle>
             <AlertDescription>
               {query.error instanceof Error
                 ? query.error.message
@@ -73,40 +81,54 @@ export function SkillDetailDialog({
           </Alert>
         ) : enrichment ? (
           <div className="flex flex-col gap-5">
-            <section className="flex flex-col gap-2">
-              <h3 className="text-sm font-semibold">Primary goal</h3>
-              <p className="text-muted-foreground text-sm text-pretty">
+            <section className="rounded-lg border bg-muted/30 p-4">
+              <h3 className="text-sm font-semibold">
+                {t('skills.detail.primaryGoal')}
+              </h3>
+              <p className="text-muted-foreground mt-2 text-sm text-pretty">
                 {enrichment.required.primaryGoal}
               </p>
             </section>
             <div className="grid gap-4 sm:grid-cols-2">
               <section className="flex flex-col gap-2">
-                <h3 className="text-sm font-semibold">Difficulty</h3>
+                <h3 className="text-sm font-semibold">
+                  {t('skills.detail.difficulty')}
+                </h3>
                 <Badge variant="secondary" className="w-fit capitalize">
                   {enrichment.required.estimatedComplexity}
                 </Badge>
               </section>
               <section className="flex flex-col gap-2">
-                <h3 className="text-sm font-semibold">Read time</h3>
+                <h3 className="text-sm font-semibold">
+                  {t('skills.detail.readTime')}
+                </h3>
                 <p className="text-muted-foreground text-sm tabular-nums">
-                  {enrichment.estimatedReadTimeMinutes} min
+                  {t('skills.detail.minutes', {
+                    count: enrichment.estimatedReadTimeMinutes,
+                  })}
                 </p>
               </section>
             </div>
             <section className="flex flex-col gap-2">
-              <h3 className="text-sm font-semibold">Requires</h3>
+              <h3 className="text-sm font-semibold">
+                {t('skills.detail.requires')}
+              </h3>
               <DetailList values={enrichment.required.requires} />
             </section>
             <section className="flex flex-col gap-2">
-              <h3 className="text-sm font-semibold">Best for</h3>
+              <h3 className="text-sm font-semibold">
+                {t('skills.detail.bestFor')}
+              </h3>
               <DetailList values={enrichment.required.bestFor} />
             </section>
             <Separator />
             <section className="flex flex-col gap-3">
               <div>
-                <h3 className="text-sm font-semibold">Related skills</h3>
+                <h3 className="text-sm font-semibold">
+                  {t('skills.detail.related')}
+                </h3>
                 <p className="text-muted-foreground text-xs">
-                  Similar skills from the enriched catalog
+                  {t('skills.detail.relatedDescription')}
                 </p>
               </div>
               {(query.data?.related ?? []).length > 0 ? (
@@ -137,16 +159,26 @@ export function SkillDetailDialog({
                 </div>
               ) : (
                 <p className="text-muted-foreground text-sm">
-                  No related skills are available yet.
+                  {t('skills.detail.noRelated')}
                 </p>
               )}
             </section>
+            {skill ? (
+              <div className="flex justify-end border-t pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => void platform.openExternal(skill.url)}
+                >
+                  <ExternalLink data-icon="inline-start" />
+                  {t('skills.detail.openExternal')}
+                </Button>
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className="flex flex-col gap-3 py-4">
             <p className="text-muted-foreground text-sm text-pretty">
-              This skill has catalog metadata, but enrichment is not available
-              yet.
+              {t('skills.detail.noEnrichment')}
             </p>
             {skill ? (
               <Button
@@ -154,7 +186,8 @@ export function SkillDetailDialog({
                 className="w-fit"
                 onClick={() => void platform.openExternal(skill.url)}
               >
-                <ExternalLink data-icon="inline-start" /> Open on skills.sh
+                <ExternalLink data-icon="inline-start" />
+                {t('skills.detail.openExternal')}
               </Button>
             ) : null}
           </div>

@@ -29,7 +29,7 @@ export function WebShell() {
   const { t } = useTranslation()
   const { theme } = useTheme()
   const leftSidebarVisible = useUIStore(state => state.leftSidebarVisible)
-  const [activeNav, setActiveNav] = useState<SkillsNavId>('dashboard')
+  const [activeNav, setActiveNav] = useState<SkillsNavId>('explore')
 
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-background">

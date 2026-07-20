@@ -15,7 +15,9 @@ function formatDate(date) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day}-${hour}:${minute}`
 }
 
 function getLastModifiedDate(filePath) {
@@ -35,6 +37,12 @@ function addDatePrefix(filename, date) {
   return `task-${dateStr}-${nameWithoutTaskPrefix}`
 }
 
+function insertTimeIntoDatePrefix(filename, date) {
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  return filename.replace(/^(task-\d{4}-\d{2}-\d{2}-)/, `$1${hour}:${minute}-`)
+}
+
 function renameExistingTasks() {
   console.log('Renaming existing completed tasks...\n')
 
@@ -47,15 +55,23 @@ function renameExistingTasks() {
   taskFiles.forEach(filename => {
     const oldPath = path.join(DONE_DIR, filename)
 
-    if (/^task-\d{4}-\d{2}-\d{2}-/.test(filename)) {
-      console.log(`Skipping (already dated): ${filename}`)
+    if (/^task-\d{4}-\d{2}-\d{2}-\d{2}:\d{2}-/.test(filename)) {
+      console.log(`Skipping (already timed): ${filename}`)
       skippedCount++
       return
     }
 
     const modifiedDate = getLastModifiedDate(oldPath)
-    const newFilename = addDatePrefix(filename, modifiedDate)
+    const newFilename = /^task-\d{4}-\d{2}-\d{2}-/.test(filename)
+      ? insertTimeIntoDatePrefix(filename, modifiedDate)
+      : addDatePrefix(filename, modifiedDate)
     const newPath = path.join(DONE_DIR, newFilename)
+
+    if (fs.existsSync(newPath)) {
+      console.error(`Skipping (target exists): ${filename} -> ${newFilename}`)
+      skippedCount++
+      return
+    }
 
     fs.renameSync(oldPath, newPath)
     console.log(`${filename} -> ${newFilename}`)
@@ -120,7 +136,7 @@ Examples:
 
 Notes:
   - Task name can be partial
-  - Completed tasks are moved to tasks-done/ with format: task-YYYY-MM-DD-description.md
+  - Completed tasks are moved to tasks-done/ with format: task-YYYY-MM-DD-HH:MM-description.md
   - Existing tasks are renamed using their last modified date
 `)
 }

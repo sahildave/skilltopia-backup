@@ -2,7 +2,7 @@
 
 One repo, one `package.json`, one shared React skills UI. Two runtimes: a **Tauri desktop app** and a **browser web app**. Both call the same **Backend API**. Clients hold no Backend secrets.
 
-This is the agent source of truth for dual-client work. Do not invent a monorepo, CORS on `/api/*`, or Tauri imports in shared UI. Foundation lands in task-2; deploy/CI in task-3. See the epic: `docs/tasks-todo/task-x-web-desktop-dual-client.md`.
+This is the agent source of truth for dual-client work. Do not invent a monorepo, CORS on `/api/*`, or Tauri imports in shared UI. See the epic: `docs/tasks-todo/task-x-web-desktop-dual-client.md`.
 
 ## Mental model
 
@@ -83,7 +83,8 @@ Web module graph must not import desktop-only startup (menus, quick panes, recov
 | `dev:mock`        | Vite browser shell + fixtures       | `mock`    | No Backend required for UI states                                    |
 | `dev:all`         | web Vite **+** `tauri:dev` only     | both      | Web on `:5173`, Tauri Vite on `:1420`. **No** `proxy:dev`            |
 | `tauri:dev`       | Tauri + Vite child (`desktop.html`) | `desktop` | Rust → deployed Backend (or Infisical override)                      |
-| `build:web`       | Static web bundle                   | `web`     | Zero Tauri markers in `dist/` (enforced in task-3)                   |
+| `build:web`       | Static web bundle + Tauri scan      | `web`     | Fails if `dist/` contains Tauri markers (`scan:web-bundle`)          |
+| `scan:web-bundle` | Scan `dist/` only                   | n/a       | Used by `build:web` / CI; markers: `@tauri-apps`, `__TAURI__`, `__TAURI_INTERNALS__` |
 | `build:desktop`   | Desktop + quick-pane bundle         | `desktop` | Used by Tauri `beforeBuildCommand`                                   |
 | `proxy:dev`       | Local Backend on `:3000`            | n/a       | Optional with `tauri:dev:local` — **not** part of `dev:all`          |
 | `dev:local:proxy` | `proxy:dev` + `tauri:dev:local`     | desktop   | Optional both-local path; see [external-apis.md](./external-apis.md) |
@@ -104,6 +105,18 @@ Web module graph must not import desktop-only startup (menus, quick panes, recov
 - Catalog calls go to relative `/api/*`; Vite proxies them to the deployed Backend (`SKILLS_PROXY_BASE_URL` or `https://skills-explorer-six.vercel.app`).
 - Use Tauri (`tauri:dev` / `dev:local`) when you need filesystem, install, opener, or desktop shell (titlebar/menu).
 - `npm run dev:mock` exercises Library / installed-list UI from fixtures without a desktop binary or Backend.
+
+## Deploy (same-origin web + API)
+
+One Vercel project serves Vite `dist/` and `api/`:
+
+- `vercel.json`: `buildCommand` = `npm run build:web`, `outputDirectory` = `dist`, SPA rewrite to `/index.html`
+- Browser catalog uses relative `/api/*` (same origin) — **no CORS** headers on `/api/*`
+- Desktop is unchanged: Rust `reqwest` → deploy URL (`SKILLS_PROXY_BASE_URL` / default)
+- `devCommand` stays the API-only placeholder so `vercel dev` does not start Vite (Tauri / Chrome Vite own the UI ports)
+- Never put Backend secrets in `VITE_*` or the web bundle
+
+See [external-apis.md](./external-apis.md).
 
 ## Backend access (no CORS)
 
@@ -140,7 +153,7 @@ Agent-actionable anti-patterns. Each row is a failure mode and the rule that pre
 | Backend secrets in `VITE_*` or the Tauri binary                                          | Forbidden. Secrets stay in Backend Infisical envs / Vercel only                                              |
 | Backend proxy (`proxy:dev`) inside `dev:all`                                             | Not our workflow. `dev:all` = web Vite + Tauri only; optional local Backend is a separate script             |
 | Monorepo / `apps/web` + `apps/desktop` workspaces                                        | Single package; build-time `TARGET` aliases                                                                  |
-| Intentional Tauri import in a shared module ships in web `dist/`                         | task-3 CI scan after `build:web` fails on `@tauri-apps`, `__TAURI__`, invoke markers                         |
+| Intentional Tauri import in a shared module ships in web `dist/`                         | `build:web` runs `scan:web-bundle` (also CI). Fails on `@tauri-apps`, `__TAURI__`, `__TAURI_INTERNALS__`. Fix: move the import behind `@platform` / `@catalog` desktop adapters only; re-run `npm run build:web` |
 
 ## Related docs
 

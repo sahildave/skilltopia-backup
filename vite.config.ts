@@ -21,8 +21,12 @@ const appEntry =
 function htmlAppEntryPlugin(): Plugin {
   return {
     name: 'html-app-entry',
-    transformIndexHtml(html) {
-      return html.replaceAll('%APP_ENTRY%', appEntry)
+    transformIndexHtml: {
+      // Must run before Vite resolves <script src> or %APP_ENTRY% is treated as a path.
+      order: 'pre',
+      handler(html) {
+        return html.replaceAll('%APP_ENTRY%', appEntry)
+      },
     },
   }
 }

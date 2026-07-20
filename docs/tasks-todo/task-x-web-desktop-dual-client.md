@@ -31,7 +31,7 @@ Run **two apps** from one repo and one shared React skills UI: a **Tauri desktop
 
 - [x] task-1 — architecture + anti-pattern docs
 - [x] task-2 — dual-client foundation (ports, shells, scripts, Chrome-first, mock)
-- [ ] task-3 — Vercel same-origin deploy + CI no-Tauri-in-web-bundle
+- [x] task-3 — Vercel same-origin deploy + CI no-Tauri-in-web-bundle
 - [ ] task-4 — shippable web MVP (Library CTA + copy command)
 - [ ] task-5 — desktop skill install (global/project)
 

@@ -2,7 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "npm install",
-  "buildCommand": "echo 'API-only deploy'",
-  "outputDirectory": "public",
-  "devCommand": "node scripts/backend-api-dev-placeholder.js"
+  "buildCommand": "npm run build:web",
+  "outputDirectory": "dist",
+  "devCommand": "node scripts/backend-api-dev-placeholder.js",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

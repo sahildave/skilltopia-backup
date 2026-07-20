@@ -108,10 +108,13 @@ Use the `/cleanup` command for guided analysis and cleanup of both knip and jscp
 
 ## CI Integration
 
-`check:all` runs in CI. Ensure it passes locally before pushing:
+GitHub Actions (`.github/workflows/ci.yml`) runs `npm run build:web`, which builds the web SPA and scans `dist/` for Tauri markers (`@tauri-apps`, `__TAURI__`, `__TAURI_INTERNALS__`). A contaminated web graph fails the job.
+
+Locally, run the full quality gate before pushing:
 
 ```bash
 npm run check:all
+npm run build:web   # also required for web deploy / hard-no scan
 ```
 
 ## Adding New Rules

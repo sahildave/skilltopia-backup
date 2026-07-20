@@ -12,17 +12,17 @@ Serve web static + `api/` from **one Vercel project** (browser same-origin `/api
 
 ### Deploy
 
-- [ ] Update `vercel.json`: `build:web` → static output, SPA rewrites, keep `api/`
-- [ ] Do **not** add CORS headers on `/api/*`
-- [ ] Confirm Tauri still uses Rust → deploy URL (unchanged)
-- [ ] Update deploy notes in `web-and-desktop.md` / `external-apis.md`
-- [ ] No Backend secrets in frontend env (`VITE_*` forbidden for secrets)
+- [x] Update `vercel.json`: `build:web` → static output, SPA rewrites, keep `api/`
+- [x] Do **not** add CORS headers on `/api/*`
+- [x] Confirm Tauri still uses Rust → deploy URL (unchanged)
+- [x] Update deploy notes in `web-and-desktop.md` / `external-apis.md`
+- [x] No Backend secrets in frontend env (`VITE_*` forbidden for secrets)
 
 ### CI hard-no
 
-- [ ] Script after `build:web` scanning `dist/` for `@tauri-apps`, `__TAURI__`, and agreed invoke markers
-- [ ] Wire into CI and/or `check:all`
-- [ ] Document failure mode in the anti-patterns section of `web-and-desktop.md`
+- [x] Script after `build:web` scanning `dist/` for `@tauri-apps`, `__TAURI__`, and agreed invoke markers
+- [x] Wire into CI and/or `check:all`
+- [x] Document failure mode in the anti-patterns section of `web-and-desktop.md`
 
 ## Out of scope
 

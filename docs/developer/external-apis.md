@@ -75,18 +75,22 @@ The proxy is a **credential amplifier**: anyone who can hit your deployment URL 
   2. Compile-time `SKILLS_PROXY_BASE_URL` if set when building
   3. Default `https://skills-explorer-six.vercel.app` (this project’s Vercel deploy). Override with `SKILLS_PROXY_BASE_URL` for forks or local `vercel dev`
 
-### Deploy the proxy
+### Deploy (same-origin web + Backend API)
 
-1. Link and deploy this repo’s `api/` routes with Vercel (`vercel` / Git integration). `vercel.json` is configured for an API-focused deploy (no browser CORS headers).
+One Vercel project serves the Vite web app (`dist/`) and `api/` together so the browser can call relative `/api/*` with no CORS.
+
+1. Link and deploy this repo with Vercel (`vercel` / Git integration). `vercel.json` runs `npm run build:web` → `dist/`, SPA-rewrites to `/index.html`, keeps `api/` as serverless routes, and does **not** set CORS headers on `/api/*`.
 2. In the Vercel project: **Settings → OIDC Federation → On**.
 3. Confirm against this project’s deploy (or your fork’s URL):
-   - `GET https://skills-explorer-six.vercel.app/api/skills?per_page=5`
+   - Open the deploy root in a browser (static web shell loads)
+   - `GET https://skills-explorer-six.vercel.app/api/skills?per_page=5` (same origin as the web app)
    - `GET https://skills-explorer-six.vercel.app/api/skills?per_page=9999` → `400`
    - `GET https://skills-explorer-six.vercel.app/api/skills/search?q=react&limit=5`
    - Unknown query keys → `400`
-4. Forks / release builds: point Tauri at your own deploy via Infisical `local`
-   (`SKILLS_PROXY_BASE_URL`) or the runtime default
-   `https://skills-explorer-six.vercel.app`. See [infisical.md](./infisical.md).
+4. Desktop is unchanged: Rust still calls the absolute deploy URL via `SKILLS_PROXY_BASE_URL` (Infisical `local`) or the runtime default `https://skills-explorer-six.vercel.app`. See [infisical.md](./infisical.md).
+5. Never put Backend secrets in `VITE_*` / the web bundle / the Tauri binary.
+
+`vercel.json` `devCommand` remains the API-only placeholder so `vercel dev` does not start Vite (Chrome / Tauri own the UI ports).
 
 ### Local-first development
 
@@ -112,7 +116,7 @@ npm run dev:local:proxy
 #   npm run tauri:dev:local    # Tauri → http://127.0.0.1:3000
 ```
 
-Requires the Vercel CLI (`npx vercel`) and a linked project with OIDC Federation enabled. `vercel.json` sets an API-only `devCommand` so `vercel dev` does not start Vite (Tauri already owns `:1420`). On some macOS hosts, `vercel dev` fails to spawn the `@vercel/node` builder (`spawn EBADF` → `NO_RESPONSE_FROM_FUNCTION`); use path 1 when that happens.
+Requires the Vercel CLI (`npx vercel`) and a linked project with OIDC Federation enabled. Production `vercel.json` builds the web SPA (`build:web` → `dist/`) alongside `api/`; `devCommand` stays API-only so `vercel dev` does not start Vite (Tauri already owns `:1420`). On some macOS hosts, `vercel dev` fails to spawn the `@vercel/node` builder (`spawn EBADF` → `NO_RESPONSE_FROM_FUNCTION`); use path 1 when that happens.
 
 ### Local maintainer path
 

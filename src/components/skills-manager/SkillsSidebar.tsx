@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Layers,
   Settings,
+  ListChecks,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -16,10 +17,8 @@ const PRIMARY_NAV: {
   label: string
   icon: typeof BookOpen
 }[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'library', label: 'Library', icon: BookOpen },
-  { id: 'install', label: 'Install Skills', icon: Download },
-  { id: 'presets', label: 'Presets', icon: Layers },
+  { id: 'dashboard', label: 'Explore', icon: LayoutDashboard },
+  { id: 'library', label: 'Installed', icon: ListChecks },
 ]
 
 interface SkillsSidebarProps {
@@ -44,9 +43,9 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
          <img src={appLogo} alt="Logo" width="100%" height="100%" />
         </div>
         <div className="min-w-0 flex flex-col gap-1">
-          <h1 className="truncate text-xl pt-1 leading-none font-semibold text-balance">
+          {/* <h1 className="truncate text-xl pt-1 leading-none font-semibold text-balance">
             Skills<br/> Hub
-          </h1>
+          </h1> */}
           
         </div>
       </div>
@@ -80,7 +79,7 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
         })}
 
 
-      <div className="border-t py-2">
+      <div className="py-2 h-full flex justify-end items-end">
         <Button
         onClick={handleOpenPreferences}
           variant="ghost"

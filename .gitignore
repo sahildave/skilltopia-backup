@@ -43,3 +43,5 @@ supabase/.temp
 
 /graphify-out
 .env*
+
+/samples

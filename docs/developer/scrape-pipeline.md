@@ -51,10 +51,17 @@ skills.sh page URL. HTML parsing also stores `page_snapshot.repository` /
 MAX_ENRICHED=20 npm run scrape:local
 # Re-scrape specific skills (skips leaderboard; does not use MAX_ENRICHED as the count)
 SKILL_IDS=open.feishu.cn/lark-approval,open.feishu.cn/lark-doc npm run scrape:local
-MAX_ENRICHED=1500 npm run scrape:sweep   # or 1000 fallback; see rotation-pipeline.md
+# Full sweep: SCRAPE_SKIP_CACHED=1, THROTTLE_MS=250, MAX_ENRICHED=1500
+npm run scrape:sweep
+# SCRAPE_SWEEP_MAX=1000 npm run scrape:sweep   # lighter fallback
+# SCRAPE_SKIP_CACHED=0 npm run scrape:sweep    # force re-scrape cached rows
 ```
 
-Invalid/missing `MAX_ENRICHED` defaults to **500**; hard-capped at **1500**. Progress
+Invalid/missing `MAX_ENRICHED` defaults to **500**; hard-capped at **1500**. Invalid/missing
+`THROTTLE_MS` defaults to **1000** ms (`scrape:local` / daily rotation);
+`scrape:sweep` defaults to **250** ms and **`SCRAPE_SKIP_CACHED=1`** (drop ids that
+already have `page_snapshot`). Daily `ingest:daily` / `rotate:local` never enable
+`skipCached` — they always re-scrape their selected ids. Progress
 logs go to stderr; a JSON summary goes to stdout. **Ctrl+C** aborts after the current
 skill (second Ctrl+C force-quits). Without `SKILL_IDS`, `scrape:local` always walks
 the leaderboard cap — that env is ignored unless this script reads it (it does now).

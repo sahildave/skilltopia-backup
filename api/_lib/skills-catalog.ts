@@ -128,19 +128,32 @@ export async function fetchAllLeaderboard(
   const skills: CatalogSkill[] = [];
   let page = 0;
   while (true) {
-    const batch = await fetchLeaderboardPage(view, page, perPage, fetcher);
+    const batch = await fetchLeaderboardPage(view, page, Math.min(perPage, 500), fetcher);
     skills.push(...batch);
-    if (batch.length < perPage) break;
+    if (batch.length < Math.min(perPage, 500)) break;
     page += 1;
   }
   return skills;
 }
 
+/**
+ * Top `limit` all-time skills (paginates; skills.sh `per_page` max is 500).
+ * Callers that need >500 (e.g. scrape sweep toward 1500) rely on this.
+ */
 export async function fetchLeaderboard(
-  perPage = 500,
+  limit = 500,
   fetcher: FetchCatalog = fetchJson,
 ): Promise<CatalogSkill[]> {
-  return fetchLeaderboardPage('all-time', 0, perPage, fetcher);
+  const perPage = 500;
+  const skills: CatalogSkill[] = [];
+  let page = 0;
+  while (skills.length < limit) {
+    const batch = await fetchLeaderboardPage('all-time', page, perPage, fetcher);
+    skills.push(...batch);
+    if (batch.length < perPage) break;
+    page += 1;
+  }
+  return skills.slice(0, limit);
 }
 
 export async function fetchSkillDetail(

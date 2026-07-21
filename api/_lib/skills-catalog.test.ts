@@ -138,6 +138,49 @@ describe('skills catalog client', () => {
     ).resolves.toBeNull();
   });
 
+  it('paginates fetchLeaderboard until limit (per_page max 500)', async () => {
+    const urls: string[] = [];
+    const fetcher = async (url: string) => {
+      urls.push(url);
+      if (url.includes('page=0')) {
+        return {
+          data: Array.from({ length: 500 }, (_, i) => ({
+            id: `p0/${i}`,
+            source: 'a/b',
+            slug: String(i),
+            installs: 500 - i,
+          })),
+        };
+      }
+      if (url.includes('page=1')) {
+        return {
+          data: Array.from({ length: 500 }, (_, i) => ({
+            id: `p1/${i}`,
+            source: 'a/b',
+            slug: String(i),
+            installs: 1,
+          })),
+        };
+      }
+      return {
+        data: Array.from({ length: 200 }, (_, i) => ({
+          id: `p2/${i}`,
+          source: 'a/b',
+          slug: String(i),
+          installs: 1,
+        })),
+      };
+    };
+
+    const skills = await fetchLeaderboard(1200, fetcher);
+    expect(skills).toHaveLength(1200);
+    expect(skills[0]?.id).toBe('p0/0');
+    expect(skills[500]?.id).toBe('p1/0');
+    expect(skills[1199]?.id).toBe('p2/199');
+    expect(urls).toHaveLength(3);
+    expect(urls.every((url) => url.includes('per_page=500'))).toBe(true);
+  });
+
   it('fetches a leaderboard page for a named view', async () => {
     const urls: string[] = [];
     const fetcher = async (url: string) => {

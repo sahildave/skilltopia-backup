@@ -68,5 +68,7 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           VERCEL_OIDC_TOKEN_SECONDARY: ${{ secrets.VERCEL_OIDC_TOKEN_SECONDARY }}
           VERCEL_OIDC_TOKEN: ${{ secrets.VERCEL_OIDC_TOKEN }}
-          MAX_ENRICHED: ${{ inputs.max_enriched }}
-        run: node --import tsx/esm scripts/scrape.mjs
+          SCRAPE_SWEEP_MAX: ${{ inputs.max_enriched }}
+          THROTTLE_MS: '250'
+          SCRAPE_SKIP_CACHED: '1'
+        run: node --import tsx/esm scripts/scrape-sweep.mjs

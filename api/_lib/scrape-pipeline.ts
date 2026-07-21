@@ -13,9 +13,13 @@ import {
   createSupabaseRepositoryFromEnv,
   type SkillSourceMetadata,
 } from './supabase-repository.js';
+import { throttleMsFromEnv, THROTTLE_MS_DEFAULT } from './throttle-ms.js';
 
 type Repository = ReturnType<typeof createSupabaseRepositoryFromEnv>;
 export type ScrapeLogLevel = 'info' | 'ok' | 'warn' | 'error' | 'step';
+
+/** Chunk size for `listSkillPageCaches` lookups (Supabase `.in` limit headroom). */
+const PAGE_CACHE_LOOKUP_CHUNK = 200;
 
 export type ScrapePipelineOptions = {
   repository: Repository;
@@ -23,6 +27,11 @@ export type ScrapePipelineOptions = {
   /** When set, scrape these ids instead of loading the leaderboard slice. */
   skillIds?: string[];
   throttleMs?: number;
+  /**
+   * When true, drop ids that already have a non-null `page_snapshot` before
+   * scraping. For one-shot sweeps only — daily rotation must leave this false.
+   */
+  skipCached?: boolean;
   scrapeDate?: Date;
   signal?: AbortSignal;
   loadLeaderboard?: typeof fetchLeaderboard;
@@ -37,6 +46,8 @@ export type ScrapeRunResult = {
   attempted: number;
   scraped: number;
   skipped: number;
+  /** Ids dropped up front because `page_snapshot` already exists (`skipCached`). */
+  cachedSkipped: number;
   failed: Array<{ skillId: string; message: string }>;
   aborted?: boolean;
 };
@@ -50,6 +61,31 @@ export function skillIdsFromEnv(environment = process.env): string[] | undefined
     .map((part) => part.trim())
     .filter(Boolean);
   return ids.length > 0 ? ids : undefined;
+}
+
+/** `SCRAPE_SKIP_CACHED=1|true|yes` → skip ids that already have `page_snapshot`. */
+export function scrapeSkipCachedFromEnv(
+  environment: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): boolean {
+  const raw = environment.SCRAPE_SKIP_CACHED?.trim().toLowerCase();
+  if (!raw) return false;
+  return raw === '1' || raw === 'true' || raw === 'yes';
+}
+
+async function filterUncachedSkillIds(
+  repository: Repository,
+  skillIds: string[],
+): Promise<{ pending: string[]; cachedSkipped: number }> {
+  const cachedIds = new Set<string>();
+  for (let offset = 0; offset < skillIds.length; offset += PAGE_CACHE_LOOKUP_CHUNK) {
+    const chunk = skillIds.slice(offset, offset + PAGE_CACHE_LOOKUP_CHUNK);
+    const rows = await repository.listSkillPageCaches(chunk);
+    for (const row of rows) {
+      if (row.pageSnapshot != null) cachedIds.add(row.skillId);
+    }
+  }
+  const pending = skillIds.filter((id) => !cachedIds.has(id));
+  return { pending, cachedSkipped: skillIds.length - pending.length };
 }
 
 /**
@@ -127,7 +163,8 @@ function isAbortError(error: unknown): boolean {
 
 export async function runScrapePipeline(options: ScrapePipelineOptions): Promise<ScrapeRunResult> {
   const maxEnriched = Math.min(options.maxEnriched ?? MAX_ENRICHED_DEFAULT, MAX_ENRICHED);
-  const throttleMs = options.throttleMs ?? 1000;
+  const throttleMs = options.throttleMs ?? THROTTLE_MS_DEFAULT;
+  const skipCached = options.skipCached ?? false;
   const scrapeDate = options.scrapeDate ?? new Date();
   const signal = options.signal;
   const sleep = options.sleep ?? defaultSleep;
@@ -140,12 +177,13 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
     attempted: 0,
     scraped: 0,
     skipped: 0,
+    cachedSkipped: 0,
     failed: [],
   };
 
   const explicitIds = options.skillIds;
   log(
-    `start maxEnriched=${maxEnriched} throttleMs=${throttleMs} mode=${explicitIds ? 'ids' : 'leaderboard'}`,
+    `start maxEnriched=${maxEnriched} throttleMs=${throttleMs} skipCached=${skipCached ? 1 : 0} mode=${explicitIds ? 'ids' : 'leaderboard'}`,
     'info',
   );
 
@@ -158,6 +196,17 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
     log('fetching leaderboard from skills.sh…', 'step');
     skillIds = (await loadLeaderboard(maxEnriched)).slice(0, maxEnriched).map((skill) => skill.id);
     log(`leaderboard returned ${skillIds.length} skill(s)`, 'ok');
+  }
+
+  if (skipCached && skillIds.length > 0) {
+    log(`filtering ${skillIds.length} id(s) against existing page_snapshot…`, 'step');
+    const filtered = await filterUncachedSkillIds(options.repository, skillIds);
+    result.cachedSkipped = filtered.cachedSkipped;
+    skillIds = filtered.pending;
+    log(
+      `skipCached: ${result.cachedSkipped} already cached · ${skillIds.length} remaining`,
+      'ok',
+    );
   }
 
   for (const [index, skillId] of skillIds.entries()) {
@@ -266,7 +315,7 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
   }
 
   log(
-    `done attempted=${result.attempted} scraped=${result.scraped} skipped=${result.skipped} failed=${result.failed.length}${result.aborted ? ' aborted=1' : ''}`,
+    `done attempted=${result.attempted} scraped=${result.scraped} skipped=${result.skipped} cachedSkipped=${result.cachedSkipped} failed=${result.failed.length}${result.aborted ? ' aborted=1' : ''}`,
     result.failed.length > 0 || result.aborted ? 'warn' : 'ok',
   );
   return result;
@@ -281,5 +330,7 @@ export async function runLocalScrape(options: LocalScrapeOptions = {}): Promise<
     ...options,
     skillIds: options.skillIds ?? skillIdsFromEnv(),
     maxEnriched: options.maxEnriched ?? maxEnrichedFromEnv(),
+    throttleMs: options.throttleMs ?? throttleMsFromEnv(),
+    skipCached: options.skipCached ?? scrapeSkipCachedFromEnv(),
   });
 }

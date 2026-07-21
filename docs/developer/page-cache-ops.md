@@ -118,10 +118,10 @@ npm run rotate:local
 
 ```bash
 # Prefer 1500; fall back to 1000 if wall clock / load is too high
-# Sweep defaults to THROTTLE_MS=250 (daily rotation stays at 1000)
-MAX_ENRICHED=1500 npm run scrape:sweep
-# MAX_ENRICHED=1000 npm run scrape:sweep
-# THROTTLE_MS=500 MAX_ENRICHED=1500 npm run scrape:sweep  # if 429s
+# Sweep defaults: THROTTLE_MS=250, SCRAPE_SKIP_CACHED=1 (skip existing page_snapshot)
+npm run scrape:sweep
+# SCRAPE_SWEEP_MAX=1000 npm run scrape:sweep
+# THROTTLE_MS=500 npm run scrape:sweep  # if 429s
 ```
 
 Same effect via GitHub Actions → **Ingest** workflow → `workflow_dispatch` →

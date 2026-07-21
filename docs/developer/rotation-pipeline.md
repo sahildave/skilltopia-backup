@@ -26,7 +26,8 @@ per-project budget. Prefer the **ingest** Vercel project’s OIDC — see
 ```bash
 npm run rotate:local          # rotation only
 npm run ingest:daily          # list-snapshots then rotation
-MAX_ENRICHED=1000 npm run scrape:sweep   # one-shot sweep (default 1500; use 1000 if too heavy)
+npm run scrape:sweep          # one-shot fill (skip cached; default 1500 / 250ms)
+# SCRAPE_SWEEP_MAX=1000 npm run scrape:sweep
 ```
 
 Progress on stderr; JSON summary on stdout.

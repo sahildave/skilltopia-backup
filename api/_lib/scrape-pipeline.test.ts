@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { runScrapePipeline, skillIdsFromEnv } from './scrape-pipeline.js';
+import {
+  runScrapePipeline,
+  scrapeSkipCachedFromEnv,
+  skillIdsFromEnv,
+} from './scrape-pipeline.js';
 
 function detail(hash: string | null, id = 'owner/skill', url?: string | null) {
   return {
@@ -30,6 +34,7 @@ describe('scrape pipeline', () => {
       upsertInstallSnapshots: vi.fn(),
       getSkillAuditCache: vi.fn().mockResolvedValue(null),
       getSkillPageCache: vi.fn().mockResolvedValue(null),
+      listSkillPageCaches: vi.fn().mockResolvedValue([]),
       upsertSkillAudits: vi.fn(),
       ...overrides,
     };
@@ -204,6 +209,87 @@ describe('scrape pipeline', () => {
   it('reads SKILL_IDS from env via skillIdsFromEnv', () => {
     expect(skillIdsFromEnv({ SKILL_IDS: ' a/b , c/d/e ' })).toEqual(['a/b', 'c/d/e']);
     expect(skillIdsFromEnv({})).toBeUndefined();
+  });
+
+  it('reads SCRAPE_SKIP_CACHED from env', () => {
+    expect(scrapeSkipCachedFromEnv({})).toBe(false);
+    expect(scrapeSkipCachedFromEnv({ SCRAPE_SKIP_CACHED: '1' })).toBe(true);
+    expect(scrapeSkipCachedFromEnv({ SCRAPE_SKIP_CACHED: 'true' })).toBe(true);
+    expect(scrapeSkipCachedFromEnv({ SCRAPE_SKIP_CACHED: 'no' })).toBe(false);
+  });
+
+  it('skipCached drops ids that already have page_snapshot', async () => {
+    const loadDetail = vi.fn(async (id: string) => detail('sha256:abc', id));
+    const repository = repositoryStub({
+      countInstallSnapshots: vi.fn().mockResolvedValue(8),
+      listSkillPageCaches: vi.fn().mockResolvedValue([
+        {
+          skillId: 'a/one',
+          pageSnapshot: { summary: 'cached' },
+          pageScrapedAt: '2026-07-21T00:00:00.000Z',
+          repository: 'a',
+          source: null,
+          installCount: 1,
+          sourceUrl: null,
+        },
+        {
+          skillId: 'b/two',
+          pageSnapshot: null,
+          pageScrapedAt: null,
+          repository: null,
+          source: null,
+          installCount: 2,
+          sourceUrl: null,
+        },
+      ]),
+    });
+
+    await expect(
+      runScrapePipeline({
+        repository: repository as never,
+        skillIds: ['a/one', 'b/two', 'c/three'],
+        skipCached: true,
+        maxEnriched: 10,
+        throttleMs: 0,
+        loadDetail,
+        loadAudits: async () => null,
+        fetchPageHtml: async () => pageHtml,
+      }),
+    ).resolves.toMatchObject({
+      attempted: 2,
+      scraped: 2,
+      cachedSkipped: 1,
+      failed: [],
+    });
+
+    expect(loadDetail).not.toHaveBeenCalledWith('a/one');
+    expect(loadDetail).toHaveBeenCalledWith('b/two');
+    expect(loadDetail).toHaveBeenCalledWith('c/three');
+  });
+
+  it('does not filter cached ids when skipCached is false (rotation-safe)', async () => {
+    const loadDetail = vi.fn(async (id: string) => detail('sha256:abc', id));
+    const listSkillPageCaches = vi.fn();
+    const repository = repositoryStub({
+      countInstallSnapshots: vi.fn().mockResolvedValue(8),
+      listSkillPageCaches,
+    });
+
+    await expect(
+      runScrapePipeline({
+        repository: repository as never,
+        skillIds: ['a/one'],
+        skipCached: false,
+        maxEnriched: 10,
+        throttleMs: 0,
+        loadDetail,
+        loadAudits: async () => null,
+        fetchPageHtml: async () => pageHtml,
+      }),
+    ).resolves.toMatchObject({ attempted: 1, scraped: 1, cachedSkipped: 0 });
+
+    expect(listSkillPageCaches).not.toHaveBeenCalled();
+    expect(loadDetail).toHaveBeenCalledWith('a/one');
   });
 
   it('stops between skills when AbortSignal fires', async () => {

@@ -7,8 +7,6 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '@/components/ui/input-group';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import type { LibraryLayoutMode } from '@/store/installed-skills-ui-store';
 import { platform } from '@platform';
 import { ArrowLeft, LayoutGrid, LayoutList, LoaderCircle, Search, X } from 'lucide-react';
@@ -23,14 +21,11 @@ export function InstalledToolbar({
   refreshing = false,
   hasSnapshot = false,
   pathInfo = null,
-  showUniversalToggle = false,
-  showAllUniversal = false,
   layoutMode,
   installedSkillView,
   skillQuery,
   onBack,
   onRescan,
-  onShowAllUniversalChange,
   onLayoutModeChange,
   onInstalledSkillViewChange,
   onSkillQueryChange,
@@ -45,14 +40,11 @@ export function InstalledToolbar({
     skillsDirExists: boolean;
     revealId: string;
   } | null;
-  showUniversalToggle?: boolean;
-  showAllUniversal?: boolean;
   layoutMode: LibraryLayoutMode;
   installedSkillView: InstalledSkillView;
   skillQuery: string;
   onBack?: () => void;
   onRescan?: () => void;
-  onShowAllUniversalChange?: (value: boolean) => void;
   onLayoutModeChange: (mode: LibraryLayoutMode) => void;
   onInstalledSkillViewChange: (view: InstalledSkillView) => void;
   onSkillQueryChange: (value: string) => void;
@@ -195,19 +187,6 @@ export function InstalledToolbar({
           />
         </div>
       </div>
-
-      {showUniversalToggle && onShowAllUniversalChange ? (
-        <div className="flex items-center gap-2">
-          <Switch
-            id="show-all-universal"
-            checked={showAllUniversal}
-            onCheckedChange={onShowAllUniversalChange}
-          />
-          <Label htmlFor="show-all-universal" className="text-sm font-normal">
-            {t('skills.installed.showAllUniversal')}
-          </Label>
-        </div>
-      ) : null}
     </div>
   );
 }

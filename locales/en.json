@@ -172,8 +172,6 @@
   "skills.installed.openFolder": "Open folder",
   "skills.installed.pathMissing": "Directory is missing",
   "skills.installed.pathUnknown": "Path unavailable",
-  "skills.installed.showAllUniversal": "Show all Universal",
-  "skills.installed.universalSection": "Universal Skills",
   "skills.installed.emptyAll": "No valid global skills found yet.",
   "skills.installed.emptyUniversal": "Universal has no valid skills yet. It stays available so you can install into ~/.agents/skills.",
   "skills.installed.emptyProvider": "This provider has no valid skills in its direct global skills directory.",

@@ -35,10 +35,8 @@ export interface ProviderSidebarModel {
 }
 
 export interface FilteredSkillSections {
-  /** Primary list for the current filter. */
+  /** Skills for the current filter. */
   primary: ScannedSkill[];
-  /** Optional Universal Skills section (Show all Universal). */
-  universalSection: ScannedSkill[] | null;
 }
 
 function providerNameMap(snapshot: InstalledScanSnapshot): Map<string, string> {
@@ -208,36 +206,20 @@ function skillsForProvider(snapshot: InstalledScanSnapshot, providerId: string):
 /**
  * Filter skills for the content area.
  * Non-Universal providers use direct directory associations only.
- * When `showAllUniversal` is on for a provider filter, append Universal skills
- * not already listed in the primary section.
  */
 export function filterSkillsForSelection(
   snapshot: InstalledScanSnapshot,
   selection: ProviderFilterId,
-  showAllUniversal: boolean,
 ): FilteredSkillSections {
   if (selection === ALL_AGENTS_FILTER_ID) {
-    return { primary: sortSkills(snapshot.skills), universalSection: null };
+    return { primary: sortSkills(snapshot.skills) };
   }
 
   if (selection === UNIVERSAL_PROVIDER_ID) {
-    return {
-      primary: skillsForProvider(snapshot, UNIVERSAL_PROVIDER_ID),
-      universalSection: null,
-    };
+    return { primary: skillsForProvider(snapshot, UNIVERSAL_PROVIDER_ID) };
   }
 
-  const primary = skillsForProvider(snapshot, selection);
-  if (!showAllUniversal) {
-    return { primary, universalSection: null };
-  }
-
-  const primaryNames = new Set(primary.map((skill) => skill.name));
-  const universalSection = skillsForProvider(snapshot, UNIVERSAL_PROVIDER_ID).filter(
-    (skill) => !primaryNames.has(skill.name),
-  );
-
-  return { primary, universalSection };
+  return { primary: skillsForProvider(snapshot, selection) };
 }
 
 /** Case-insensitive local filter over name and catalog repo (`source`) when known. */
@@ -262,7 +244,6 @@ export function filterSkillSectionsByQuery(
 
   return {
     primary: sections.primary.filter(matches),
-    universalSection: sections.universalSection ? sections.universalSection.filter(matches) : null,
   };
 }
 
@@ -298,7 +279,6 @@ export function filterSkillSectionsByView(
 
   return {
     primary: sections.primary.filter(matches),
-    universalSection: sections.universalSection ? sections.universalSection.filter(matches) : null,
   };
 }
 

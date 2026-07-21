@@ -41,8 +41,7 @@ export function InstalledContent({
   onRescan: () => void;
 }) {
   const { t } = useTranslation();
-  const isEmpty =
-    sections !== null && sections.primary.length === 0 && !sections.universalSection?.length;
+  const isEmpty = sections !== null && sections.primary.length === 0;
 
   return (
     <div className="relative min-h-0 flex-1">
@@ -121,18 +120,6 @@ export function InstalledContent({
               providerFilter={providerFilter}
               layoutMode={layoutMode}
             />
-          ) : null}
-
-          {sections?.universalSection && sections.universalSection.length > 0 && snapshot ? (
-            <div className="flex flex-col gap-3">
-              <h2 className="text-sm font-semibold">{t('skills.installed.universalSection')}</h2>
-              <SkillCardContainer
-                skills={sections.universalSection}
-                snapshot={snapshot}
-                providerFilter={providerFilter}
-                layoutMode={layoutMode}
-              />
-            </div>
           ) : null}
         </div>
       </ScrollArea>

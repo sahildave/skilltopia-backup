@@ -20,31 +20,17 @@ import {
 
 describe('filterSkillsForSelection', () => {
   it('returns all skills alphabetically for All Agents', () => {
-    const { primary, universalSection } = filterSkillsForSelection(
-      MOCK_INSTALLED_SCAN,
-      ALL_AGENTS_FILTER_ID,
-      false,
-    );
-    expect(universalSection).toBeNull();
+    const { primary } = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID);
     expect(primary.map((s) => s.name)).toEqual(['code-review', 'find-skills', 'frontend-design']);
   });
 
   it('returns only Universal-associated skills for Universal', () => {
-    const { primary } = filterSkillsForSelection(
-      MOCK_UNIVERSAL_ONLY_SCAN,
-      UNIVERSAL_PROVIDER_ID,
-      false,
-    );
+    const { primary } = filterSkillsForSelection(MOCK_UNIVERSAL_ONLY_SCAN, UNIVERSAL_PROVIDER_ID);
     expect(primary.map((s) => s.name)).toEqual(['frontend-design']);
   });
 
   it('returns only direct provider skills for a non-Universal provider', () => {
-    const { primary, universalSection } = filterSkillsForSelection(
-      MOCK_PROVIDER_ONLY_SCAN,
-      'claude-code',
-      false,
-    );
-    expect(universalSection).toBeNull();
+    const { primary } = filterSkillsForSelection(MOCK_PROVIDER_ONLY_SCAN, 'claude-code');
     expect(primary.map((s) => s.name)).toEqual(['code-review']);
   });
 
@@ -53,33 +39,22 @@ describe('filterSkillsForSelection', () => {
     expect(skill?.providerIds).toEqual([UNIVERSAL_PROVIDER_ID, 'claude-code']);
     expect(skill?.paths.length).toBe(2);
   });
-
-  it('appends Universal skills not already listed when Show all Universal is on', () => {
-    const { primary, universalSection } = filterSkillsForSelection(
-      MOCK_INSTALLED_SCAN,
-      'claude-code',
-      true,
-    );
-    expect(primary.map((s) => s.name)).toEqual(['code-review', 'find-skills']);
-    expect(universalSection?.map((s) => s.name)).toEqual(['frontend-design']);
-  });
 });
 
 describe('filterSkillSectionsByQuery', () => {
   it('returns sections unchanged when query is blank', () => {
-    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID, false);
+    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID);
     expect(filterSkillSectionsByQuery(sections, '   ')).toEqual(sections);
   });
 
   it('matches skill name case-insensitively', () => {
-    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID, false);
+    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID);
     const filtered = filterSkillSectionsByQuery(sections, 'FIND');
     expect(filtered.primary.map((s) => s.name)).toEqual(['find-skills']);
-    expect(filtered.universalSection).toBeNull();
   });
 
   it('matches catalog repo source when provider', () => {
-    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID, false);
+    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID);
     const sources = new Map([
       ['find-skills', 'vercel-labs/agent-skills'],
       ['frontend-design', 'anthropics/skills'],
@@ -89,22 +64,15 @@ describe('filterSkillSectionsByQuery', () => {
   });
 
   it('does not match description text', () => {
-    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID, false);
+    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID);
     const filtered = filterSkillSectionsByQuery(sections, 'frontend interfaces');
     expect(filtered.primary).toEqual([]);
-  });
-
-  it('filters both primary and universal sections', () => {
-    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, 'claude-code', true);
-    const filtered = filterSkillSectionsByQuery(sections, 'design');
-    expect(filtered.primary.map((s) => s.name)).toEqual([]);
-    expect(filtered.universalSection?.map((s) => s.name)).toEqual(['frontend-design']);
   });
 });
 
 describe('filterSkillSectionsByView', () => {
   it('separates provider folders from Universal and symlinked skills', () => {
-    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID, false);
+    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID);
     expect(
       filterSkillSectionsByView(sections, MOCK_INSTALLED_SCAN, 'provider').primary.map(
         (s) => s.name,
@@ -118,7 +86,7 @@ describe('filterSkillSectionsByView', () => {
   });
 
   it('keeps the current sections unchanged for All', () => {
-    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID, false);
+    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID);
     expect(filterSkillSectionsByView(sections, MOCK_INSTALLED_SCAN, 'all')).toEqual(sections);
   });
 });

@@ -1,3 +1,5 @@
+import type { SkillAuditsPayload } from './audit-cache.js';
+
 const SKILLS_API_BASE = 'https://skills.sh/api/v1';
 
 export type LeaderboardView = 'all-time' | 'trending' | 'hot';
@@ -17,6 +19,8 @@ export type SkillDetail = CatalogSkill & {
   hash: string | null;
   files: Array<{ path: string; contents: string }> | null;
 };
+
+export type { SkillAuditsPayload };
 
 type FetchCatalog = (url: string) => Promise<unknown>;
 
@@ -78,4 +82,20 @@ export async function fetchSkillDetail(
   const body = (await fetcher(`${SKILLS_API_BASE}/skills/${skillId}`)) as SkillDetail;
   if (!body.id) throw new Error(`Skill detail missing id: ${skillId}`);
   return body;
+}
+
+export async function fetchSkillAudits(
+  skillId: string,
+  fetcher: FetchCatalog = fetchJson,
+): Promise<SkillAuditsPayload | null> {
+  try {
+    const body = (await fetcher(
+      `${SKILLS_API_BASE}/skills/audit/${skillId}`,
+    )) as SkillAuditsPayload;
+    if (!body.id) throw new Error(`Skill audit missing id: ${skillId}`);
+    return body;
+  } catch (error) {
+    if (error instanceof Error && /:\s*404\b/.test(error.message)) return null;
+    throw error;
+  }
 }

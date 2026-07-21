@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@supabase/supabase-js';
+import type { SkillAuditsPayload } from './audit-cache.js';
 
 const RAW_SKILLS_BUCKET = 'raw-skills';
 
@@ -47,8 +48,8 @@ export type SkillPageSnapshot = {
   skillMdPreview?: string;
 };
 
-/** Opaque skills.sh /audit payload until the audit-cache task shapes it. */
-export type SkillAudits = Record<string, unknown>;
+/** Cached skills.sh /audit API payload (see audit-cache.ts). */
+export type SkillAudits = SkillAuditsPayload;
 
 export type SkillInstallSnapshotRecord = {
   skillId: string;
@@ -304,6 +305,41 @@ export function createSupabaseRepository(client: RepositoryClient) {
         .update({
           page_snapshot: snapshot,
           page_scraped_at: snapshot ? scrapedAt : null,
+        })
+        .eq('skill_id', skillId);
+      throwOnError(result.error);
+    },
+
+    async getSkillAuditCache(skillId: string): Promise<{
+      contentHash: string | null;
+      audits: SkillAudits | null;
+      auditsFetchedAt: string | null;
+    } | null> {
+      const result = await client
+        .from('skill_metadata')
+        .select('content_hash, audits, audits_fetched_at')
+        .eq('skill_id', skillId)
+        .maybeSingle();
+      throwOnError(result.error);
+      const row = result.data as Record<string, unknown> | null;
+      if (!row) return null;
+      return {
+        contentHash: row.content_hash ? String(row.content_hash) : null,
+        audits: (row.audits as SkillAudits | null) ?? null,
+        auditsFetchedAt: row.audits_fetched_at ? String(row.audits_fetched_at) : null,
+      };
+    },
+
+    async upsertSkillAudits(
+      skillId: string,
+      audits: SkillAudits | null,
+      fetchedAt = new Date().toISOString(),
+    ): Promise<void> {
+      const result = await client
+        .from('skill_metadata')
+        .update({
+          audits,
+          audits_fetched_at: audits ? fetchedAt : null,
         })
         .eq('skill_id', skillId);
       throwOnError(result.error);

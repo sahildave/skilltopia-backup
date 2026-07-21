@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { catalog as mockCatalog } from './index.mock';
 import { catalog as webCatalog } from './index.web';
-import { MOCK_DETAIL, MOCK_LEADERBOARD } from './fixtures';
+import { MOCK_AUDITS, MOCK_DETAIL, MOCK_LEADERBOARD } from './fixtures';
 
 describe('CatalogPort mock', () => {
   it('returns fixture leaderboard capped by perPage', async () => {
@@ -17,6 +17,11 @@ describe('CatalogPort mock', () => {
   it('returns fixture detail for known skill id', async () => {
     const detail = await mockCatalog.fetchDetail(MOCK_DETAIL.skillId);
     expect(detail).toEqual(MOCK_DETAIL);
+  });
+
+  it('returns fixture audits for known skill id', async () => {
+    const audits = await mockCatalog.fetchAudits(MOCK_AUDITS.skillId);
+    expect(audits).toEqual(MOCK_AUDITS);
   });
 });
 

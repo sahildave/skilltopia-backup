@@ -22,13 +22,20 @@ const pageHtml = `
 `;
 
 describe('scrape pipeline', () => {
-  it('skips skills with a null detail hash', async () => {
-    const repository = {
+  function repositoryStub(overrides: Record<string, unknown> = {}) {
+    return {
       upsertSkillMetadata: vi.fn(),
       upsertPageSnapshot: vi.fn(),
       countInstallSnapshots: vi.fn(),
       upsertInstallSnapshots: vi.fn(),
+      getSkillAuditCache: vi.fn().mockResolvedValue(null),
+      upsertSkillAudits: vi.fn(),
+      ...overrides,
     };
+  }
+
+  it('skips skills with a null detail hash', async () => {
+    const repository = repositoryStub();
 
     await expect(
       runScrapePipeline({
@@ -46,12 +53,7 @@ describe('scrape pipeline', () => {
   });
 
   it('retries scrape once then saves metadata without clearing page_snapshot', async () => {
-    const repository = {
-      upsertSkillMetadata: vi.fn(),
-      upsertPageSnapshot: vi.fn(),
-      countInstallSnapshots: vi.fn(),
-      upsertInstallSnapshots: vi.fn(),
-    };
+    const repository = repositoryStub();
     const fetchPageHtml = vi
       .fn()
       .mockRejectedValueOnce(new Error('timeout'))
@@ -65,6 +67,7 @@ describe('scrape pipeline', () => {
         loadLeaderboard: async () => [detail('sha256:abc')],
         loadDetail: async () => detail('sha256:abc'),
         fetchPageHtml,
+        loadAudits: async () => null,
       }),
     ).resolves.toMatchObject({
       attempted: 1,
@@ -79,14 +82,58 @@ describe('scrape pipeline', () => {
     expect(repository.upsertInstallSnapshots).not.toHaveBeenCalled();
   });
 
+  it('refreshes audits when content hash changed', async () => {
+    const upsertSkillAudits = vi.fn();
+    const repository = repositoryStub({
+      getSkillAuditCache: vi.fn().mockResolvedValue({
+        contentHash: 'sha256:old',
+        audits: {
+          id: 'owner/skill',
+          source: 'owner/repo',
+          slug: 'skill',
+          audits: [],
+        },
+        auditsFetchedAt: new Date().toISOString(),
+      }),
+      upsertSkillAudits,
+      countInstallSnapshots: vi.fn().mockResolvedValue(8),
+    });
+    const loadAudits = vi.fn(async () => ({
+      id: 'owner/skill',
+      source: 'owner/repo',
+      slug: 'skill',
+      audits: [
+        {
+          provider: 'Socket',
+          slug: 'socket',
+          status: 'pass',
+          summary: 'ok',
+          auditedAt: '2026-07-21T00:00:00.000Z',
+        },
+      ],
+    }));
+
+    await runScrapePipeline({
+      repository: repository as never,
+      maxEnriched: 1,
+      throttleMs: 0,
+      scrapeDate: new Date('2026-07-21T12:00:00.000Z'),
+      loadLeaderboard: async () => [detail('sha256:new')],
+      loadDetail: async () => detail('sha256:new'),
+      loadAudits,
+      fetchPageHtml: async () => pageHtml,
+    });
+
+    expect(loadAudits).toHaveBeenCalledWith('owner/skill');
+    expect(upsertSkillAudits).toHaveBeenCalled();
+  });
+
   it('backfills install snapshots only when existing row count is under 8', async () => {
     const upsertInstallSnapshots = vi.fn();
-    const repository = {
-      upsertSkillMetadata: vi.fn(),
-      upsertPageSnapshot: vi.fn(),
+    const repository = repositoryStub({
       countInstallSnapshots: vi.fn().mockResolvedValue(3),
       upsertInstallSnapshots,
-    };
+    });
 
     await expect(
       runScrapePipeline({
@@ -96,6 +143,7 @@ describe('scrape pipeline', () => {
         scrapeDate: new Date('2026-07-21T12:00:00.000Z'),
         loadLeaderboard: async () => [detail('sha256:abc')],
         loadDetail: async () => detail('sha256:abc'),
+        loadAudits: async () => null,
         fetchPageHtml: async () => pageHtml,
       }),
     ).resolves.toMatchObject({ scraped: 1 });
@@ -116,6 +164,7 @@ describe('scrape pipeline', () => {
       scrapeDate: new Date('2026-07-21T12:00:00.000Z'),
       loadLeaderboard: async () => [detail('sha256:abc')],
       loadDetail: async () => detail('sha256:abc'),
+      loadAudits: async () => null,
       fetchPageHtml: async () => pageHtml,
     });
     expect(upsertInstallSnapshots).not.toHaveBeenCalled();

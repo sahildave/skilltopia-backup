@@ -1,6 +1,12 @@
 import { maxEnrichedFromEnv, MAX_ENRICHED } from './max-enriched.js';
+import { refreshSkillAuditsIfNeeded } from './audit-cache.js';
 import { mapWeeklyInstallsToDates, parsePageSnapshot } from './page-snapshot.js';
-import { fetchLeaderboard, fetchSkillDetail, type SkillDetail } from './skills-catalog.js';
+import {
+  fetchLeaderboard,
+  fetchSkillAudits,
+  fetchSkillDetail,
+  type SkillDetail,
+} from './skills-catalog.js';
 import {
   createSupabaseRepositoryFromEnv,
   type SkillSourceMetadata,
@@ -16,6 +22,7 @@ export type ScrapePipelineOptions = {
   scrapeDate?: Date;
   loadLeaderboard?: typeof fetchLeaderboard;
   loadDetail?: typeof fetchSkillDetail;
+  loadAudits?: typeof fetchSkillAudits;
   fetchPageHtml?: (url: string) => Promise<string>;
   sleep?: (milliseconds: number) => Promise<void>;
   log?: (message: string, level?: ScrapeLogLevel) => void;
@@ -70,6 +77,7 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
   const sleep = options.sleep ?? (async (ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   const loadLeaderboard = options.loadLeaderboard ?? fetchLeaderboard;
   const loadDetail = options.loadDetail ?? fetchSkillDetail;
+  const loadAudits = options.loadAudits ?? fetchSkillAudits;
   const fetchPageHtml = options.fetchPageHtml ?? fetchSkillsShHtml;
   const log = options.log ?? (() => {});
   const result: ScrapeRunResult = {
@@ -98,7 +106,29 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
 
       const source = sourceMetadata(detail);
       log(`${step}: upserting metadata…`, 'step');
+      const previousCache = await options.repository.getSkillAuditCache(detail.id);
       await options.repository.upsertSkillMetadata(source);
+
+      try {
+        log(`${step}: refreshing audits if needed…`, 'step');
+        const auditResult = await refreshSkillAuditsIfNeeded({
+          skillId: detail.id,
+          currentHash: detail.hash,
+          previousContentHash: previousCache?.contentHash ?? null,
+          cached: previousCache,
+          repository: options.repository,
+          fetchAudits: loadAudits,
+          now: scrapeDate.getTime(),
+        });
+        if (auditResult.refreshed) {
+          log(`${step}: audits refreshed`, 'ok');
+        } else {
+          log(`${step}: audits cache fresh`, 'ok');
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        log(`${step}: audit refresh failed — ${message}`, 'warn');
+      }
 
       const url = pageUrl(detail);
       let snapshot = null;

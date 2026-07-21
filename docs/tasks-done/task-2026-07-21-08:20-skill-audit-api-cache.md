@@ -17,12 +17,12 @@ Persist skills.sh security audits via the official **`/audit` API** only — bat
 
 ## Scope
 
-- [ ] Backend proxy for skills.sh `/audit` using **app** OIDC
-- [ ] Persist results to `skill_metadata.audits` + `audits_fetched_at`
-- [ ] On-demand dialog path: respond with audits first; **async** upsert so DB latency never blocks UI
-- [ ] Cache (server and/or TanStack) so repeat opens don’t rehit OIDC
-- [ ] Batch helper (for local scrape / later rotation): call `/audit` when **hash changed** or **`audits_fetched_at` older than 7 days**
-- [ ] Tests for cache key / stale window / async-write does not delay response shape
+- [x] Backend proxy for skills.sh `/audit` using **app** OIDC
+- [x] Persist results to `skill_metadata.audits` + `audits_fetched_at`
+- [x] On-demand dialog path: respond with audits first; **async** upsert so DB latency never blocks UI
+- [x] Cache (server and/or TanStack) so repeat opens don’t rehit OIDC
+- [x] Batch helper (for local scrape / later rotation): call `/audit` when **hash changed** or **`audits_fetched_at` older than 7 days**
+- [x] Tests for cache key / stale window / async-write does not delay response shape
 
 ## Out of scope
 

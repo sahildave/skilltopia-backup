@@ -57,6 +57,7 @@ Backend: /api/skills* (OIDC via @vercel/oidc)             → https://skills.sh/
 | ----------------------- | --------------------------------------------------- | ------------------------------------------ |
 | Default grid (top 500)  | `GET /api/skills?view=all-time&page=0&per_page=500` | `GET /api/v1/skills`                       |
 | Hybrid debounced search | `GET /api/skills/search?q=…&limit=50`               | Keyword skills.sh + Qdrant semantic search |
+| Skill audits (cached)   | `GET /api/skills/audit?skill_id=…`                  | `GET /api/v1/skills/audit/{id}` + Supabase |
 
 Upstream auth: `Authorization: Bearer <Vercel OIDC token>`. Upstream rate limit: 600 requests/minute per (team, project). Errors: `400`, `401`, `404`, `429`, `503` (see upstream docs).
 
@@ -68,7 +69,7 @@ The proxy is a **credential amplifier**: anyone who can hit your deployment URL 
 - **Do not** add browser CORS on `/api/*` (web is same-origin; Tauri/Rust bypasses CORS; wildcard CORS only helps browser abuse).
 - **Do** deploy static web + `api/` on **one** Vercel project (same-origin `/api/*`), enable **OIDC Federation**, and point desktop Rust at that deployment URL.
 - Proxy hardening (in `api/`):
-  - **Query allowlist** — `/api/skills` allows only `view` (`all-time` \| `trending` \| `hot`), `page` (≥ 0), `per_page` (1–500). `/api/skills/search` allows only `q` (min 2 chars), `limit` (1–200), optional `owner`. Unknown keys → `400`.
+  - **Query allowlist** — `/api/skills` allows only `view` (`all-time` \| `trending` \| `hot`), `page` (≥ 0), `per_page` (1–500). `/api/skills/search` allows only `q` (min 2 chars), `limit` (1–200), optional `owner`. `/api/skills/detail` and `/api/skills/audit` allow only `skill_id`. Unknown keys → `400`.
   - **In-memory IP rate limit** — fixed window, 60 req/min per client IP (`x-forwarded-for` / `x-real-ip`). Best-effort across Fluid Compute instances; not a substitute for Vercel Firewall/WAF rules on `/api/*` if you need harder abuse protection.
 - Proxy base URL resolution (Rust):
   1. Runtime env `SKILLS_PROXY_BASE_URL` (highest priority)
@@ -126,8 +127,8 @@ Never commit Infisical exports or checked-in `.env` files.
 
 ### Frontend hooks
 
-- Service: `src/services/skills-sh.ts` (`useSkillsLeaderboard`, `useSkillsSearch`) — will call `@catalog` after task-2
-- Desktop commands today: `fetch_skills_leaderboard`, `search_skills` (tauri-specta)
+- Service: `src/services/skills-sh.ts` (`useSkillsLeaderboard`, `useSkillsSearch`, `useSkillDetail`, `useSkillAudits`) — calls `@catalog`
+- Desktop commands today: `fetch_skills_leaderboard`, `search_skills`, `fetch_skill_detail`, `fetch_skill_audits` (tauri-specta)
 - Duplicate skills (`isDuplicate: true`) are filtered out in Rust before reaching the UI (desktop path)
 
 The search route returns one ranked list: keyword matches precede semantic-only

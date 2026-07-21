@@ -3,6 +3,7 @@ import {
   fetchAllLeaderboard,
   fetchLeaderboard,
   fetchLeaderboardPage,
+  fetchSkillAudits,
   fetchSkillDetail,
 } from './skills-catalog.js';
 
@@ -45,6 +46,23 @@ describe('skills catalog client', () => {
       hash: null,
       files: null,
     });
+  });
+
+  it('loads audit payloads and maps upstream 404 to null', async () => {
+    await expect(
+      fetchSkillAudits('owner/skill', async () => ({
+        id: 'owner/skill',
+        source: 'owner/repo',
+        slug: 'skill',
+        audits: [],
+      })),
+    ).resolves.toMatchObject({ id: 'owner/skill', audits: [] });
+
+    await expect(
+      fetchSkillAudits('owner/missing', async () => {
+        throw new Error('skills.sh request failed: 404');
+      }),
+    ).resolves.toBeNull();
   });
 
   it('fetches a leaderboard page for a named view', async () => {

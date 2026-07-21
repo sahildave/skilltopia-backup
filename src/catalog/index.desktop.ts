@@ -1,5 +1,5 @@
 import { commands, unwrapResult } from '@/lib/tauri-bindings';
-import type { CatalogPort } from './types';
+import type { CatalogPort, SkillAuditsData } from './types';
 
 export const catalog: CatalogPort = {
   async fetchLeaderboard(view, page, perPage) {
@@ -12,5 +12,9 @@ export const catalog: CatalogPort = {
 
   async fetchDetail(skillId) {
     return unwrapResult(await commands.fetchSkillDetail(skillId));
+  },
+
+  async fetchAudits(skillId) {
+    return unwrapResult(await commands.fetchSkillAudits(skillId)) as SkillAuditsData;
   },
 };

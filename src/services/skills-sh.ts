@@ -11,6 +11,7 @@ export const skillsShQueryKeys = {
   search: (query: string, limit: number) =>
     [...skillsShQueryKeys.all, 'search', query, limit] as const,
   detail: (skillId: string) => [...skillsShQueryKeys.all, 'detail', skillId] as const,
+  audits: (skillId: string) => [...skillsShQueryKeys.all, 'audits', skillId] as const,
 };
 
 export const DISCOVERY_VIEWS = [
@@ -80,6 +81,21 @@ export function useSkillDetail(skillId: string | null) {
     initialData: () => (skillId ? getSeedDetail(skillId) : undefined),
     initialDataUpdatedAt: 0,
     staleTime: 1000 * 60 * 10,
+    gcTime: 1000 * 60 * 30,
+  });
+}
+
+const AUDITS_STALE_MS = 1000 * 60 * 10;
+
+export function useSkillAudits(skillId: string | null) {
+  return useQuery({
+    queryKey: skillsShQueryKeys.audits(skillId ?? ''),
+    queryFn: async () => {
+      if (!skillId) throw new Error('Skill ID is required.');
+      return catalog.fetchAudits(skillId);
+    },
+    enabled: Boolean(skillId),
+    staleTime: AUDITS_STALE_MS,
     gcTime: 1000 * 60 * 30,
   });
 }

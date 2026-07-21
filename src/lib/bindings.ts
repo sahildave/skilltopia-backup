@@ -177,6 +177,17 @@ async fetchSkillDetail(skillId: string) : Promise<Result<SkillDetailData, string
 }
 },
 /**
+ * Fetches cached or on-demand security audits for a catalog skill.
+ */
+async fetchSkillAudits(skillId: string) : Promise<Result<SkillAuditsData, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("fetch_skill_audits", { skillId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Scan global provider + Universal skill directories into one normalized snapshot.
  */
 async scanInstalledSkills() : Promise<Result<InstalledScanSnapshot, string>> {
@@ -271,6 +282,9 @@ export type ScanWarningCode = "provider_empty" | "skills_dir_missing" | "entry_s
 export type ScannedProvider = { id: string; name: string; universal: boolean; detected: boolean; skillsDir: string | null; skillsDirExists: boolean; skillCount: number }
 export type ScannedSkill = { name: string; uninstallName: string; description: string; scope: string; providerIds: string[]; paths: ScannedSkillPath[] }
 export type ScannedSkillPath = { path: string; originalPath?: string | null }
+export type SkillAuditEntry = { provider: string; slug: string; status: string; summary: string; auditedAt: string; riskLevel?: string | null; categories?: string[] | null }
+export type SkillAuditsData = { skillId: string; audits: SkillAuditsPayload | null; source: string; auditsFetchedAt: string | null }
+export type SkillAuditsPayload = { id: string; source: string; slug: string; audits: SkillAuditEntry[] }
 export type SkillDetailData = { skillId: string; enrichment: SkillEnrichment | null; related: RelatedSkill[] }
 export type SkillEnrichment = { skillId: string; contentHash: string; required: SkillEnrichmentRequired; optional: JsonValue; estimatedReadTimeMinutes: number }
 export type SkillEnrichmentRequired = { primaryGoal: string; requires: string[]; estimatedComplexity: string; bestFor: string[] }

@@ -39,8 +39,33 @@ export interface SkillDetailData {
   related: RelatedSkill[];
 }
 
+export interface SkillAuditEntry {
+  provider: string;
+  slug: string;
+  status: string;
+  summary: string;
+  auditedAt: string;
+  riskLevel?: string;
+  categories?: string[];
+}
+
+export interface SkillAuditsPayload {
+  id: string;
+  source: string;
+  slug: string;
+  audits: SkillAuditEntry[];
+}
+
+export interface SkillAuditsData {
+  skillId: string;
+  audits: SkillAuditsPayload | null;
+  source: 'cache' | 'upstream';
+  auditsFetchedAt: string | null;
+}
+
 export interface CatalogPort {
   fetchLeaderboard(view: string, page: number, perPage: number): Promise<SkillsShSkill[]>;
   search(query: string, limit: number): Promise<SkillsShSkill[]>;
   fetchDetail(skillId: string): Promise<SkillDetailData>;
+  fetchAudits(skillId: string): Promise<SkillAuditsData>;
 }

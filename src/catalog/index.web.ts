@@ -1,4 +1,4 @@
-import type { CatalogPort, SkillDetailData, SkillsShSkill } from './types';
+import type { CatalogPort, SkillAuditsData, SkillDetailData, SkillsShSkill } from './types';
 
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -34,6 +34,14 @@ export const catalog: CatalogPort = {
     const params = new URLSearchParams({ skill_id: skillId });
     const json = await readJson<{ data: SkillDetailData }>(
       await fetch(`/api/skills/detail?${params}`),
+    );
+    return json.data;
+  },
+
+  async fetchAudits(skillId) {
+    const params = new URLSearchParams({ skill_id: skillId });
+    const json = await readJson<{ data: SkillAuditsData }>(
+      await fetch(`/api/skills/audit?${params}`),
     );
     return json.data;
   },

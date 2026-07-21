@@ -12,10 +12,13 @@ public skill pages into sparse `page_snapshot`, and optionally seeds early
 2. For each skill: call the detail API.
 3. **Skip** when `hash` is null (no scrape, no failure).
 4. Upsert skill metadata (hash, installs, URLs).
-5. Fetch the public HTML page; parse a sparse `SkillPageSnapshot`.
-6. On scrape failure: **one in-process retry**, then keep metadata/hash and do
+5. Refresh `/audit` via `refreshSkillAuditsIfNeeded` when hash changed or audits
+   are older than 7 days (see [audit-cache.md](./audit-cache.md)). Audit failures
+   are logged and do not fail the scrape.
+6. Fetch the public HTML page; parse a sparse `SkillPageSnapshot`.
+7. On scrape failure: **one in-process retry**, then keep metadata/hash and do
    **not** overwrite an existing `page_snapshot` (leave null if never scraped).
-7. If the snapshot includes weekly installs **and** that skill has fewer than 8
+8. If the snapshot includes weekly installs **and** that skill has fewer than 8
    install-snapshot rows, backfill up to the last 8 UTC days
    (`values[i]` → `scrape_date - (7 - i)`). Longer local history is not
    overwritten by skipping when row count ≥ 8.

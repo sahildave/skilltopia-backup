@@ -206,6 +206,52 @@ describe('Supabase skill repository', () => {
     });
   });
 
+  it('reads and updates skill audit cache columns', async () => {
+    const client = createClient();
+    const audits = {
+      id: enrichment.skillId,
+      source: 'owner/repo',
+      slug: 'skill',
+      audits: [
+        {
+          provider: 'Socket',
+          slug: 'socket',
+          status: 'pass',
+          summary: 'No alerts',
+          auditedAt: '2026-04-15T12:05:00.000Z',
+        },
+      ],
+    };
+    client.metadata.select.mockReturnValue({
+      eq: () => ({
+        maybeSingle: async () => ({
+          data: {
+            content_hash: enrichment.contentHash,
+            audits,
+            audits_fetched_at: '2026-07-20T00:00:00.000Z',
+          },
+          error: null,
+        }),
+      }),
+    });
+    client.metadata.update.mockReturnValue({
+      eq: async () => ({ data: null, error: null }),
+    });
+
+    const repository = createSupabaseRepository(client as never);
+    await expect(repository.getSkillAuditCache(enrichment.skillId)).resolves.toEqual({
+      contentHash: enrichment.contentHash,
+      audits,
+      auditsFetchedAt: '2026-07-20T00:00:00.000Z',
+    });
+
+    await repository.upsertSkillAudits(enrichment.skillId, audits, '2026-07-21T00:00:00.000Z');
+    expect(client.metadata.update).toHaveBeenCalledWith({
+      audits,
+      audits_fetched_at: '2026-07-21T00:00:00.000Z',
+    });
+  });
+
   it('syncs list sightings without clobbering existing content hashes', async () => {
     const client = createClient();
     client.metadata.select.mockReturnValue({

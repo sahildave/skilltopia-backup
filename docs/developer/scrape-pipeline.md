@@ -9,6 +9,26 @@ enrichment + Qdrant). This path detail-fetches skills.sh (hash-gated), scrapes
 public skill pages into sparse `page_snapshot`, and optionally seeds early
 `skill_install_snapshots` rows.
 
+## Why it exists
+
+The skills.sh list endpoints are good for search, ranking, and current install
+counts, but they do not contain every field needed for a rich skill detail
+experience. The public HTML pages expose useful human-facing context such as
+summaries, topics, repository/source labels, SKILL.md previews, related skills,
+and weekly install series.
+
+We scrape those pages in a controlled batch pipeline and cache the result in
+Supabase so:
+
+- opening a skill detail page does not scrape live HTML;
+- web and desktop clients do not need skills.sh credentials;
+- install-history sparklines can use scraped weekly series when available;
+- the app can tolerate partial data because `page_snapshot` is sparse and every
+  parsed field is optional.
+
+Scrape jobs use the secondary ingest OIDC budget, not the primary app Backend
+budget. That keeps batch work from starving user-facing catalog traffic.
+
 ## What it does
 
 1. Load the leaderboard slice (cap via `MAX_ENRICHED`, same knob as enrichment).
@@ -28,11 +48,12 @@ public skill pages into sparse `page_snapshot`, and optionally seeds early
 
 ## Auth / secrets
 
-Uses Infisical **`dev`** (Supabase service role) plus a skills.sh OIDC token
-(`VERCEL_OIDC_TOKEN`), same local pattern as enrichment. Prefer an **ingest**
-Vercel project’s OIDC for scrape/enrich batch work so you do not share the app
-Backend’s 600/min budget. See [infisical.md](./infisical.md) and
-[external-apis.md](./external-apis.md).
+Uses Infisical **`dev`** (Supabase service role) plus a skills.sh OIDC token.
+Batch jobs prefer `VERCEL_OIDC_TOKEN_SECONDARY` from the ingest Vercel project
+and fall back to `VERCEL_OIDC_TOKEN` only for older environments. Do not use the
+app Backend’s primary OIDC for scrape/enrich batch work; that would share the
+user-facing 600/min budget. See [infisical.md](./infisical.md),
+[external-apis.md](./external-apis.md), and [ingest-oidc.md](./ingest-oidc.md).
 
 HTML page fetches are unauthenticated. GitHub skills use
 `https://www.skills.sh/{owner}/{repo}/{skill}`; well-known skills use

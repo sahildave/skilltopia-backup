@@ -1,8 +1,10 @@
 name: Ingest (list + rotation)
 
-# Daily list install snapshots + 200-skill scrape rotation on the secondary
-# (backend/batch) OIDC budget. Manual dispatch supports a one-shot full sweep
-# toward MAX_ENRICHED.
+# Daily list install snapshots + 200-skill scrape rotation run on the secondary
+# (backend/batch) OIDC budget. skills.sh rate-limits OIDC by Vercel
+# team+project, so this workflow must not consume the primary app Backend
+# budget used by real web/desktop users. Manual dispatch supports a one-shot
+# full sweep toward MAX_ENRICHED.
 #
 # Secrets (ingest / secondary project — NOT the app Backend primary OIDC):
 #   SUPABASE_URL

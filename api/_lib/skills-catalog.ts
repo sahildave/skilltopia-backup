@@ -84,7 +84,17 @@ export function classifySkillOrigin(
   return { repository: trimmed };
 }
 
-/** Batch/backend OIDC: secondary (Infisical/GHA) preferred; else VERCEL_OIDC_TOKEN. */
+/**
+ * Batch/backend OIDC is intentionally separate from the app Backend OIDC.
+ *
+ * skills.sh rate-limits OIDC by Vercel team+project. User-facing web/desktop
+ * traffic uses the primary app Backend project via `@vercel/oidc`; batch jobs
+ * such as scrape, list snapshots, rotation, enrichment, and GHA ingest should
+ * use a secondary ingest project token so they cannot consume the app budget.
+ *
+ * `VERCEL_OIDC_TOKEN` remains as a fallback for older environments, but new
+ * batch setups should provide `VERCEL_OIDC_TOKEN_SECONDARY`.
+ */
 export function resolveBatchOidcToken(): string | undefined {
   const secondary = process.env.VERCEL_OIDC_TOKEN_SECONDARY?.trim();
   if (secondary) return secondary;

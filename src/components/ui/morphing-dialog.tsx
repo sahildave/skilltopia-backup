@@ -198,7 +198,7 @@ function MorphingDialogContainer({ children }: MorphingDialogContainerProps) {
         {isOpen ? (
           <motion.div
             key={`backdrop-${uniqueId}`}
-            className="fixed inset-0 z-50 rounded-(--app-corner-radius) bg-black/50"
+            className="fixed inset-0 z-50 rounded-[min(var(--radius-4xl),24px)]  bg-black/50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

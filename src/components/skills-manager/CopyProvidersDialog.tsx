@@ -8,11 +8,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Field, FieldGroup, FieldLabel, FieldSet, FieldLegend } from '@/components/ui/field';
+import { Field, FieldGroup, FieldLabel, FieldSet } from '@/components/ui/field';
 import { cn } from '@/lib/utils';
 import type { CopyProviderResult, InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
-import { platform } from '@platform';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
+import { platform } from '@platform';
 import { ChevronDown } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -97,7 +97,7 @@ export function CopyProvidersDialog({
   const model = buildCopyProviderDialogModel(skill, snapshot);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [installedOpen, setInstalledOpen] = useState(false);
-  const [otherOpen, setOtherOpen] = useState(false);
+  const [otherOpen, setOtherOpen] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const selectedCount = selectedIds.size;
@@ -115,7 +115,7 @@ export function CopyProvidersDialog({
   const resetState = () => {
     setSelectedIds(new Set());
     setInstalledOpen(false);
-    setOtherOpen(false);
+    setOtherOpen(true);
     setSubmitting(false);
   };
 
@@ -212,8 +212,10 @@ export function CopyProvidersDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{t('skills.installed.copyTitle', { name: skill.name })}</DialogTitle>
+        <DialogHeader className="-space-y-1">
+          <DialogTitle className="truncate text-balance line-clamp-1 font-semibold leading-normal">
+            {t('skills.installed.copyTitle', { name: skill.name })}
+          </DialogTitle>
           <DialogDescription>{t('skills.installed.copyDescription')}</DialogDescription>
         </DialogHeader>
 
@@ -241,12 +243,7 @@ export function CopyProvidersDialog({
                 ))}
               </FieldGroup>
             ) : (
-              <>
-                <FieldLegend variant="label">{t('skills.installed.copyAvailable')}</FieldLegend>
-                <p className="text-muted-foreground text-sm text-pretty">
-                  {t('skills.installed.copyAvailableEmpty')}
-                </p>
-              </>
+              <div className="p-0" />
             )}
           </FieldSet>
 

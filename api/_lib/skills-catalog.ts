@@ -46,6 +46,6 @@ export async function fetchSkillDetail(
   fetcher: FetchCatalog = fetchJson,
 ): Promise<SkillDetail> {
   const body = (await fetcher(`${SKILLS_API_BASE}/skills/${skillId}`)) as SkillDetail;
-  if (!body.id || !body.files) throw new Error(`Skill has no snapshot: ${skillId}`);
+  if (!body.id) throw new Error(`Skill detail missing id: ${skillId}`);
   return body;
 }

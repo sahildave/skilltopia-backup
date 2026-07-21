@@ -42,6 +42,7 @@ Technical documentation for building and extending this app. These docs describe
 | [External APIs](./external-apis.md)             | HTTP API calls, authentication, caching                          |
 | [Infisical Secrets](./infisical.md)             | Infisical envs, Backend vs desktop keys, how to obtain secrets   |
 | [Supabase Repository](./supabase-repository.md) | Server-only skill metadata and raw-file storage                  |
+| [Scrape Pipeline](./scrape-pipeline.md)         | Local `scrape:local` HTML page cache + install backfill          |
 | [Qdrant Embeddings](./qdrant.md)                | Server-only Cloud Inference vectors and nearest-neighbor helpers |
 | [Provider Registry](./provider-registry.md)     | Vendored skills.sh provider definitions, probes, weekly sync     |
 | [Provider Scan](./provider-scan.md)             | Desktop global skill scan snapshot, reveal, Rust FS boundary     |

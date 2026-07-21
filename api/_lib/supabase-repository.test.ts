@@ -10,8 +10,13 @@ function createClient() {
   const metadata = {
     upsert: vi.fn(),
     select: vi.fn(),
+    update: vi.fn(),
   };
   const rawFiles = {
+    upsert: vi.fn(),
+    select: vi.fn(),
+  };
+  const installSnapshots = {
     upsert: vi.fn(),
     select: vi.fn(),
   };
@@ -21,12 +26,17 @@ function createClient() {
   };
 
   return {
-    from: vi.fn((table: string) => (table === 'skill_metadata' ? metadata : rawFiles)),
+    from: vi.fn((table: string) => {
+      if (table === 'skill_metadata') return metadata;
+      if (table === 'skill_install_snapshots') return installSnapshots;
+      return rawFiles;
+    }),
     storage: {
       from: vi.fn(() => storageBucket),
     },
     metadata,
     rawFiles,
+    installSnapshots,
     storageBucket,
   };
 }
@@ -177,6 +187,66 @@ describe('Supabase skill repository', () => {
       'owner/skill/SKILL.md',
       '# Skill',
       expect.objectContaining({ contentType: 'text/markdown', upsert: true }),
+    );
+  });
+
+  it('upserts page snapshot and scrape timestamp', async () => {
+    const client = createClient();
+    client.metadata.update.mockReturnValue({
+      eq: async () => ({ data: null, error: null }),
+    });
+    const repository = createSupabaseRepository(client as never);
+    const snapshot = { summary: 'A skill', weeklyInstalls: [1, 2, 3, 4, 5, 6, 7, 8] };
+
+    await repository.upsertPageSnapshot(enrichment.skillId, snapshot, '2026-07-21T00:00:00.000Z');
+
+    expect(client.metadata.update).toHaveBeenCalledWith({
+      page_snapshot: snapshot,
+      page_scraped_at: '2026-07-21T00:00:00.000Z',
+    });
+  });
+
+  it('counts and upserts install snapshots', async () => {
+    const client = createClient();
+    client.installSnapshots.select.mockReturnValue({
+      eq: () => ({
+        // head + count path
+      }),
+    });
+    // Supabase count query: select('*', { count: 'exact', head: true }).eq(...)
+    client.from.mockImplementation((table: string) => {
+      if (table === 'skill_install_snapshots') {
+        return {
+          select: (_cols: string, opts?: { count?: string; head?: boolean }) => {
+            if (opts?.head) {
+              return {
+                eq: async () => ({ count: 3, error: null }),
+              };
+            }
+            return client.installSnapshots.select();
+          },
+          upsert: client.installSnapshots.upsert,
+        };
+      }
+      if (table === 'skill_metadata') return client.metadata;
+      return client.rawFiles;
+    });
+    client.installSnapshots.upsert.mockResolvedValue({ data: null, error: null });
+
+    const repository = createSupabaseRepository(client as never);
+    await expect(repository.countInstallSnapshots(enrichment.skillId)).resolves.toBe(3);
+
+    const rows = [
+      { skillId: enrichment.skillId, date: '2026-07-14', installs: 10 },
+      { skillId: enrichment.skillId, date: '2026-07-15', installs: 11 },
+    ];
+    await repository.upsertInstallSnapshots(rows);
+    expect(client.installSnapshots.upsert).toHaveBeenCalledWith(
+      [
+        { skill_id: enrichment.skillId, date: '2026-07-14', installs: 10 },
+        { skill_id: enrichment.skillId, date: '2026-07-15', installs: 11 },
+      ],
+      { onConflict: 'skill_id,date' },
     );
   });
 });

@@ -22,11 +22,23 @@ describe('skills catalog client', () => {
         hash: 'sha256:abc',
         files: [{ path: 'SKILL.md', contents: '# Skill' }],
       },
+      {
+        id: 'owner/pending',
+        source: 'owner/repo',
+        slug: 'pending',
+        installs: 1,
+        hash: null,
+        files: null,
+      },
     ];
     const fetcher = async () => responses.shift();
     await expect(fetchLeaderboard(1, fetcher)).resolves.toHaveLength(1);
     await expect(fetchSkillDetail('owner/skill', fetcher)).resolves.toMatchObject({
       hash: 'sha256:abc',
+    });
+    await expect(fetchSkillDetail('owner/pending', fetcher)).resolves.toMatchObject({
+      hash: null,
+      files: null,
     });
   });
 });

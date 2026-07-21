@@ -30,4 +30,4 @@ await repository.upsertSkillEnrichment({
 });
 ```
 
-Postgres stores metadata, hashes, enrichment JSON, and Storage pointers. Raw Markdown and supporting files are uploaded to Storage and are never copied into a Postgres text column. `getByContentHash` returns only already-enriched matches; `listMissingEnrichment` returns metadata rows whose required enrichment is still null.
+Postgres stores metadata, hashes, enrichment JSON, page/audit cache columns, and Storage pointers. Raw Markdown and supporting files are uploaded to Storage and are never copied into a Postgres text column. `getByContentHash` returns only already-enriched matches; `listMissingEnrichment` returns metadata rows whose required enrichment is still null. Page-cache helpers: `upsertPageSnapshot`, `countInstallSnapshots`, `upsertInstallSnapshots` (used by [scrape-pipeline.md](./scrape-pipeline.md)).

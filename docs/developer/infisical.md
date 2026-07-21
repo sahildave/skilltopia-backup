@@ -27,6 +27,7 @@ Package scripts already wrap Infisical. Daily workflow:
 ```bash
 npm run dev:local       # alias of tauri:dev — desktop → deployed Backend (Infisical local)
 npm run enrich:local    # Backend secrets from Infisical dev
+npm run scrape:local    # Same Infisical dev + OIDC; HTML page cache (no LLM)
 npm run dev:local:proxy # optional: vercel dev :3000 + tauri:dev:local (broken on some macOS; see external-apis.md)
 ```
 
@@ -68,10 +69,10 @@ Used by `npm run enrich:local` (Infisical `dev`) and any Backend enrich path tha
 | `GROQ_API_KEY`                 | **yes** | `@ai-sdk/groq` default. Primary free model.                                                                                                                                                                   |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | **yes** | `@ai-sdk/google` default. Gemini fallback.                                                                                                                                                                    |
 | `ENRICHMENT_MODEL_CHAIN`       | no      | Ordered `provider/model` list. Prefer Groq models that support structured outputs (`openai/gpt-oss-20b`). Default in code: `groq/openai/gpt-oss-20b,gemini/gemini-3.1-flash-lite`. Rule-based is always last. |
-| `MAX_ENRICHED`                 | no      | Config knob (capped at `500` in code); optional in Infisical                                                                                                                                                  |
+| `MAX_ENRICHED`                 | no      | Config knob (capped at `500` in code); bounds `enrich:local` and `scrape:local`                                                                                                                               |
 | Enrich-route protect secret    | **yes** | Only if a secret-protected Backend enrich route is added                                                                                                                                                      |
 
-Missing provider keys are skipped at runtime; at least one of Groq/Gemini should be set for LLM enrichment. See [enrichment-pipeline.md](./enrichment-pipeline.md).
+Missing provider keys are skipped at runtime; at least one of Groq/Gemini should be set for LLM enrichment. See [enrichment-pipeline.md](./enrichment-pipeline.md). Local HTML scrape/cache (`npm run scrape:local`) needs Supabase + OIDC but not LLM keys — see [scrape-pipeline.md](./scrape-pipeline.md). Prefer a dedicated **ingest** Vercel project’s OIDC for batch scrape/enrich so the app Backend keeps its own 600/min budget.
 
 Hybrid search, enrichment UI, and seed (tasks 5–8) reuse the Backend set above; they do not add desktop secrets.
 
@@ -145,7 +146,7 @@ ENRICHMENT_MODEL_CHAIN=groq/openai/gpt-oss-20b,gemini/gemini-3.1-flash-lite
 2. Map Infisical `prod` → Vercel Production; Infisical `dev` → Vercel Preview / Development.
 3. After changing secrets in Infisical, confirm the sync ran (or redeploy) so `process.env` on the Backend API sees the new values.
 
-Local scripts already call `infisical run` (see `package.json`: `dev:local`, `proxy:dev`, `tauri:dev`, `enrich:local`). Prefer those over writing `.env.local` files. If you must export for a one-off, keep the file gitignored and delete it after.
+Local scripts already call `infisical run` (see `package.json`: `dev:local`, `proxy:dev`, `tauri:dev`, `enrich:local`, `scrape:local`). Prefer those over writing `.env.local` files. If you must export for a one-off, keep the file gitignored and delete it after.
 
 ## Anti-patterns
 

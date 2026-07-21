@@ -283,6 +283,43 @@ export function createSupabaseRepository(client: RepositoryClient) {
       }
       return files;
     },
+
+    async upsertPageSnapshot(
+      skillId: string,
+      snapshot: SkillPageSnapshot | null,
+      scrapedAt = new Date().toISOString(),
+    ): Promise<void> {
+      const result = await client
+        .from('skill_metadata')
+        .update({
+          page_snapshot: snapshot,
+          page_scraped_at: snapshot ? scrapedAt : null,
+        })
+        .eq('skill_id', skillId);
+      throwOnError(result.error);
+    },
+
+    async countInstallSnapshots(skillId: string): Promise<number> {
+      const result = await client
+        .from('skill_install_snapshots')
+        .select('*', { count: 'exact', head: true })
+        .eq('skill_id', skillId);
+      throwOnError(result.error);
+      return result.count ?? 0;
+    },
+
+    async upsertInstallSnapshots(records: SkillInstallSnapshotRecord[]): Promise<void> {
+      if (records.length === 0) return;
+      const result = await client.from('skill_install_snapshots').upsert(
+        records.map((record) => ({
+          skill_id: record.skillId,
+          date: record.date,
+          installs: record.installs,
+        })),
+        { onConflict: 'skill_id,date' },
+      );
+      throwOnError(result.error);
+    },
   };
 }
 

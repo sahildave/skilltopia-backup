@@ -1,0 +1,159 @@
+import { maxEnrichedFromEnv, MAX_ENRICHED } from './max-enriched.js';
+import { mapWeeklyInstallsToDates, parsePageSnapshot } from './page-snapshot.js';
+import { fetchLeaderboard, fetchSkillDetail, type SkillDetail } from './skills-catalog.js';
+import {
+  createSupabaseRepositoryFromEnv,
+  type SkillSourceMetadata,
+} from './supabase-repository.js';
+
+type Repository = ReturnType<typeof createSupabaseRepositoryFromEnv>;
+export type ScrapeLogLevel = 'info' | 'ok' | 'warn' | 'error' | 'step';
+
+export type ScrapePipelineOptions = {
+  repository: Repository;
+  maxEnriched?: number;
+  throttleMs?: number;
+  scrapeDate?: Date;
+  loadLeaderboard?: typeof fetchLeaderboard;
+  loadDetail?: typeof fetchSkillDetail;
+  fetchPageHtml?: (url: string) => Promise<string>;
+  sleep?: (milliseconds: number) => Promise<void>;
+  log?: (message: string, level?: ScrapeLogLevel) => void;
+};
+
+export type ScrapeRunResult = {
+  attempted: number;
+  scraped: number;
+  skipped: number;
+  failed: Array<{ skillId: string; message: string }>;
+};
+
+function sourceMetadata(detail: SkillDetail): SkillSourceMetadata {
+  return {
+    skillId: detail.id,
+    contentHash: detail.hash ?? '',
+    sourceUrl: detail.url,
+    repository: detail.source,
+    installCount: detail.installs,
+    rawStoragePrefix: detail.id,
+  };
+}
+
+function pageUrl(detail: SkillDetail): string {
+  if (detail.url?.trim()) return detail.url.trim();
+  return `https://skills.sh/${detail.id}`;
+}
+
+async function fetchSkillsShHtml(url: string): Promise<string> {
+  const response = await fetch(url, {
+    headers: { Accept: 'text/html', 'User-Agent': 'skills-explorer-scrape/1.0' },
+  });
+  if (!response.ok) throw new Error(`skills.sh HTML fetch failed: ${response.status}`);
+  return response.text();
+}
+
+async function scrapeWithRetry(
+  fetchPageHtml: (url: string) => Promise<string>,
+  url: string,
+): Promise<string> {
+  try {
+    return await fetchPageHtml(url);
+  } catch {
+    return await fetchPageHtml(url);
+  }
+}
+
+export async function runScrapePipeline(options: ScrapePipelineOptions): Promise<ScrapeRunResult> {
+  const maxEnriched = Math.min(options.maxEnriched ?? MAX_ENRICHED, MAX_ENRICHED);
+  const throttleMs = options.throttleMs ?? 1000;
+  const scrapeDate = options.scrapeDate ?? new Date();
+  const sleep = options.sleep ?? (async (ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const loadLeaderboard = options.loadLeaderboard ?? fetchLeaderboard;
+  const loadDetail = options.loadDetail ?? fetchSkillDetail;
+  const fetchPageHtml = options.fetchPageHtml ?? fetchSkillsShHtml;
+  const log = options.log ?? (() => {});
+  const result: ScrapeRunResult = {
+    attempted: 0,
+    scraped: 0,
+    skipped: 0,
+    failed: [],
+  };
+
+  log(`start maxEnriched=${maxEnriched} throttleMs=${throttleMs}`, 'info');
+  log('fetching leaderboard from skills.sh…', 'step');
+  const skills = (await loadLeaderboard(maxEnriched)).slice(0, maxEnriched);
+  log(`leaderboard returned ${skills.length} skill(s)`, 'ok');
+
+  for (const [index, skill] of skills.entries()) {
+    const step = `[${index + 1}/${skills.length}] ${skill.id}`;
+    result.attempted += 1;
+    try {
+      log(`${step}: fetching detail…`, 'step');
+      const detail = await loadDetail(skill.id);
+      if (!detail.hash) {
+        result.skipped += 1;
+        log(`${step}: skipped (null hash)`, 'warn');
+        continue;
+      }
+
+      const source = sourceMetadata(detail);
+      log(`${step}: upserting metadata…`, 'step');
+      await options.repository.upsertSkillMetadata(source);
+
+      const url = pageUrl(detail);
+      let snapshot = null;
+      try {
+        log(`${step}: scraping HTML…`, 'step');
+        const html = await scrapeWithRetry(fetchPageHtml, url);
+        snapshot = parsePageSnapshot(html);
+        await options.repository.upsertPageSnapshot(detail.id, snapshot, scrapeDate.toISOString());
+        result.scraped += 1;
+        log(`${step}: scraped`, 'ok');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        // Keep any prior page_snapshot; only metadata/hash was saved above.
+        result.failed.push({ skillId: skill.id, message });
+        log(`${step}: scrape failed after retry — ${message}`, 'error');
+      }
+
+      const weekly = snapshot?.weeklyInstalls;
+      if (weekly && weekly.length > 0) {
+        const existing = await options.repository.countInstallSnapshots(detail.id);
+        if (existing < 8) {
+          log(`${step}: backfilling ${weekly.length} install snapshot(s)…`, 'step');
+          await options.repository.upsertInstallSnapshots(
+            mapWeeklyInstallsToDates(weekly, detail.id, scrapeDate),
+          );
+        } else {
+          log(`${step}: skip install backfill (have ${existing} rows)`, 'warn');
+        }
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      result.failed.push({ skillId: skill.id, message });
+      log(`${step}: failed — ${message}`, 'error');
+    }
+
+    if (throttleMs > 0) {
+      log(`${step}: throttling ${throttleMs}ms…`, 'step');
+      await sleep(throttleMs);
+    }
+  }
+
+  log(
+    `done attempted=${result.attempted} scraped=${result.scraped} skipped=${result.skipped} failed=${result.failed.length}`,
+    result.failed.length > 0 ? 'warn' : 'ok',
+  );
+  return result;
+}
+
+type LocalScrapeOptions = Omit<ScrapePipelineOptions, 'repository'> &
+  Partial<Pick<ScrapePipelineOptions, 'repository'>>;
+
+export async function runLocalScrape(options: LocalScrapeOptions = {}): Promise<ScrapeRunResult> {
+  return runScrapePipeline({
+    repository: options.repository ?? createSupabaseRepositoryFromEnv(),
+    ...options,
+    maxEnriched: options.maxEnriched ?? maxEnrichedFromEnv(),
+  });
+}

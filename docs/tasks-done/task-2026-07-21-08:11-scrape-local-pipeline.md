@@ -17,14 +17,14 @@ Ship a local `scrape:local` ingest path that detail-fetches (hash-gated), scrape
 
 ## Scope
 
-- [ ] Keep **`scrape:local`** and **`enrich:local`** as separate scripts/npm entries
-- [ ] For each skill under the cap: detail call → skip if `hash` null
-- [ ] HTML scrape → full sparse `page_snapshot` on `skill_metadata` (summary, topics, repo, stars, first seen, install command, related, weekly installs, SKILL.md preview, etc. — all optional)
-- [ ] No file tree / file contents
-- [ ] Detail OK + scrape fail → **one in-process retry**, then save hash/metadata, leave `page_snapshot` null for later rotation
-- [ ] Parse weekly install series from SSR when present
-- [ ] Backfill `skill_install_snapshots` from scraped weekly series **only if** that skill has **&lt; 8** rows; map `values[i]` → last 8 UTC calendar days (`scrape_date - (7 - i)`); do not clobber longer local history
-- [ ] Wire ingest-project OIDC / secrets for local runs (Infisical `local` / docs as needed)
+- [x] Keep **`scrape:local`** and **`enrich:local`** as separate scripts/npm entries
+- [x] For each skill under the cap: detail call → skip if `hash` null
+- [x] HTML scrape → full sparse `page_snapshot` on `skill_metadata` (summary, topics, repo, stars, first seen, install command, related, weekly installs, SKILL.md preview, etc. — all optional)
+- [x] No file tree / file contents
+- [x] Detail OK + scrape fail → **one in-process retry**, then save hash/metadata, leave `page_snapshot` null for later rotation
+- [x] Parse weekly install series from SSR when present
+- [x] Backfill `skill_install_snapshots` from scraped weekly series **only if** that skill has **&lt; 8** rows; map `values[i]` → last 8 UTC calendar days (`scrape_date - (7 - i)`); do not clobber longer local history
+- [x] Wire ingest-project OIDC / secrets for local runs (Infisical `local` / docs as needed)
 
 ## Out of scope
 

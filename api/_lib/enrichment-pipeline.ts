@@ -4,6 +4,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import type { LanguageModel } from 'ai';
 import { createHash } from 'node:crypto';
 import { distilledEnrichmentText, enrichWithModel } from './enrichment.js';
+import { MAX_ENRICHED, maxEnrichedFromEnv } from './max-enriched.js';
 import { fetchLeaderboard, fetchSkillDetail } from './skills-catalog.js';
 import {
   createSupabaseRepositoryFromEnv,
@@ -12,7 +13,7 @@ import {
 } from './supabase-repository.js';
 import { upsertSkillEmbedding } from './qdrant.js';
 
-export const MAX_ENRICHED = 500;
+export { MAX_ENRICHED, maxEnrichedFromEnv };
 type Repository = ReturnType<typeof createSupabaseRepositoryFromEnv>;
 export type EnrichmentMode = 'seed' | 'sync' | 'force';
 export type EnrichmentLogLevel = 'info' | 'ok' | 'warn' | 'error' | 'step';
@@ -33,15 +34,6 @@ export type EnrichmentPipelineOptions = {
 /** Default chain uses Groq models that support json_schema (generateObject). */
 export const DEFAULT_ENRICHMENT_MODEL_CHAIN =
   'groq/openai/gpt-oss-20b,gemini/gemini-3.1-flash-lite';
-
-/** Reads `MAX_ENRICHED` from env; invalid/missing → default; always capped at `MAX_ENRICHED`. */
-export function maxEnrichedFromEnv(environment = process.env): number {
-  const raw = environment.MAX_ENRICHED?.trim();
-  if (!raw) return MAX_ENRICHED;
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isFinite(parsed) || parsed < 1) return MAX_ENRICHED;
-  return Math.min(parsed, MAX_ENRICHED);
-}
 
 export type EnrichmentRunResult = {
   attempted: number;

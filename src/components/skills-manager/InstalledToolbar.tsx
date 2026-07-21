@@ -10,16 +10,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { LibraryLayoutMode } from '@/store/installed-skills-ui-store';
-import { platform } from '@platform';
-import {
-  ArrowLeft,
-  FolderOpen,
-  LayoutGrid,
-  LayoutList,
-  LoaderCircle,
-  Search,
-  X,
-} from 'lucide-react';
+import { ArrowLeft, LayoutGrid, LayoutList, LoaderCircle, Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DitherGradient } from '../dither-kit';
 
@@ -79,7 +70,7 @@ export function InstalledToolbar({
           </Button>
         ) : null}
         {/* title description */}
-        <div className="relative flex min-w-0 w-full flex-row flex-wrap items-center justify-between gap-4 p-8 pb-4 pt-16">
+        <div className="relative flex min-w-0 w-full flex-row flex-wrap items-center justify-between gap-4 p-8 pb-3.5 pt-15">
           <div className="flex min-w-0 flex-col px-1 items-start gap-2.5">
             <div className="flex min-w-0 flex-row items-center  gap-2.5">
               <h1 className="text-3xl leading-none text-balance">{title}</h1>
@@ -95,7 +86,39 @@ export function InstalledToolbar({
                 </span>
               ) : null}
             </div>
-            <p className="text-muted-foreground max-w-2xl text-sm text-pretty">{description}</p>
+            <p className="text-muted-foreground flex-row flex gap-1 max-w-2xl text-sm text-pretty">
+              {description}{' '}
+              {pathInfo ? (
+                <div className="flex flex-wrap items-center gap-0">
+                  <button
+                    type="button"
+                    className="hover:text-muted-foreground text-foreground inline-flex max-w-full items-center gap-0.5 text-sm disabled:pointer-events-none disabled:opacity-60"
+                    onClick={() => {
+                      const platform = (
+                        window as Window & {
+                          platform?: {
+                            revealProviderSkillsDir: (id: string) => void;
+                          };
+                        }
+                      ).platform;
+
+                      platform?.revealProviderSkillsDir(pathInfo.revealId);
+                    }}
+                    disabled={Boolean(pathInfo.skillsDir) && !pathInfo.skillsDirExists}
+                    title={
+                      pathInfo.skillsDirExists || !pathInfo.skillsDir
+                        ? t('skills.installed.revealPath')
+                        : t('skills.installed.pathMissing')
+                    }
+                  >
+                    {/* <FolderOpen className="size-3.5 shrink-0" aria-hidden /> */}
+                    <code className="bg-muted truncate rounded px-1 py-0.5 text-xs">
+                      {pathInfo.skillsDir || t('skills.installed.pathUnknown')}
+                    </code>
+                  </button>
+                </div>
+              ) : null}
+            </p>
           </div>
           <InputGroup className="h-10 w-full max-w-sm shrink-0 rounded-xl bg-background!">
             <InputGroupAddon>
@@ -125,7 +148,7 @@ export function InstalledToolbar({
       </div>
 
       {/* tabs section */}
-      <div className="relative flex min-w-0 flex-wrap items-center gap-3 px-8 pt-0 pb-4">
+      <div className="relative flex min-w-0 flex-wrap items-center gap-3 px-8 pb-4">
         <div className="flex flex-row flex-wrap items-center justify-between w-full gap-2">
           {onRescan ? (
             <Button
@@ -160,28 +183,6 @@ export function InstalledToolbar({
           />
         </div>
       </div>
-      {pathInfo ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            className="text-muted-foreground hover:text-foreground inline-flex max-w-full items-center gap-1.5 text-sm disabled:pointer-events-none disabled:opacity-60"
-            onClick={() => {
-              void platform.revealProviderSkillsDir(pathInfo.revealId);
-            }}
-            disabled={Boolean(pathInfo.skillsDir) && !pathInfo.skillsDirExists}
-            title={
-              pathInfo.skillsDirExists || !pathInfo.skillsDir
-                ? t('skills.installed.revealPath')
-                : t('skills.installed.pathMissing')
-            }
-          >
-            <FolderOpen className="size-3.5 shrink-0" aria-hidden />
-            <code className="bg-muted truncate rounded px-1.5 py-0.5 text-xs">
-              {pathInfo.skillsDir || t('skills.installed.pathUnknown')}
-            </code>
-          </button>
-        </div>
-      ) : null}
 
       {showUniversalToggle && onShowAllUniversalChange ? (
         <div className="flex items-center gap-2">

@@ -1,4 +1,4 @@
-import appLogo from '@/assets/logo.png';
+import appLogo from '@/assets/icon.png';
 import { Button } from '@/components/ui/button';
 import {
   InputGroup,
@@ -21,8 +21,8 @@ import {
   LayoutDashboard,
   Search,
   Settings,
-  Sparkles,
   X,
+  type Sparkles,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -170,7 +170,6 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
                   skillCount={model.allAgentsCount}
                   selected={providerFilter === ALL_AGENTS_FILTER_ID}
                   onSelect={setProviderFilter}
-                  icon={Sparkles}
                   installedTabActive={active === 'installed'}
                   onEnsureInstalledTab={() => onSelect('installed')}
                 />

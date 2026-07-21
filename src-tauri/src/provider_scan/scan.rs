@@ -587,20 +587,8 @@ pub fn scan_project(
         let mut count = 0;
         if shares_universal {
             count = universal_count;
-            // Registry includes a sentinel provider id `universal` for .agents/skills.
-            // That id is reserved for $HOME/.agents/skills — never tag project skills with it.
-            if provider.id != UNIVERSAL_PROVIDER_ID {
-                for skill in skills_map.values_mut() {
-                    if skill
-                        .provider_ids
-                        .iter()
-                        .any(|id| id == PROJECT_AGENTS_PROVIDER_ID)
-                        && !skill.provider_ids.iter().any(|id| id == &provider.id)
-                    {
-                        skill.provider_ids.push(provider.id.clone());
-                    }
-                }
-            }
+            // Do not tag project `.agents` skills with global provider ids (cursor,
+            // claude-code, registry `universal`, …). Those ids mean home installs.
         } else if exists {
             let outcome = scan_skills_dir(&skills_dir, ctx.include_internal, Some(&provider.id));
             warnings.extend(outcome.warnings);
@@ -873,6 +861,7 @@ mod tests {
         assert!(!snapshot.skills[0]
             .provider_ids
             .contains(&UNIVERSAL_PROVIDER_ID.to_string()));
+        assert_eq!(snapshot.skills[0].provider_ids, vec![PROJECT_AGENTS_PROVIDER_ID.to_string()]);
     }
 
     #[test]

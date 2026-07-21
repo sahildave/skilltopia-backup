@@ -33,6 +33,14 @@ export function SkillProviderBadges({
           );
         }
 
+        if (badge.kind === 'location') {
+          return (
+            <Badge key={`location-${badge.label}`} variant="outline" size="sm">
+              {badge.label}
+            </Badge>
+          );
+        }
+
         const label = t('skills.installed.providersBadge', { count: badge.count });
         const tooltipText = badge.names.join('\n');
 

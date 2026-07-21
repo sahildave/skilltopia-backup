@@ -57,6 +57,7 @@ function providerNameMap(snapshot: InstalledScanSnapshot): Map<string, string> {
 export type SkillProviderBadge =
   | { kind: 'universal' }
   | { kind: 'project' }
+  | { kind: 'location'; label: string }
   | { kind: 'providers'; count: number; names: string[] };
 
 export interface CopyProviderOption {
@@ -110,19 +111,68 @@ function countedProviderNames(skill: ScannedSkill, snapshot: InstalledScanSnapsh
   return labels;
 }
 
+/** `.claude/skills` → `.claude`; `agent/skills` → `agent`. */
+export function projectSkillsDirBadgeLabel(skillsDir: string): string {
+  const normalized = skillsDir.replaceAll('\\', '/').replace(/\/+$/, '');
+  const withoutSkills = normalized.replace(/\/skills$/, '');
+  const segment = withoutSkills.split('/').pop() ?? withoutSkills;
+  if (segment.startsWith('.')) return segment;
+  return segment;
+}
+
+function pathUnderDir(path: string, dir: string): boolean {
+  const normalizedPath = path.replaceAll('\\', '/');
+  const normalizedDir = dir.replaceAll('\\', '/').replace(/\/+$/, '');
+  return normalizedPath === normalizedDir || normalizedPath.startsWith(`${normalizedDir}/`);
+}
+
 /**
- * Card/list badges: optional `Universal` (home) or `Project` (project `.agents`),
- * plus aggregated `n Providers`. Providers that share the shared `.agents/skills`
- * directory are excluded from the count.
+ * Project-scoped badges use filesystem locations, never global provider identity.
+ * `.agents/skills` → Project; other project skills dirs → short folder labels (`.claude`).
+ */
+function projectLocationBadges(
+  skill: ScannedSkill,
+  snapshot: InstalledScanSnapshot,
+): SkillProviderBadge[] {
+  const badges: SkillProviderBadge[] = [];
+  const agentsDir = snapshot.universal.skillsDir;
+  const hasAgentsPath =
+    Boolean(agentsDir) && skill.paths.some((entry) => pathUnderDir(entry.path, agentsDir));
+  if (hasAgentsPath || skill.providerIds.includes(PROJECT_AGENTS_PROVIDER_ID)) {
+    badges.push({ kind: 'project' });
+  }
+
+  const locationLabels = new Set<string>();
+  for (const provider of snapshot.providers) {
+    const skillsDir = provider.skillsDir;
+    if (!skillsDir || (agentsDir && skillsDir === agentsDir)) continue;
+    const inProviderDir = skill.paths.some((entry) => pathUnderDir(entry.path, skillsDir));
+    if (!inProviderDir) continue;
+    locationLabels.add(projectSkillsDirBadgeLabel(skillsDir));
+  }
+
+  for (const label of [...locationLabels].sort((a, b) => a.localeCompare(b))) {
+    badges.push({ kind: 'location', label });
+  }
+  return badges;
+}
+
+/**
+ * Card/list badges:
+ * - Global: optional `Universal`, plus aggregated `n Providers`
+ * - Project: `Project` for `.agents/skills`, plus short folder labels (`.claude`) —
+ *   never Universal or global provider counts
  */
 export function providerBadgesForSkill(
   skill: ScannedSkill,
   snapshot: InstalledScanSnapshot,
 ): SkillProviderBadge[] {
+  if (skill.scope === 'project') {
+    return projectLocationBadges(skill, snapshot);
+  }
+
   const badges: SkillProviderBadge[] = [];
-  if (skill.providerIds.includes(PROJECT_AGENTS_PROVIDER_ID)) {
-    badges.push({ kind: 'project' });
-  } else if (skill.providerIds.includes(UNIVERSAL_PROVIDER_ID)) {
+  if (skill.providerIds.includes(UNIVERSAL_PROVIDER_ID)) {
     badges.push({ kind: 'universal' });
   }
   const names = countedProviderNames(skill, snapshot);

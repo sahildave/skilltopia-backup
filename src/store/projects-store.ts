@@ -17,6 +17,7 @@ interface ProjectsState {
   refreshing: boolean;
   error: string | null;
   chooseRoot: () => Promise<void>;
+  clearSelection: () => void;
   refresh: () => Promise<void>;
   selectProject: (project: ProjectInfo) => Promise<void>;
 }
@@ -35,6 +36,11 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
     if (typeof localStorage !== 'undefined') localStorage.setItem(ROOT_KEY, root);
     set({ root, selectedPath: null, snapshot: null });
     await get().refresh();
+  },
+
+  clearSelection: () => {
+    requestId += 1;
+    set({ selectedPath: null, snapshot: null, error: null });
   },
 
   refresh: async () => {

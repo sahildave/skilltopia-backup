@@ -9,7 +9,7 @@ export function LibraryUnavailableStub() {
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
       <div className="flex max-w-md flex-col items-center gap-3">
-        <h1 className="text-2xl font-semibold text-balance">{t('skills.installed.title')}</h1>
+        <h1 className="text-3xl leading-none text-balance">{t('skills.installed.title')}</h1>
         <p className="text-muted-foreground text-sm text-pretty">
           {t('skills.installed.webUnavailable')}
         </p>

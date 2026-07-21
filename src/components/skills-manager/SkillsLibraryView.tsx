@@ -1,12 +1,12 @@
+import { getSeedForView } from '@/data/skills-seed';
+import { UNIVERSAL_PROVIDER_ID } from '@/platform/types';
+import { collectCachedLeaderboardSkillsFromClient } from '@/services/local-skills-search';
+import { useInstalledScanStore } from '@/store/installed-scan-store';
+import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
 import { platform } from '@platform';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { getSeedForView } from '@/data/skills-seed';
-import { collectCachedLeaderboardSkillsFromClient } from '@/services/local-skills-search';
-import { useInstalledScanStore } from '@/store/installed-scan-store';
-import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
-import { UNIVERSAL_PROVIDER_ID } from '@/platform/types';
 import { catalogSourcesByInstalledKey } from './catalog-installed-match';
 import {
   ALL_AGENTS_FILTER_ID,
@@ -65,6 +65,7 @@ function LocalInstalledSkillsView() {
     <div className="relative flex h-full flex-col">
       <LibraryToolbar
         title={t('skills.installed.title')}
+        description={t('skills.installed.description')}
         skillCount={skillCount}
         refreshing={refreshing}
         hasSnapshot={snapshot !== null}

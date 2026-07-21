@@ -47,12 +47,28 @@ Windows paths are normalized to forward slashes before serialization.
 Universal path) and opens Finder/Explorer. It does **not** rescan. Returns
 `false` when the directory is missing so UI can disable the action.
 
+## Copy to providers
+
+`platform.copySkillToProviders(uninstallName, providerIds)` creates a directory
+symlink in each selected provider skills folder. Rust resolves the source as:
+
+1. Universal real directory
+2. Otherwise a unique real provider directory
+3. Otherwise a unique resolved symlink target
+
+Missing provider parent folders are created. Existing target paths are left
+untouched and reported as `conflict`. Unknown providers, Universal as a
+destination, and symlink failures are per-provider `failed` outcomes — other
+providers still proceed. Invalid skill names and missing/ambiguous sources are
+hard errors. The call does **not** rescan; UI should call `scanInstalled()`
+afterward.
+
 ## Tests
 
 Rust unit tests live under `src-tauri/src/provider_scan/` (detection, path
 resolution including macOS/Windows probes, frontmatter, dedupe, Universal
-attribution, warnings). Mock TARGET fixtures exercise the snapshot shape for
-Chrome UI work. Shared React coverage lives in:
+attribution, warnings, copy-to-providers). Mock TARGET fixtures exercise the
+snapshot shape for Chrome UI work. Shared React coverage lives in:
 
 - `src/providers/registry.test.ts` / `generate-provider-registry.test.ts`
 - `src/components/skills-manager/installed-skills-model.test.ts`

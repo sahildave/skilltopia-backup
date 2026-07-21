@@ -9,13 +9,13 @@ Deliver the complete platform capability for copying one installed skill to mult
 
 ## Scope
 
-- [ ] Add the typed `PlatformPort` operation and Tauri command accepting `uninstallName` plus provider IDs.
-- [ ] Resolve the source in Rust: Universal first, then a real directory, then a resolved symlink target.
-- [ ] Validate skill/provider identifiers and reject missing or ambiguous sources.
-- [ ] Create missing provider parent folders and directory symlinks without overwriting existing paths.
-- [ ] Return independent `copied`, `conflict`, and `failed` results for each provider, preserving partial success.
-- [ ] Add Rust and platform tests for source resolution, missing folders, symlinks, conflicts, and partial success.
-- [ ] Regenerate and verify typed bindings.
+- [x] Add the typed `PlatformPort` operation and Tauri command accepting `uninstallName` plus provider IDs.
+- [x] Resolve the source in Rust: Universal first, then a real directory, then a resolved symlink target.
+- [x] Validate skill/provider identifiers and reject missing or ambiguous sources.
+- [x] Create missing provider parent folders and directory symlinks without overwriting existing paths.
+- [x] Return independent `copied`, `conflict`, and `failed` results for each provider, preserving partial success.
+- [x] Add Rust and platform tests for source resolution, missing folders, symlinks, conflicts, and partial success.
+- [x] Regenerate and verify typed bindings.
 
 ## Done when
 

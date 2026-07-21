@@ -221,6 +221,18 @@ async deleteUniversalSkill(uninstallName: string) : Promise<Result<boolean, stri
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * Copy one installed skill into selected provider folders as directory symlinks.
+ * Returns independent per-provider outcomes so partial success is preserved.
+ */
+async copySkillToProviders(uninstallName: string, providerIds: string[]) : Promise<Result<CopySkillToProvidersResult, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("copy_skill_to_providers", { uninstallName, providerIds }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -249,6 +261,9 @@ quick_pane_shortcut: string | null;
  * If None, uses system locale detection
  */
 language: string | null }
+export type CopyProviderResult = { providerId: string; status: CopyProviderStatus; message?: string | null }
+export type CopyProviderStatus = "copied" | "conflict" | "failed"
+export type CopySkillToProvidersResult = { results: CopyProviderResult[] }
 export type InstalledScanSnapshot = { scannedAt: string; source: ProviderRegistrySourceMeta; universal: UniversalScanInfo; providers: ScannedProvider[]; skills: ScannedSkill[]; warnings: ScanWarning[] }
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
 export type ProviderRegistrySourceMeta = { repositoryUrl: string; commit: string; license: string; attribution: string }

@@ -25,6 +25,7 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         provider_scan::scan_installed_skills,
         provider_scan::reveal_provider_skills_dir,
         provider_scan::delete_universal_skill,
+        provider_scan::copy_skill_to_providers,
     ])
 }
 

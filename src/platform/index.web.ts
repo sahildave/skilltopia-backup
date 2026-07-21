@@ -36,6 +36,16 @@ export const platform: PlatformPort = {
     await navigator.clipboard.writeText(command);
   },
 
+  async copySkillToProviders(_uninstallName, providerIds) {
+    return {
+      results: providerIds.map((providerId) => ({
+        providerId,
+        status: 'failed' as const,
+        message: 'Copy to providers requires the desktop app',
+      })),
+    };
+  },
+
   async openExternal(url) {
     window.open(url, '_blank', 'noopener,noreferrer');
   },

@@ -52,6 +52,17 @@ describe('PlatformPort mock', () => {
       mockPlatform.uninstall('find-skills', { agentScope: 'all' }),
     ).resolves.toBeUndefined();
   });
+
+  it('reports copied results for each requested provider', async () => {
+    await expect(
+      mockPlatform.copySkillToProviders('find-skills', ['claude-code', 'codex']),
+    ).resolves.toEqual({
+      results: [
+        { providerId: 'claude-code', status: 'copied' },
+        { providerId: 'codex', status: 'copied' },
+      ],
+    });
+  });
 });
 
 describe('PlatformPort web', () => {
@@ -115,6 +126,20 @@ describe('PlatformPort web', () => {
 
     expect(writeText).toHaveBeenCalledWith(
       "npx --yes skills remove find-skills -g -y -a '*' && rm -rf ~/.agents/skills/find-skills",
+    );
+  });
+
+  it('marks copySkillToProviders as unavailable on web', async () => {
+    await expect(webPlatform.copySkillToProviders('find-skills', ['claude-code'])).resolves.toEqual(
+      {
+        results: [
+          {
+            providerId: 'claude-code',
+            status: 'failed',
+            message: 'Copy to providers requires the desktop app',
+          },
+        ],
+      },
     );
   });
 

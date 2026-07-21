@@ -92,6 +92,18 @@ export interface UninstallOptions {
   providerIds?: string[];
 }
 
+export type CopyProviderStatus = 'copied' | 'conflict' | 'failed';
+
+export interface CopyProviderResult {
+  providerId: string;
+  status: CopyProviderStatus;
+  message?: string;
+}
+
+export interface CopySkillToProvidersResult {
+  results: CopyProviderResult[];
+}
+
 export interface PlatformPort {
   hasLocalLibrary: boolean;
   /** When true, `install` copies a CLI command instead of writing to disk. */
@@ -109,5 +121,13 @@ export interface PlatformPort {
   listProviders(): Promise<SkillProvider[]>;
   install(skill: InstallableSkill, scope: InstallScope): Promise<void>;
   uninstall(skillName: string, options: UninstallOptions): Promise<void>;
+  /**
+   * Symlink one installed skill into each selected provider skills folder.
+   * Returns independent per-provider outcomes; does not rescan.
+   */
+  copySkillToProviders(
+    uninstallName: string,
+    providerIds: string[],
+  ): Promise<CopySkillToProvidersResult>;
   openExternal(url: string): Promise<void>;
 }

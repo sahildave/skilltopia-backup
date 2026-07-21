@@ -420,7 +420,9 @@ export function createSupabaseRepository(client: RepositoryClient) {
         )
         .in('skill_id', skillIds);
       throwOnError(result.error);
-      return (result.data ?? []).map((row) => toSkillPageCacheRecord(row as Record<string, unknown>));
+      return (result.data ?? []).map((row) =>
+        toSkillPageCacheRecord(row as Record<string, unknown>),
+      );
     },
 
     async listInstallSnapshots(skillId: string, limit = 8): Promise<SkillInstallSnapshotRecord[]> {

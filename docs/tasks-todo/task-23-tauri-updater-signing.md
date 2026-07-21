@@ -40,7 +40,6 @@ This signs **update payloads**, not Gatekeeper/SmartScreen. Docs: [`docs/develop
 3. Replace `plugins.updater.pubkey` in `src-tauri/tauri.conf.json` with the generated public key, then set `plugins.updater.active` back to `true`.
 
 4. Add these GitHub Actions repository secrets:
-
    - `TAURI_PRIVATE_KEY`: contents of `~/.tauri/skills-explorer.key`
    - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: the private-key password
 

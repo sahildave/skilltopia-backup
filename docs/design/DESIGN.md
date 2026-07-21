@@ -20,7 +20,7 @@ colors:
   warning: '#F4B400'
   error: '#DF2225'
   info: '#7D6CF0'
-  dark-canvas: "#090909"
+  dark-canvas: '#090909'
   dark-surface: '#171717'
   dark-surface-raised: '#222222'
   dark-on-surface: '#FAFAFA'

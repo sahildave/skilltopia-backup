@@ -29,9 +29,7 @@ export function isCatalogSkillInstalled(skill: SkillsShSkill, keys: Set<string>)
  * Map local uninstallName / name keys → catalog `source` (owner/repo).
  * First catalog hit wins when multiple skills share a slug.
  */
-export function catalogSourcesByInstalledKey(
-  catalogSkills: SkillsShSkill[],
-): Map<string, string> {
+export function catalogSourcesByInstalledKey(catalogSkills: SkillsShSkill[]): Map<string, string> {
   const map = new Map<string, string>();
   for (const skill of catalogSkills) {
     const source = skill.source.trim();

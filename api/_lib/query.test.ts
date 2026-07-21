@@ -152,13 +152,11 @@ describe('parseSkillPageCacheBatchQuery', () => {
   it('rejects missing, empty, invalid, oversized, and unknown params', () => {
     expect(parseSkillPageCacheBatchQuery(new URLSearchParams()).ok).toBe(false);
     expect(parseSkillPageCacheBatchQuery(new URLSearchParams({ skill_ids: '  ' })).ok).toBe(false);
+    expect(parseSkillPageCacheBatchQuery(new URLSearchParams({ skill_ids: 'solo' })).ok).toBe(
+      false,
+    );
     expect(
-      parseSkillPageCacheBatchQuery(new URLSearchParams({ skill_ids: 'solo' })).ok,
-    ).toBe(false);
-    expect(
-      parseSkillPageCacheBatchQuery(
-        new URLSearchParams({ skill_ids: 'owner/a', extra: '1' }),
-      ).ok,
+      parseSkillPageCacheBatchQuery(new URLSearchParams({ skill_ids: 'owner/a', extra: '1' })).ok,
     ).toBe(false);
 
     const tooMany = Array.from({ length: 101 }, (_, i) => `owner/skill-${i}`).join(',');

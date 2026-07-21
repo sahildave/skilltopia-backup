@@ -236,7 +236,9 @@ describe('skills proxy routes', () => {
   it('rejects oversized page-cache batches before touching Supabase', async () => {
     const tooMany = Array.from({ length: 101 }, (_, i) => `owner/skill-${i}`).join(',');
     const response = await getSkillPageCacheBatch(
-      new Request(`https://proxy.test/api/skills/page-cache?skill_ids=${encodeURIComponent(tooMany)}`),
+      new Request(
+        `https://proxy.test/api/skills/page-cache?skill_ids=${encodeURIComponent(tooMany)}`,
+      ),
     );
 
     expect(response.status).toBe(400);

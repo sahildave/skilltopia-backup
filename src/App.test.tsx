@@ -5,9 +5,9 @@ import App from './App';
 // Tauri bindings are mocked globally in src/test/setup.ts
 
 describe('App', () => {
-  it('renders main window layout', () => {
+  it('renders main window layout', async () => {
     render(<App />);
-    expect(screen.getByRole('heading', { name: /installed skills/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /explore/i })).toBeInTheDocument();
   });
 
   it('renders title bar with traffic light buttons', () => {

@@ -17,7 +17,10 @@ afterEach(() => {
 describe('skillPageUrl', () => {
   it('prefers a known url from the list API', () => {
     expect(
-      skillPageUrl('open.feishu.cn/lark-approval', 'https://www.skills.sh/site/open.feishu.cn/lark-approval'),
+      skillPageUrl(
+        'open.feishu.cn/lark-approval',
+        'https://www.skills.sh/site/open.feishu.cn/lark-approval',
+      ),
     ).toBe('https://www.skills.sh/site/open.feishu.cn/lark-approval');
   });
 
@@ -25,7 +28,9 @@ describe('skillPageUrl', () => {
     expect(skillPageUrl('open.feishu.cn/lark-approval')).toBe(
       'https://www.skills.sh/site/open.feishu.cn/lark-approval',
     );
-    expect(skillPageUrl('mintlify.com/mintlify')).toBe('https://www.skills.sh/site/mintlify.com/mintlify');
+    expect(skillPageUrl('mintlify.com/mintlify')).toBe(
+      'https://www.skills.sh/site/mintlify.com/mintlify',
+    );
     expect(skillPageUrl('anthropics/skills/frontend-design')).toBe(
       'https://www.skills.sh/anthropics/skills/frontend-design',
     );

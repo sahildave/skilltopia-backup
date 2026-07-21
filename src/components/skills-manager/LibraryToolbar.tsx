@@ -10,7 +10,15 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { LibraryLayoutMode } from '@/store/installed-skills-ui-store';
-import { ArrowLeft, FolderOpen, LayoutGrid, LayoutList, LoaderCircle, Search, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  FolderOpen,
+  LayoutGrid,
+  LayoutList,
+  LoaderCircle,
+  Search,
+  X,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { platform } from '@platform';
 

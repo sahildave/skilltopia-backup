@@ -106,9 +106,7 @@ function sourceMetadata(
     sourceUrl: skillPageUrl(skillId, detail.url),
     repository: origin.repository,
     source: origin.source,
-    installCount: detailIdMismatched
-      ? (existingInstallCount ?? detail.installs)
-      : detail.installs,
+    installCount: detailIdMismatched ? (existingInstallCount ?? detail.installs) : detail.installs,
     rawStoragePrefix: skillId,
   };
 }
@@ -203,10 +201,7 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
     const filtered = await filterUncachedSkillIds(options.repository, skillIds);
     result.cachedSkipped = filtered.cachedSkipped;
     skillIds = filtered.pending;
-    log(
-      `skipCached: ${result.cachedSkipped} already cached · ${skillIds.length} remaining`,
-      'ok',
-    );
+    log(`skipCached: ${result.cachedSkipped} already cached · ${skillIds.length} remaining`, 'ok');
   }
 
   for (const [index, skillId] of skillIds.entries()) {

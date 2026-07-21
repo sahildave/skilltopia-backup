@@ -1,9 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  runScrapePipeline,
-  scrapeSkipCachedFromEnv,
-  skillIdsFromEnv,
-} from './scrape-pipeline.js';
+import { runScrapePipeline, scrapeSkipCachedFromEnv, skillIdsFromEnv } from './scrape-pipeline.js';
 
 function detail(hash: string | null, id = 'owner/skill', url?: string | null) {
   return {

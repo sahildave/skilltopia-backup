@@ -1,4 +1,10 @@
-import { fetchAllLeaderboard, classifySkillOrigin, skillPageUrl, type CatalogSkill, type LeaderboardView } from './skills-catalog.js';
+import {
+  fetchAllLeaderboard,
+  classifySkillOrigin,
+  skillPageUrl,
+  type CatalogSkill,
+  type LeaderboardView,
+} from './skills-catalog.js';
 import { createSupabaseRepositoryFromEnv, type SkillListSighting } from './supabase-repository.js';
 
 type Repository = ReturnType<typeof createSupabaseRepositoryFromEnv>;

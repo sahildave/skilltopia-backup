@@ -5,7 +5,12 @@ import type { LanguageModel } from 'ai';
 import { createHash } from 'node:crypto';
 import { distilledEnrichmentText, enrichWithModel } from './enrichment.js';
 import { MAX_ENRICHED, MAX_ENRICHED_DEFAULT, maxEnrichedFromEnv } from './max-enriched.js';
-import { fetchLeaderboard, fetchSkillDetail, classifySkillOrigin, skillPageUrl } from './skills-catalog.js';
+import {
+  fetchLeaderboard,
+  fetchSkillDetail,
+  classifySkillOrigin,
+  skillPageUrl,
+} from './skills-catalog.js';
 import {
   createSupabaseRepositoryFromEnv,
   estimateReadTimeMinutes,

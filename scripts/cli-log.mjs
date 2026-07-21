@@ -27,7 +27,9 @@ function skillGroup(message) {
 }
 
 function parseDoneStats(message) {
-  return Object.fromEntries([...message.matchAll(/(\w+)=(\d+)/g)].map(([, key, value]) => [key, value]));
+  return Object.fromEntries(
+    [...message.matchAll(/(\w+)=(\d+)/g)].map(([, key, value]) => [key, value]),
+  );
 }
 
 function formatDoneMessage(message, level) {

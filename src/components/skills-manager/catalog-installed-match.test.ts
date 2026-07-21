@@ -8,7 +8,9 @@ import {
   isCatalogSkillInstalled,
 } from './catalog-installed-match';
 
-function catalogSkill(partial: Partial<SkillsShSkill> & Pick<SkillsShSkill, 'id' | 'slug'>): SkillsShSkill {
+function catalogSkill(
+  partial: Partial<SkillsShSkill> & Pick<SkillsShSkill, 'id' | 'slug'>,
+): SkillsShSkill {
   return {
     name: partial.slug,
     source: 'owner/repo',

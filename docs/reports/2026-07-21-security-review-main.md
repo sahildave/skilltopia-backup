@@ -6,13 +6,13 @@ Full-project security review of the checked-out **main** branch (runtime surface
 
 ## Findings
 
-| Severity | Location | Finding | Remediation task |
-|----------|----------|---------|------------------|
-| High | `src-tauri/tauri.conf.json:64` | Auto-updater enabled with placeholder pubkey (`YOUR_UPDATER_PUBLIC_KEY_HERE`); `prepare-release.js` treats any non-empty pubkey as configured | [task-23](../tasks-todo/task-23-tauri-updater-signing.md) |
-| Medium | `api/_lib/proxy.ts:6` | Public Backend is an unauthenticated OIDC amplifier (skills.sh budget, audit/search cost) | [task-27](../tasks-todo/task-27-public-backend-privacy.md) |
-| Medium | `api/_lib/rate-limit.ts:24` | In-memory rate limit is per Fluid instance — effective limit can exceed 60 req/min/IP | [task-27](../tasks-todo/task-27-public-backend-privacy.md) |
-| Medium | `src-tauri/src/commands/skills_sh.rs:11` | Hardcoded default Backend URL concentrates traffic on one operator’s OIDC budget | [task-27](../tasks-todo/task-27-public-backend-privacy.md) |
-| Medium | `api/skills/audit.ts:8` | On-demand `/audit` refresh burns primary OIDC on cache miss / 7-day stale | [task-27](../tasks-todo/task-27-public-backend-privacy.md) |
+| Severity | Location                                 | Finding                                                                                                                                       | Remediation task                                           |
+| -------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| High     | `src-tauri/tauri.conf.json:64`           | Auto-updater enabled with placeholder pubkey (`YOUR_UPDATER_PUBLIC_KEY_HERE`); `prepare-release.js` treats any non-empty pubkey as configured | [task-23](../tasks-todo/task-23-tauri-updater-signing.md)  |
+| Medium   | `api/_lib/proxy.ts:6`                    | Public Backend is an unauthenticated OIDC amplifier (skills.sh budget, audit/search cost)                                                     | [task-27](../tasks-todo/task-27-public-backend-privacy.md) |
+| Medium   | `api/_lib/rate-limit.ts:24`              | In-memory rate limit is per Fluid instance — effective limit can exceed 60 req/min/IP                                                         | [task-27](../tasks-todo/task-27-public-backend-privacy.md) |
+| Medium   | `src-tauri/src/commands/skills_sh.rs:11` | Hardcoded default Backend URL concentrates traffic on one operator’s OIDC budget                                                              | [task-27](../tasks-todo/task-27-public-backend-privacy.md) |
+| Medium   | `api/skills/audit.ts:8`                  | On-demand `/audit` refresh burns primary OIDC on cache miss / 7-day stale                                                                     | [task-27](../tasks-todo/task-27-public-backend-privacy.md) |
 
 ## Release gate
 

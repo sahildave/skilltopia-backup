@@ -322,7 +322,8 @@ function tierStats(rows) {
   return {
     primaryComplete: withPage.filter((r) => !r.primaryGap).length,
     secondaryComplete: withPage.filter((r) => !r.primaryGap && !r.secondaryGap).length,
-    tertiaryComplete: withPage.filter((r) => !r.primaryGap && !r.secondaryGap && !r.tertiaryGap).length,
+    tertiaryComplete: withPage.filter((r) => !r.primaryGap && !r.secondaryGap && !r.tertiaryGap)
+      .length,
   };
 }
 
@@ -338,7 +339,9 @@ function sortRows(rows) {
       if (row.secondaryGap) return 1;
       return 0;
     };
-    return rank(b) - rank(a) || b.missingCount - a.missingCount || a.skillId.localeCompare(b.skillId);
+    return (
+      rank(b) - rank(a) || b.missingCount - a.missingCount || a.skillId.localeCompare(b.skillId)
+    );
   });
 }
 
@@ -351,7 +354,9 @@ function writeCanvas(rows, limit) {
   const tableHeaders = HEADERS.map((h) => escapeTsx(h)).join(', ');
   const tableRows = sorted
     .map((row) => {
-      const cells = rowToCells(row).map((c) => escapeTsx(c)).join(', ');
+      const cells = rowToCells(row)
+        .map((c) => escapeTsx(c))
+        .join(', ');
       return `    [${cells}]`;
     })
     .join(',\n');

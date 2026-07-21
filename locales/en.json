@@ -152,6 +152,7 @@
   "skills.nav.presets": "Presets",
   "skills.nav.settings": "Settings",
   "skills.installed.title": "Installed",
+  "skills.installed.descriptionGlobal": "All your installed skills",
   "skills.installed.description": "Installed global skills in",
   "skills.installed.webUnavailable": "Your local skill library lives on disk in the desktop app.",
   "skills.installed.getAppDescription": "Download Skills Explorer to browse installed skills and install them on your machine.",

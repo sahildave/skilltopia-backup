@@ -64,7 +64,7 @@ function LocalProjectsView() {
         skillQuery={skillQuery}
         layoutMode={layoutMode}
         leadingAction={
-          <Button variant="outline" size="sm" onClick={() => void chooseRoot()}>
+          <Button variant="outline" size="default" onClick={() => void chooseRoot()}>
             <FolderOpen data-icon="inline-start" />
             {t('skills.projects.chooseFolder')}
           </Button>

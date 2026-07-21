@@ -9,7 +9,15 @@ import {
 } from '@/components/ui/input-group';
 import type { LibraryLayoutMode } from '@/store/installed-skills-ui-store';
 import { platform } from '@platform';
-import { ArrowLeft, LayoutGrid, LayoutList, LoaderCircle, Search, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  LayoutGrid,
+  LayoutList,
+  LoaderCircle,
+  RefreshCw,
+  Search,
+  X,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DitherGradient } from '../dither-kit';
@@ -77,7 +85,7 @@ export function InstalledToolbar({
         {/* title description */}
         <div className="relative flex min-w-0 w-full flex-row flex-wrap items-center justify-between gap-4 p-8 pb-3.5 pt-15">
           <div className="flex min-w-0 flex-col px-1 items-start gap-2.5">
-            <div className="flex min-w-0 flex-row items-center  gap-2.5">
+            <div className="flex min-w-0 h-7.5 flex-row items-center  gap-2.5">
               <h1 className="text-3xl leading-none text-balance">{title}</h1>
               {skillCount !== null ? (
                 <Badge variant="secondary" size="sm" className="mt-3.5 tabular-nums">
@@ -146,19 +154,7 @@ export function InstalledToolbar({
       {/* tabs section */}
       <div className="relative flex min-w-0 flex-wrap items-center gap-3 px-8 pb-4">
         <div className="flex flex-row flex-wrap items-center justify-between w-full gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            {leadingAction}
-            {onRescan ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onRescan}
-                disabled={refreshing && !hasSnapshot}
-              >
-                {rescanLabel ?? t('skills.installed.rescan')}
-              </Button>
-            ) : null}
-          </div>
+          <div className="flex flex-wrap items-center gap-2">{leadingAction}</div>
 
           {showInstalledControls ? (
             <ContinuousTabs
@@ -188,29 +184,43 @@ export function InstalledToolbar({
             />
           ) : null}
 
-          {onLayoutModeChange ? (
-            <ContinuousTabs
-              className="ms-auto"
-              value={layoutMode}
-              tabs={[
-                {
-                  id: 'list',
-                  label: t('skills.installed.layoutList'),
-                  icon: LayoutList,
-                },
-                {
-                  id: 'grid',
-                  label: t('skills.installed.layoutGrid'),
-                  icon: LayoutGrid,
-                },
-              ]}
-              onChange={(id) => {
-                if (id === 'grid' || id === 'list') {
-                  onLayoutModeChange(id);
-                }
-              }}
-            />
-          ) : null}
+          <div className="ms-auto flex items-center gap-2">
+            {onRescan ? (
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={onRescan}
+                disabled={refreshing && !hasSnapshot}
+                aria-label={rescanLabel ?? t('skills.installed.rescan')}
+                title={rescanLabel ?? t('skills.installed.rescan')}
+              >
+                <RefreshCw aria-hidden />
+              </Button>
+            ) : null}
+
+            {onLayoutModeChange ? (
+              <ContinuousTabs
+                value={layoutMode}
+                tabs={[
+                  {
+                    id: 'list',
+                    label: t('skills.installed.layoutList'),
+                    icon: LayoutList,
+                  },
+                  {
+                    id: 'grid',
+                    label: t('skills.installed.layoutGrid'),
+                    icon: LayoutGrid,
+                  },
+                ]}
+                onChange={(id) => {
+                  if (id === 'grid' || id === 'list') {
+                    onLayoutModeChange(id);
+                  }
+                }}
+              />
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

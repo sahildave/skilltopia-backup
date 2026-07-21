@@ -31,7 +31,7 @@ import type { InstallScope } from './types';
 const MORPH_TRANSITION = { type: 'spring', stiffness: 200, damping: 24 } as const;
 
 const DETAIL_CONTENT_CLASS =
-  'app-material-strong bg-background relative max-h-[85vh] w-full max-w-[calc(100%-2rem)] overflow-y-auto rounded-lg border p-6 shadow-lg sm:max-w-2xl';
+  'app-material-strong bg-background relative max-h-[85vh] w-full max-w-[calc(100%-2rem)] overflow-y-auto rounded-[min(var(--radius-4xl),24px)]  border p-6 shadow-lg sm:max-w-2xl';
 
 function formatInstalls(count: number): string {
   return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(count);
@@ -93,7 +93,7 @@ export function SkillInstallMenu({
       <Button
         variant="outline"
         size="sm"
-        className="text-teal-600 bg-transparent shadow-none border-none"
+        className="text-teal-700 dark:text-teal-500 bg-transparent shadow-none border-none"
         onClick={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}
       >

@@ -1,4 +1,3 @@
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { isPassAuditStatus, type SkillAuditEntry, type SkillsShSkill } from '@/catalog/types';
 import { Sparkline } from '@/components/dither-kit';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -6,11 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MorphingDialogSubtitle, MorphingDialogTitle } from '@/components/ui/morphing-dialog';
 import { Separator } from '@/components/ui/separator';
-import { opacityTransition, layoutDuration, entranceEase } from '@/lib/animation';
+import { entranceEase, layoutDuration, opacityTransition } from '@/lib/animation';
 import { useSkillAudits, useSkillDetail } from '@/services/skills-sh';
 import { platform } from '@platform';
 import { AlertCircle, ExternalLink, LoaderCircle } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 function DetailList({ values }: { values: string[] }) {
@@ -18,9 +18,9 @@ function DetailList({ values }: { values: string[] }) {
   if (values.length === 0)
     return <span className="text-muted-foreground text-sm">{t('skills.detail.notSpecified')}</span>;
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap gap-2">
       {values.map((value) => (
-        <Badge key={value} variant="outline">
+        <Badge key={value} size="md" variant="outline">
           {value}
         </Badge>
       ))}
@@ -28,10 +28,10 @@ function DetailList({ values }: { values: string[] }) {
   );
 }
 
-function AuditStatusBadge({ status }: { status: SkillAuditEntry['status'] }) {
+function AuditStatusBadge({ status }: { status: SkillAuditEntry['status']; className?: string }) {
   const variant = isPassAuditStatus(status) ? 'secondary' : 'outline';
   return (
-    <Badge variant={variant} className="capitalize">
+    <Badge variant={variant} size="md" className="capitalize text-teal-700 dark:text-teal-500">
       {status}
     </Badge>
   );
@@ -76,11 +76,14 @@ function AuditsSection({
       {audits.map((audit) => (
         <li
           key={`${audit.provider}-${audit.slug}-${audit.auditedAt}`}
-          className="rounded-lg border bg-muted/30 px-3 py-2"
+          className="rounded-lg border bg-muted/30 px-3 py-3"
         >
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-medium">{audit.provider}</span>
-            <AuditStatusBadge status={audit.status} />
+            <span className="text-base font-medium">{audit.provider}</span>
+            <AuditStatusBadge
+              status={audit.status}
+              className="capitalize text-teal-700 dark:text-teal-500"
+            />
           </div>
           <p className="text-muted-foreground mt-1 text-sm text-pretty">{audit.summary}</p>
         </li>
@@ -193,13 +196,25 @@ export function SkillDetailBody({ skill }: { skill: SkillsShSkill }) {
 
   return (
     <AnimateAutoHeight reduceMotion={reduceMotion}>
-      <div className="flex flex-col gap-5">
-        <div className="flex flex-col gap-2 pe-8">
+      <div className="relative flex flex-col gap-5">
+        <div className="flex flex-col gap-2 pe-8 px-2 pb-4 border-b border-border bg-card">
           <MorphingDialogTitle className="text-lg leading-none font-semibold text-balance">
             {skill.name}
           </MorphingDialogTitle>
           <MorphingDialogSubtitle className="text-muted-foreground text-sm text-pretty">
-            {skill.id}
+            {originHref ? (
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground text-start text-sm break-all underline-offset-2 hover:underline"
+                onClick={() => void platform.openExternal(originHref)}
+              >
+                {originValue}/{skill.name}
+              </button>
+            ) : (
+              <p className="text-muted-foreground text-sm break-all">
+                {originValue}/{skill.name}
+              </p>
+            )}
           </MorphingDialogSubtitle>
         </div>
 
@@ -240,23 +255,11 @@ export function SkillDetailBody({ skill }: { skill: SkillsShSkill }) {
               exit={{ opacity: 0, transition: fadeTransition }}
               className="flex flex-col gap-5"
             >
-              {summary ? (
-                <section className="rounded-lg border bg-muted/30 p-4">
-                  <h3 className="text-sm font-semibold">{t('skills.detail.summary')}</h3>
-                  <p className="text-muted-foreground mt-2 text-sm text-pretty">{summary}</p>
-                </section>
-              ) : null}
-
-              {topics.length > 0 ? (
+              <div className="grid gap-8 sm:grid-cols-2 px-4">
                 <section className="flex flex-col gap-2">
-                  <h3 className="text-sm font-semibold">{t('skills.detail.topics')}</h3>
-                  <DetailList values={topics} />
-                </section>
-              ) : null}
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <section className="flex flex-col gap-2">
-                  <h3 className="text-sm font-semibold">{t('skills.detail.installs')}</h3>
+                  <h3 className="text-lg leading-none text-balance">
+                    {t('skills.detail.installs')}
+                  </h3>
                   <p className="text-muted-foreground text-sm tabular-nums">
                     {installCount.toLocaleString()}
                   </p>
@@ -266,28 +269,28 @@ export function SkillDetailBody({ skill }: { skill: SkillsShSkill }) {
                     </div>
                   ) : null}
                 </section>
-                {originLabel && originValue ? (
-                  <section className="flex flex-col gap-2">
-                    <h3 className="text-sm font-semibold">{originLabel}</h3>
-                    {originHref ? (
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground text-start text-sm break-all underline-offset-2 hover:underline"
-                        onClick={() => void platform.openExternal(originHref)}
-                      >
-                        {originValue}
-                      </button>
-                    ) : (
-                      <p className="text-muted-foreground text-sm break-all">{originValue}</p>
-                    )}
+                {topics.length > 0 ? (
+                  <section className="flex flex-col gap-4">
+                    <h3 className="text-lg leading-none text-balance">
+                      {t('skills.detail.topics')}
+                    </h3>
+                    <DetailList values={topics} />
                   </section>
                 ) : null}
               </div>
+              {summary ? (
+                <section className="rounded-lg border bg-muted/30 p-4">
+                  <h3 className="text-lg leading-none text-balance">
+                    {t('skills.detail.summary')}
+                  </h3>
+                  <p className="text-muted-foreground mt-2 text-sm text-pretty">{summary}</p>
+                </section>
+              ) : null}
 
               <Separator />
 
               <section className="flex flex-col gap-3">
-                <h3 className="text-sm font-semibold">{t('skills.detail.audits')}</h3>
+                <h3 className="text-lg leading-none text-balance">{t('skills.detail.audits')}</h3>
                 <AuditsSection
                   audits={auditEntries}
                   isLoading={auditsQuery.isLoading}

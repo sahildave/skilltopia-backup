@@ -1,23 +1,25 @@
 import { Button } from '@/components/ui/button';
+
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  ActionMenuContent,
+  ActionMenuItem,
+  ActionMenuPanel,
+  ActionMenuRoot,
+  ActionMenuTrigger,
+  useActionMenuDismiss,
+} from '@/components/ui/action-menu';
 import { panelRowSlideVariants } from '@/lib/animation';
 import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { platform } from '@platform';
 import { Copy, MoreHorizontal, Trash2 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
-import { useState } from 'react';
+import { AnimatePresence, LayoutGroup, motion } from 'motion/react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { CopyProvidersDialog } from './CopyProvidersDialog';
 import { uninstallAgentScopeFromFilter, type ProviderFilterId } from './installed-skills-model';
 import { isPermissionError } from './library-errors';
-
 export function SkillCardOverflowMenu({
   skill,
   snapshot,
@@ -32,6 +34,7 @@ export function SkillCardOverflowMenu({
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
+
   const [uninstalling, setUninstalling] = useState(false);
   const [copyOpen, setCopyOpen] = useState(false);
   const copiesCommand = platform.copiesInstallCommand;
@@ -39,12 +42,12 @@ export function SkillCardOverflowMenu({
   const rescan = useInstalledScanStore((state) => state.rescan);
   const rowVariants = panelRowSlideVariants(Boolean(reduceMotion));
 
-  const handleOpenChange = (next: boolean) => {
-    setOpen(next);
-    if (!next) {
-      setConfirming(false);
-    }
-  };
+  const closeMenu = useCallback(() => {
+    setOpen(false);
+    setConfirming(false);
+  }, []);
+
+  const { ref } = useActionMenuDismiss({ open, onOpenChange: closeMenu });
 
   const handleUninstall = async () => {
     setUninstalling(true);
@@ -86,98 +89,89 @@ export function SkillCardOverflowMenu({
 
   return (
     <>
-      <DropdownMenu open={open} onOpenChange={handleOpenChange}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="shrink-0"
-            aria-label={t('skills.installed.overflowMenu')}
-            disabled={uninstalling}
-          >
-            <MoreHorizontal aria-hidden />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="end"
-          className={
-            confirming
-              ? 'relative flex h-12 min-w-56 flex-col py-0.5'
-              : 'flex min-w-56 flex-col py-0.5'
-          }
+      <ActionMenuRoot ref={ref}>
+        <ActionMenuTrigger
+          aria-label={t('skills.installed.overflowMenu')}
+          aria-expanded={open}
+          disabled={uninstalling}
+          onClick={() => {
+            if (uninstalling) {
+              return;
+            }
+            setOpen((value) => !value);
+          }}
         >
-          <AnimatePresence custom={confirming} mode="popLayout" initial={false}>
-            {!confirming ? (
-              <motion.div
-                key="actions"
-                custom={confirming}
-                variants={rowVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                className="flex flex-col"
-              >
-                {canCopy ? (
-                  <DropdownMenuItem
-                    disabled={uninstalling}
-                    onSelect={() => {
-                      setOpen(false);
-                      setCopyOpen(true);
-                    }}
-                  >
-                    <Copy aria-hidden />
-                    {t('skills.installed.copyToProviders')}
-                  </DropdownMenuItem>
-                ) : null}
-                <DropdownMenuItem
-                  variant="destructive"
+          <MoreHorizontal aria-hidden />
+        </ActionMenuTrigger>
+        <ActionMenuPanel open={open}>
+          <LayoutGroup>
+            <ActionMenuContent>
+              {canCopy ? (
+                <ActionMenuItem
                   disabled={uninstalling}
-                  onSelect={(event) => {
-                    event.preventDefault();
-                    setConfirming(true);
-                    setOpen(true);
+                  icon={<Copy aria-hidden />}
+                  label={t('skills.installed.copyToProviders')}
+                  onClick={() => {
+                    setOpen(false);
+                    setCopyOpen(true);
                   }}
-                >
-                  <Trash2 aria-hidden />
-                  {t('skills.installed.uninstall')}
-                </DropdownMenuItem>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="confirm"
-                custom={confirming}
-                variants={rowVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                className="absolute inset-x-0 flex items-center gap-2"
-              >
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  className="flex-1"
-                  disabled={uninstalling}
-                  onClick={() => void handleUninstall()}
-                >
-                  {t('skills.installed.uninstallYes')}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  disabled={uninstalling}
-                  onClick={() => setConfirming(false)}
-                >
-                  {t('skills.installed.uninstallCancel')}
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </DropdownMenuContent>
-      </DropdownMenu>
+                />
+              ) : null}
+              <div className="relative mt-2 h-14 overflow-hidden border-t border-border pt-2">
+                <AnimatePresence custom={confirming} mode="popLayout" initial={false}>
+                  {!confirming ? (
+                    <motion.div
+                      key="delete"
+                      custom={confirming}
+                      variants={rowVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      className="absolute inset-x-0 top-2"
+                    >
+                      <ActionMenuItem
+                        icon={<Trash2 aria-hidden />}
+                        label={t('skills.installed.uninstall')}
+                        destructive
+                        disabled={uninstalling}
+                        onClick={() => setConfirming(true)}
+                      />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="confirm"
+                      custom={confirming}
+                      variants={rowVariants}
+                      initial="initial"
+                      animate="animate"
+                      exit="exit"
+                      className="absolute inset-x-0 top-2 flex items-center gap-2"
+                    >
+                      <Button
+                        variant="destructive"
+                        disabled={uninstalling}
+                        onClick={() => void handleUninstall()}
+                        className="flex-1 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Yes, Delete
+                      </Button>
+
+                      <Button
+                        variant="secondary"
+                        disabled={uninstalling}
+                        onClick={() => setConfirming(false)}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </ActionMenuContent>
+          </LayoutGroup>
+        </ActionMenuPanel>
+      </ActionMenuRoot>
 
       {canCopy ? (
         <CopyProvidersDialog

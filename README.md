@@ -7,6 +7,7 @@ Skilltopia is created by Coduo Studio, LLC. The main creators are [Sahil Dave](h
 ## Downloads
 
 <!-- downloads:start -->
+
 - [Apple Silicon macOS (.dmg)](https://github.com/sahildave/skilltopia/releases/latest/download/skilltopia_0.2.0_aarch64.dmg)
 - [Intel macOS](https://github.com/sahildave/skilltopia/releases/latest)
 - [Windows](https://github.com/sahildave/skilltopia/releases/latest)

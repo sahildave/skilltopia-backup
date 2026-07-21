@@ -36,21 +36,14 @@ export function parseGithubRepoSlug(remoteUrl) {
  * @param {string[]} assetNames
  */
 export function classifyReleaseAssets(assetNames) {
-  const installers = assetNames.filter(
-    (name) => !name.endsWith('.sig') && name !== 'latest.json',
-  );
+  const installers = assetNames.filter((name) => !name.endsWith('.sig') && name !== 'latest.json');
 
   return {
-    appleSiliconDmg: installers.find(
-      (name) => name.endsWith('.dmg') && name.includes('aarch64'),
-    ),
+    appleSiliconDmg: installers.find((name) => name.endsWith('.dmg') && name.includes('aarch64')),
     intelMacDmg: installers.find(
-      (name) =>
-        name.endsWith('.dmg') && (name.includes('x64') || name.includes('x86_64')),
+      (name) => name.endsWith('.dmg') && (name.includes('x64') || name.includes('x86_64')),
     ),
-    windowsInstaller: installers.find(
-      (name) => name.endsWith('.msi') || name.endsWith('.exe'),
-    ),
+    windowsInstaller: installers.find((name) => name.endsWith('.msi') || name.endsWith('.exe')),
     linuxAppImage: installers.find((name) => name.endsWith('.AppImage')),
   };
 }

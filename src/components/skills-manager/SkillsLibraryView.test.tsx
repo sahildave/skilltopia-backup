@@ -442,6 +442,15 @@ describe('SkillsSidebar providers', () => {
     expect(scanMock.scanInstalled).not.toHaveBeenCalled();
     expect(scanMock.getInstalledScan).not.toHaveBeenCalled();
   });
+
+  it('hides the Projects filter in the web app', () => {
+    scanMock.hasLocalLibrary = false;
+    render(<SkillsSidebar active="projects" onSelect={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Projects' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Search projects')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Choose coding folder' })).not.toBeInTheDocument();
+  });
 });
 
 describe('Installed Skills shared snapshot lifecycle', () => {

@@ -1,8 +1,8 @@
 import { Button } from '@/components/ui/button';
-import { DitherGradient } from '../dither-kit';
-import { DESKTOP_APP_DOWNLOAD_URL } from '@/lib/desktop-download';
+import { GITHUB_REPO_URL } from '@/lib/desktop-download';
 import { platform } from '@platform';
 import { useTranslation } from 'react-i18next';
+import { DitherGradient } from '../dither-kit';
 
 interface InstalledUnavailableStubProps {
   titleKey?: string;
@@ -20,8 +20,14 @@ export function InstalledUnavailableStub({
   const { t } = useTranslation();
 
   return (
-    <div className="relative flex h-full flex-col items-center justify-center gap-4 overflow-hidden p-6 text-center">
-      <DitherGradient from="grey" direction="down" />
+    <div className="relative bg-background app-material flex h-full flex-col items-center justify-center gap-4 overflow-hidden p-6 text-center">
+      <div className="flex absolute inset-0  flex-col items-end justify-end">
+        <DitherGradient
+          className="absolute inset-x-0 top-auto bottom-0 h-24"
+          from="grey"
+          direction="down"
+        />
+      </div>
 
       <div className="relative flex max-w-md flex-col items-center gap-3">
         <h1 className="text-3xl leading-none text-balance">{t(titleKey)}</h1>
@@ -31,7 +37,7 @@ export function InstalledUnavailableStub({
       <Button
         className="relative"
         size="lg"
-        onClick={() => void platform.openExternal(DESKTOP_APP_DOWNLOAD_URL)}
+        onClick={() => void platform.openExternal(GITHUB_REPO_URL)}
       >
         {t(actionKey)}
       </Button>

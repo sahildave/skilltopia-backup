@@ -185,7 +185,7 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
           </button>
         </div>
 
-        {active === 'projects' ? (
+        {active === 'projects' && platform.hasLocalLibrary ? (
           <ProjectFilter
             root={root}
             projects={projects}

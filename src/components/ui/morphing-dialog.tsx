@@ -16,6 +16,7 @@ import {
   AnimatePresence,
   MotionConfig,
   motion,
+  useReducedMotion,
   type Transition,
   type Variant,
 } from 'motion/react';
@@ -112,6 +113,7 @@ type MorphingDialogContentProps = {
 function MorphingDialogContent({ children, className, style }: MorphingDialogContentProps) {
   const { setIsOpen, isOpen, uniqueId, triggerRef } = useMorphingDialog();
   const containerRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion() ?? false;
 
   useEffect(() => {
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
@@ -149,6 +151,7 @@ function MorphingDialogContent({ children, className, style }: MorphingDialogCon
   return (
     <motion.div
       ref={containerRef}
+      layout={!reduceMotion}
       layoutId={`dialog-${uniqueId}`}
       className={cn('overflow-hidden', className)}
       style={style}

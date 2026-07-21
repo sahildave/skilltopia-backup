@@ -47,11 +47,41 @@ describe('SkillDetailBody', () => {
     vi.mocked(catalog.fetchAudits).mockReset();
   });
 
+  it('shows loading then content when detail resolves', async () => {
+    const skill = MOCK_LEADERBOARD[0];
+    if (!skill) throw new Error('expected MOCK_LEADERBOARD[0]');
+
+    let resolveDetail!: (value: typeof MOCK_DETAIL) => void;
+    vi.mocked(catalog.fetchDetail).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveDetail = resolve;
+        }),
+    );
+    vi.mocked(catalog.fetchAudits).mockResolvedValue(MOCK_AUDITS);
+
+    await renderOpenDetail(skill);
+
+    expect(screen.getByText(/loading skill details/i)).toBeInTheDocument();
+
+    resolveDetail(MOCK_DETAIL);
+
+    await waitFor(() => {
+      expect(screen.getByText('Discover and install agent skills')).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.queryByText(/loading skill details/i)).not.toBeInTheDocument();
+    });
+  });
+
   it('renders page cache fields, sparkline series, and audits for a cached skill', async () => {
+    const skill = MOCK_LEADERBOARD[0];
+    if (!skill) throw new Error('expected MOCK_LEADERBOARD[0]');
+
     vi.mocked(catalog.fetchDetail).mockResolvedValue(MOCK_DETAIL);
     vi.mocked(catalog.fetchAudits).mockResolvedValue(MOCK_AUDITS);
 
-    await renderOpenDetail(MOCK_LEADERBOARD[0]!);
+    await renderOpenDetail(skill);
 
     await waitFor(() => {
       expect(screen.getByText('Discover and install agent skills')).toBeInTheDocument();
@@ -66,6 +96,9 @@ describe('SkillDetailBody', () => {
   });
 
   it('still requests on-demand audits when page cache is empty', async () => {
+    const skill = MOCK_LEADERBOARD[1];
+    if (!skill) throw new Error('expected MOCK_LEADERBOARD[1]');
+
     vi.mocked(catalog.fetchDetail).mockResolvedValue(MOCK_UNCACHED_DETAIL);
     vi.mocked(catalog.fetchAudits).mockResolvedValue({
       skillId: MOCK_UNCACHED_DETAIL.skillId,
@@ -74,7 +107,7 @@ describe('SkillDetailBody', () => {
       auditsFetchedAt: null,
     });
 
-    await renderOpenDetail(MOCK_LEADERBOARD[1]!);
+    await renderOpenDetail(skill);
 
     expect(screen.getByRole('button', { name: /open on skills\.sh/i })).toBeInTheDocument();
     expect(catalog.fetchAudits).toHaveBeenCalledWith(MOCK_UNCACHED_DETAIL.skillId);

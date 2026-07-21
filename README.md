@@ -128,14 +128,13 @@ Skilltopia is being submitted to [OpenAI Build Week](https://openai.com/build-we
 
 Codex helped with implementation planning, codebase navigation, release-readiness tasks, documentation cleanup, security review follow-ups, and product polish. Key product and engineering decisions, including the MIT licensing posture, Coduo Studio ownership, upstream attribution, and Skilltopia trademark reservation, were made by the creators and then reflected in the repository with Codex assistance.
 
-## Documentation
+### How Codex Helped
 
-- [Contributing](CONTRIBUTING.md)
-- [Security Policy](SECURITY.md)
-- [Developer Docs](docs/developer/README.md)
-- [Architecture Guide](docs/developer/architecture-guide.md)
-- [Design System](docs/design/DESIGN.md)
-- [Release Notes and Process](docs/developer/releases.md)
+- Implementation planning: We used Codex to help us plan all the tasks and the vertical slices. The completed tasks can be found in [here](docs/tasks-done/) and the plan can be found in [here](docs/tasks-todo). These were created through long grilling sessions using the `grill-me` skill.
+- Codebase navigation: We used Codex to help us navigate the codebase and understand the codebase since this project was built using a template.
+- Release-readiness tasks: Creating the plan to release to open source and launching further to the app store was created using Codex.
+- Product polish: A lot of UI fixes and product improvements were created using Codex.
+- Open Source: Key product and engineering decisions, including the MIT licensing posture, upstream attribution, and Skilltopia trademark reservation, were made with Codex assistance.
 
 ## Repository Status
 

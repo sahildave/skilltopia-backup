@@ -12,7 +12,7 @@ const port = Number(process.env.VITE_PORT) || 1420
 
 const DEFAULT_BACKEND_PROXY_TARGET =
   process.env.SKILLS_PROXY_BASE_URL?.replace(/\/$/, '') ??
-  'https://skills-explorer-six.vercel.app'
+  'https://skilltopia-api.vercel.app'
 
 const isDesktop = target === 'desktop'
 const appEntry =

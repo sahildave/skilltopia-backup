@@ -14,8 +14,8 @@ Thanks for helping improve Skilltopia. Keep contributions focused, easy to revie
 ### Setup
 
 ```bash
-git clone https://github.com/sahildave/skills-explorer.git
-cd skills-explorer
+git clone https://github.com/sahildave/skilltopia.git
+cd skilltopia
 npm install
 npm run dev
 npm run check:all

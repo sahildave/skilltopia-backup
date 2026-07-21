@@ -11,7 +11,7 @@
  *
  * Env:
  *   MAX_ENRICHED          Same as scrape (`api/_lib/max-enriched.ts`: default 500, hard cap 1500)
- *   SKILLS_PROXY_BASE_URL Backend origin (default https://skills-explorer-six.vercel.app)
+ *   SKILLS_PROXY_BASE_URL Backend origin (default https://skilltopia-api.vercel.app)
  *   SKILL_IDS             Comma-separated ids (skips leaderboard)
  *   COVERAGE_CANVAS_PATH  Override canvas output path when using --canvas
  *
@@ -40,12 +40,12 @@ const TIER_BY_KEY = Object.fromEntries([
   ...TERTIARY_KEYS.map((key) => [key, 'tertiary']),
 ]);
 
-const DEFAULT_BASE = 'https://skills-explorer-six.vercel.app';
+const DEFAULT_BASE = 'https://skilltopia-api.vercel.app';
 /** Keep in sync with api/_lib/query.ts PAGE_CACHE_BATCH_MAX. */
 const PAGE_CACHE_BATCH_MAX = 100;
 const DEFAULT_CANVAS = resolve(
   process.env.HOME ?? '',
-  '.cursor/projects/Users-sahildave-code-projects-skills-explorer/canvases/scrape-field-coverage.canvas.tsx',
+  '.cursor/projects/Users-sahildave-code-projects-skilltopia/canvases/scrape-field-coverage.canvas.tsx',
 );
 const MISSING = 'MISSING';
 

@@ -15,7 +15,7 @@ This signs **update payloads**, not Gatekeeper/SmartScreen. Docs: [`docs/develop
 
 ## Scope
 
-- [ ] `tauri signer generate -w ~/.tauri/skills-explorer.key` (password optional but recommended)
+- [ ] `tauri signer generate -w ~/.tauri/skilltopia.key` (password optional but recommended)
 - [ ] Store private key offline; never commit
 - [ ] Set `plugins.updater.pubkey` in `tauri.conf.json`
 - [x] Set endpoint to `https://github.com/<owner>/<repo>/releases/latest/download/latest.json`
@@ -30,17 +30,17 @@ This signs **update payloads**, not Gatekeeper/SmartScreen. Docs: [`docs/develop
 1. Generate a password-protected updater signing key outside the repository:
 
    ```bash
-   npm run tauri -- signer generate -w ~/.tauri/skills-explorer.key --password "<strong password>"
+   npm run tauri -- signer generate -w ~/.tauri/skilltopia.key --password "<strong password>"
    ```
 
-   The interactive `tauri signer generate -w ~/.tauri/skills-explorer.key` command failed in Codex because the Tauri CLI could not read from an interactive password prompt. Use a local terminal, or pass the password non-interactively through a secure shell history-safe method.
+   The interactive `tauri signer generate -w ~/.tauri/skilltopia.key` command failed in Codex because the Tauri CLI could not read from an interactive password prompt. Use a local terminal, or pass the password non-interactively through a secure shell history-safe method.
 
 2. Store the private key material offline and never commit it. The private key should live only in local secure storage and GitHub Actions secrets.
 
 3. Replace `plugins.updater.pubkey` in `src-tauri/tauri.conf.json` with the generated public key, then set `plugins.updater.active` back to `true`.
 
 4. Add these GitHub Actions repository secrets:
-   - `TAURI_PRIVATE_KEY`: contents of `~/.tauri/skills-explorer.key`
+   - `TAURI_PRIVATE_KEY`: contents of `~/.tauri/skilltopia.key`
    - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: the private-key password
 
 5. Verify the repository secrets are present, then run:

@@ -78,7 +78,7 @@ The proxy is a **credential amplifier**: anyone who can hit your deployment URL 
 - Proxy base URL resolution (Rust):
   1. Runtime env `SKILLS_PROXY_BASE_URL` (highest priority)
   2. Compile-time `SKILLS_PROXY_BASE_URL` if set when building
-  3. Default `https://skills-explorer-six.vercel.app` (this project’s Vercel deploy). Override with `SKILLS_PROXY_BASE_URL` for forks or local `vercel dev`
+  3. Default `https://skilltopia-api.vercel.app` (this project’s Vercel deploy). Override with `SKILLS_PROXY_BASE_URL` for forks or local `vercel dev`
 
 ### Deploy (same-origin web + Backend API)
 
@@ -88,11 +88,11 @@ One Vercel project serves the Vite web app (`dist/`) and `api/` together so the 
 2. In the Vercel project: **Settings → OIDC Federation → On**.
 3. Confirm against this project’s deploy (or your fork’s URL):
    - Open the deploy root in a browser (static web shell loads)
-   - `GET https://skills-explorer-six.vercel.app/api/skills?per_page=5` (same origin as the web app)
-   - `GET https://skills-explorer-six.vercel.app/api/skills?per_page=9999` → `400`
-   - `GET https://skills-explorer-six.vercel.app/api/skills/search?q=react&limit=5`
+   - `GET https://skilltopia-api.vercel.app/api/skills?per_page=5` (same origin as the web app)
+   - `GET https://skilltopia-api.vercel.app/api/skills?per_page=9999` → `400`
+   - `GET https://skilltopia-api.vercel.app/api/skills/search?q=react&limit=5`
    - Unknown query keys → `400`
-4. Desktop is unchanged: Rust still calls the absolute deploy URL via `SKILLS_PROXY_BASE_URL` (Infisical `local`) or the runtime default `https://skills-explorer-six.vercel.app`. See [infisical.md](./infisical.md).
+4. Desktop is unchanged: Rust still calls the absolute deploy URL via `SKILLS_PROXY_BASE_URL` (Infisical `local`) or the runtime default `https://skilltopia-api.vercel.app`. See [infisical.md](./infisical.md).
 5. Never put Backend secrets in `VITE_*` / the web bundle / the Tauri binary.
 
 `vercel.json` `devCommand` remains the API-only placeholder so `vercel dev` does not start Vite (Chrome / Tauri own the UI ports).
@@ -110,7 +110,7 @@ npm run dev:local
 # same as: npm run tauri:dev
 ```
 
-Uses Infisical `SKILLS_PROXY_BASE_URL` when set; otherwise the Rust default `https://skills-explorer-six.vercel.app`.
+Uses Infisical `SKILLS_PROXY_BASE_URL` when set; otherwise the Rust default `https://skilltopia-api.vercel.app`.
 
 **2. Both local** (optional — desktop + Backend API on your machine; **not** part of `dev:all`):
 

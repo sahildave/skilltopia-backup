@@ -1,11 +1,11 @@
-import { maxEnrichedFromEnv, MAX_ENRICHED, MAX_ENRICHED_DEFAULT } from './max-enriched.js';
 import { refreshSkillAuditsIfNeeded } from './audit-cache.js';
+import { MAX_ENRICHED, MAX_ENRICHED_DEFAULT, maxEnrichedFromEnv } from './max-enriched.js';
 import { mapWeeklyInstallsToDates, parsePageSnapshot } from './page-snapshot.js';
 import {
+  classifySkillOrigin,
   fetchLeaderboard,
   fetchSkillAudits,
   fetchSkillDetail,
-  classifySkillOrigin,
   skillPageUrl,
   type SkillDetail,
 } from './skills-catalog.js';
@@ -13,7 +13,7 @@ import {
   createSupabaseRepositoryFromEnv,
   type SkillSourceMetadata,
 } from './supabase-repository.js';
-import { throttleMsFromEnv, THROTTLE_MS_DEFAULT } from './throttle-ms.js';
+import { THROTTLE_MS_DEFAULT, throttleMsFromEnv } from './throttle-ms.js';
 
 type Repository = ReturnType<typeof createSupabaseRepositoryFromEnv>;
 export type ScrapeLogLevel = 'info' | 'ok' | 'warn' | 'error' | 'step';
@@ -113,7 +113,7 @@ function sourceMetadata(
 
 async function fetchSkillsShHtml(url: string): Promise<string> {
   const response = await fetch(url, {
-    headers: { Accept: 'text/html', 'User-Agent': 'skills-explorer-scrape/1.0' },
+    headers: { Accept: 'text/html', 'User-Agent': 'skilltopia-scrape/1.0' },
   });
   if (!response.ok) throw new Error(`skills.sh HTML fetch failed: ${response.status}`);
   return response.text();

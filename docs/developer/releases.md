@@ -17,7 +17,7 @@ The release system provides:
 
 ```bash
 npm install -g @tauri-apps/cli
-tauri signer generate -w ~/.tauri/skills-explorer.key
+tauri signer generate -w ~/.tauri/skilltopia.key
 # Outputs private key (saved) and public key (displayed)
 ```
 
@@ -30,7 +30,7 @@ placeholder endpoints.
 
 Add these secrets (Settings → Secrets and variables → Actions):
 
-- `TAURI_PRIVATE_KEY`: Content of `~/.tauri/skills-explorer.key`
+- `TAURI_PRIVATE_KEY`: Content of `~/.tauri/skilltopia.key`
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: Password for the private key
 
 The release workflow requires both secret names before building updater
@@ -45,9 +45,7 @@ artifacts, so generate a password-protected private key.
   "plugins": {
     "updater": {
       "active": true,
-      "endpoints": [
-        "https://github.com/sahildave/skills-explorer/releases/latest/download/latest.json"
-      ],
+      "endpoints": ["https://github.com/sahildave/skilltopia/releases/latest/download/latest.json"],
       "dialog": false,
       "pubkey": "YOUR_PUBLIC_KEY_FROM_STEP_1"
     }
@@ -180,7 +178,7 @@ All updates are cryptographically signed:
 3. Invalid signatures are automatically rejected
 
 The Skills Explorer updater keypair is product-specific. Rotate by generating a
-new `~/.tauri/skills-explorer.key`, replacing only the public key in
+new `~/.tauri/skilltopia.key`, replacing only the public key in
 `tauri.conf.json`, and updating the two GitHub Actions secrets; never commit
 private key material.
 

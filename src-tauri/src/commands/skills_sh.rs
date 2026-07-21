@@ -10,7 +10,7 @@ const SKILLS_API_BASE: &str = "https://skills.sh/api/v1";
 
 /// Dev convenience public proxy base (no trailing slash). Override with `SKILLS_PROXY_BASE_URL`.
 /// Forks/release builds should point at their own Vercel deploy — do not rely on a shared default.
-const DEFAULT_PROXY_BASE_URL: &str = "https://skills-explorer-six.vercel.app";
+const DEFAULT_PROXY_BASE_URL: &str = "https://skilltopia-api.vercel.app";
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct SkillsShSkill {

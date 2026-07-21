@@ -320,7 +320,7 @@ mod tests {
 
     fn temp_home(label: &str) -> PathBuf {
         let dir = std::env::temp_dir().join(format!(
-            "skills-explorer-copy-{label}-{}",
+            "skilltopia-copy-{label}-{}",
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()

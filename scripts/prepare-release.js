@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-import fs from 'fs';
 import { execSync } from 'child_process';
+import fs from 'fs';
 import readline from 'readline';
 import { validateUpdaterReleaseConfig } from './release-config.mjs';
 
@@ -146,7 +146,9 @@ async function prepareRelease() {
     console.log(`\n🎉 Successfully prepared release ${tagVersion}!`);
     console.log('\n📋 Git commands to execute:');
     console.log('   git add .');
-    console.log(`   git commit -m "chore: release ${tagVersion}"  # skipped when version files are unchanged`);
+    console.log(
+      `   git commit -m "chore: release ${tagVersion}"  # skipped when version files are unchanged`,
+    );
     console.log(`   git tag ${tagVersion}`);
     console.log('   git push origin main --tags');
 
@@ -193,9 +195,9 @@ async function prepareRelease() {
       exec('git push origin main --tags');
 
       console.log(`\n🎊 Release ${tagVersion} has been published!`);
-      console.log('📱 Check GitHub Actions: https://github.com/sahildave/skills-explorer/actions');
+      console.log('📱 Check GitHub Actions: https://github.com/sahildave/skilltopia/actions');
       console.log(
-        '📦 Draft release will appear at: https://github.com/sahildave/skills-explorer/releases',
+        '📦 Draft release will appear at: https://github.com/sahildave/skilltopia/releases',
       );
       console.log('\n⚠️  Remember: You need to manually publish the draft release on GitHub!');
     } else {

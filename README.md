@@ -9,11 +9,11 @@ The app has two runtime targets:
 - **Web**: browse and search the live catalog in Chrome during development.
 - **Desktop**: run the Tauri app to scan local skill directories, install skills, and use native desktop integrations.
 
-Desktop downloads will be published from [GitHub Releases](https://github.com/sahildave/skills-explorer/releases) once the first signed build is available. Until then, clone the repo and run locally.
+Desktop downloads will be published from [GitHub Releases](https://github.com/sahildave/skilltopia/releases) once the first signed build is available. Until then, clone the repo and run locally.
 
 Public site: [skilltopia.coduo.co](https://skilltopia.coduo.co)
 
-TODO: rename the GitHub repository from `sahildave/skills-explorer` to `sahildave/skilltopia` and update links to `https://github.com/sahildave/skilltopia`.
+TODO: rename the GitHub repository from `sahildave/skilltopia` to `sahildave/skilltopia` and update links to `https://github.com/sahildave/skilltopia`.
 
 ## Stack
 
@@ -36,8 +36,8 @@ Prerequisites:
 Run the web app:
 
 ```bash
-git clone https://github.com/sahildave/skills-explorer.git
-cd skills-explorer
+git clone https://github.com/sahildave/skilltopia.git
+cd skilltopia
 npm install
 npm run dev
 ```

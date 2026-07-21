@@ -1,6 +1,6 @@
 import { dehydrate, hydrate, type QueryClient } from '@tanstack/react-query';
 
-const STORAGE_KEY = 'skills-explorer-query-cache';
+const STORAGE_KEY = 'skilltopia-query-cache';
 
 type PersistedQueryCache = ReturnType<typeof dehydrate>;
 

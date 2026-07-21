@@ -10,7 +10,7 @@ Do not report security vulnerabilities through public GitHub issues, discussions
 
 Use GitHub private vulnerability reporting for this repository:
 
-https://github.com/sahildave/skills-explorer/security/advisories/new
+https://github.com/sahildave/skilltopia/security/advisories/new
 
 Include:
 

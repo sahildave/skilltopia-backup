@@ -6,7 +6,7 @@ Please do not report security vulnerabilities through public GitHub issues, disc
 
 Use GitHub private vulnerability reporting for this repository:
 
-https://github.com/sahildave/skills-explorer/security/advisories/new
+https://github.com/sahildave/skilltopia/security/advisories/new
 
 Include the affected area, reproduction steps, potential impact, and any relevant logs or screenshots. Do not include live secrets in the report.
 

@@ -18,7 +18,7 @@ still be missing applied migrations, Storage policies, or advisor cleanups.
 
 ## Scope
 
-- [x] Run Supabase security advisors on the skills-explorer project; fix RLS /
+- [x] Run Supabase security advisors on the skilltopia project; fix RLS /
       policy findings
 - [x] Verify RLS is enabled on all `public` tables (idempotent migration if
       any table lacks it)

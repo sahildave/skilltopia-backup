@@ -11,7 +11,7 @@ describe('updater release config guard', () => {
         updater: {
           active: true,
           endpoints: [
-            'https://github.com/sahildave/skills-explorer/releases/latest/download/latest.json',
+            'https://github.com/sahildave/skilltopia/releases/latest/download/latest.json',
           ],
           pubkey: 'YOUR_UPDATER_PUBLIC_KEY_HERE',
         },
@@ -55,9 +55,9 @@ describe('updater release config guard', () => {
         updater: {
           active: true,
           endpoints: [
-            'https://github.com/sahildave/skills-explorer/releases/latest/download/latest.json',
+            'https://github.com/sahildave/skilltopia/releases/latest/download/latest.json',
           ],
-          pubkey: '~/.tauri/skills-explorer.key.pub',
+          pubkey: '~/.tauri/skilltopia.key.pub',
         },
       },
     });
@@ -79,7 +79,7 @@ describe('updater release config guard', () => {
         updater: {
           active: true,
           endpoints: [
-            'https://github.com/sahildave/skills-explorer/releases/latest/download/latest.json',
+            'https://github.com/sahildave/skilltopia/releases/latest/download/latest.json',
           ],
           pubkey: 'RWQ53Cy9BeOLwhXbRW5t2s2XB7Z3G7UXEFrJ7zGKpiN51JNg0Fud7rV6',
         },
@@ -98,7 +98,7 @@ describe('updater release config guard', () => {
         updater: {
           active: false,
           endpoints: [
-            'https://github.com/sahildave/skills-explorer/releases/latest/download/latest.json',
+            'https://github.com/sahildave/skilltopia/releases/latest/download/latest.json',
           ],
           pubkey: 'RWQ53Cy9BeOLwhXbRW5t2s2XB7Z3G7UXEFrJ7zGKpiN51JNg0Fud7rV6',
         },

@@ -17,6 +17,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   AlertTriangle,
   BookOpen,
+  FolderGit2,
   ChevronDown,
   LayoutDashboard,
   Moon,
@@ -52,6 +53,7 @@ const PRIMARY_NAV: {
 }[] = [
   { id: 'explore', labelKey: 'skills.nav.explore', icon: LayoutDashboard },
   { id: 'installed', labelKey: 'skills.nav.installed', icon: BookOpen },
+  { id: 'projects', labelKey: 'skills.nav.projects', icon: FolderGit2 },
 ];
 
 interface SkillsSidebarProps {

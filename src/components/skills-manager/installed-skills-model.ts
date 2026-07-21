@@ -1,4 +1,3 @@
-import { getProviderById, providerRegistry } from '@/providers';
 import type {
   InstalledScanSnapshot,
   ScannedProvider,
@@ -8,9 +7,12 @@ import type {
   UninstallAgentScope,
 } from '@/platform/types';
 import { UNIVERSAL_PROVIDER_ID } from '@/platform/types';
+import { getProviderById, providerRegistry } from '@/providers';
 
 /** Session selection for the Installed Skills provider filter. */
 export type ProviderFilterId = 'all' | typeof UNIVERSAL_PROVIDER_ID | string;
+
+export type InstalledSkillView = 'all' | 'provider' | 'available';
 
 export const ALL_AGENTS_FILTER_ID = 'all' as const;
 
@@ -256,6 +258,42 @@ export function filterSkillSectionsByQuery(
     const source =
       catalogSourcesByKey.get(skill.uninstallName) ?? catalogSourcesByKey.get(skill.name);
     return source?.toLowerCase().includes(normalized) ?? false;
+  };
+
+  return {
+    primary: sections.primary.filter(matches),
+    universalSection: sections.universalSection ? sections.universalSection.filter(matches) : null,
+  };
+}
+
+/**
+ * Apply the Installed Skills toolbar view after provider/sidebar filtering.
+ * Provider means a real, provider-specific directory with no Universal copy;
+ * Available means a Universal skill or a provider entry that resolves through
+ * a symlink.
+ */
+export function filterSkillSectionsByView(
+  sections: FilteredSkillSections,
+  snapshot: InstalledScanSnapshot,
+  view: InstalledSkillView,
+): FilteredSkillSections {
+  if (view === 'all') return sections;
+
+  const universalDir = snapshot.universal.skillsDir;
+  const matches = (skill: ScannedSkill) => {
+    const hasUniversalPath = skill.providerIds.includes(UNIVERSAL_PROVIDER_ID);
+    const hasSymlink = skill.paths.some((entry) => Boolean(entry.originalPath));
+    if (view === 'available') return hasUniversalPath || hasSymlink;
+
+    return (
+      !hasUniversalPath &&
+      skill.paths.some(
+        (entry) =>
+          !entry.originalPath &&
+          !entry.path.startsWith(universalDir) &&
+          skill.providerIds.some((providerId) => providerId !== UNIVERSAL_PROVIDER_ID),
+      )
+    );
   };
 
   return {

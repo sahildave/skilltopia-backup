@@ -2,8 +2,9 @@
 
 use crate::provider_scan::{
     copy_skill_to_providers as copy_skill_to_providers_impl, delete_universal_skill_dir,
-    resolve_provider_skills_dir, reveal_skills_dir, scan_installed, CopySkillToProvidersResult,
-    InstalledScanSnapshot, ScanContext,
+    list_projects as list_projects_impl, resolve_provider_skills_dir, reveal_skills_dir,
+    scan_installed, scan_project, CopySkillToProvidersResult, InstalledScanSnapshot, ProjectInfo,
+    ScanContext,
 };
 
 /// Scan global provider + Universal skill directories into one normalized snapshot.
@@ -11,6 +12,23 @@ use crate::provider_scan::{
 #[specta::specta]
 pub fn scan_installed_skills() -> Result<InstalledScanSnapshot, String> {
     scan_installed(&ScanContext::from_environment())
+}
+
+/// Enumerate project directories at depth one or two below an explicitly selected root.
+#[tauri::command]
+#[specta::specta]
+pub fn list_projects(root: String) -> Result<Vec<ProjectInfo>, String> {
+    list_projects_impl(std::path::Path::new(&root))
+}
+
+/// Scan project-local Universal and provider skill folders.
+#[tauri::command]
+#[specta::specta]
+pub fn scan_project_skills(project_path: String) -> Result<InstalledScanSnapshot, String> {
+    scan_project(
+        std::path::Path::new(&project_path),
+        &ScanContext::from_environment(),
+    )
 }
 
 /// Reveal a provider (or `universal`) skills directory in Finder/Explorer.

@@ -14,6 +14,7 @@ import { platform } from '@platform';
 import { ArrowLeft, LayoutGrid, LayoutList, LoaderCircle, Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DitherGradient } from '../dither-kit';
+import type { InstalledSkillView } from './installed-skills-model';
 
 export function InstalledToolbar({
   title,
@@ -25,11 +26,13 @@ export function InstalledToolbar({
   showUniversalToggle = false,
   showAllUniversal = false,
   layoutMode,
+  installedSkillView,
   skillQuery,
   onBack,
   onRescan,
   onShowAllUniversalChange,
   onLayoutModeChange,
+  onInstalledSkillViewChange,
   onSkillQueryChange,
 }: {
   title: string;
@@ -45,11 +48,13 @@ export function InstalledToolbar({
   showUniversalToggle?: boolean;
   showAllUniversal?: boolean;
   layoutMode: LibraryLayoutMode;
+  installedSkillView: InstalledSkillView;
   skillQuery: string;
   onBack?: () => void;
   onRescan?: () => void;
   onShowAllUniversalChange?: (value: boolean) => void;
   onLayoutModeChange: (mode: LibraryLayoutMode) => void;
+  onInstalledSkillViewChange: (view: InstalledSkillView) => void;
   onSkillQueryChange: (value: string) => void;
 }) {
   const { t } = useTranslation();
@@ -154,6 +159,21 @@ export function InstalledToolbar({
           ) : null}
 
           <ContinuousTabs
+            value={installedSkillView}
+            tabs={[
+              { id: 'all', label: t('skills.installed.viewAll') },
+              { id: 'provider', label: t('skills.installed.viewProvider') },
+              { id: 'available', label: t('skills.installed.viewAvailable') },
+            ]}
+            onChange={(id) => {
+              if (id === 'all' || id === 'provider' || id === 'available') {
+                onInstalledSkillViewChange(id);
+              }
+            }}
+          />
+
+          <ContinuousTabs
+            className="ms-auto"
             value={layoutMode}
             tabs={[
               {

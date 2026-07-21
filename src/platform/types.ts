@@ -64,7 +64,7 @@ export interface ScannedSkill {
   /** Folder slug passed to `skills remove`, distinct from display name. */
   uninstallName: string;
   description: string;
-  scope: 'global';
+  scope: InstallScope;
   /** Provider ids plus {@link UNIVERSAL_PROVIDER_ID} when found in Universal. */
   providerIds: string[];
   /** Source paths (all copies after dedupe). */
@@ -82,6 +82,12 @@ export interface InstalledScanSnapshot {
   providers: ScannedProvider[];
   skills: ScannedSkill[];
   warnings: ScanWarning[];
+}
+
+export interface ProjectInfo {
+  name: string;
+  path: string;
+  depth: number;
 }
 
 /** Agent scope for `skills remove` (maps from Installed Skills sidebar filter). */
@@ -112,6 +118,9 @@ export interface PlatformPort {
   getInstalledScan(): Promise<InstalledScanSnapshot>;
   /** Replace the in-memory snapshot with a fresh scan. */
   scanInstalled(): Promise<InstalledScanSnapshot>;
+  listProjects(root: string): Promise<ProjectInfo[]>;
+  scanProject(projectPath: string): Promise<InstalledScanSnapshot>;
+  pickCodingFolder(): Promise<string | null>;
   /**
    * Reveal a provider (or Universal) skills directory in Finder/Explorer.
    * Does not rescan. Returns false when the directory is missing.

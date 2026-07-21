@@ -28,6 +28,7 @@ export type {
   CopyProviderStatus,
   CopySkillToProvidersResult,
   InstalledScanSnapshot,
+  ProjectInfo,
   JsonValue,
   ProviderRegistrySourceMeta,
   RecoveryError,

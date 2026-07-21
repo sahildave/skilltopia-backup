@@ -12,7 +12,7 @@ use super::paths::{
     GlobalSkillsDir, ProbeContext, RegistryFile,
 };
 use super::types::{
-    InstalledScanSnapshot, ProviderRegistrySourceMeta, ScanWarning, ScanWarningCode,
+    InstalledScanSnapshot, ProjectInfo, ProviderRegistrySourceMeta, ScanWarning, ScanWarningCode,
     ScannedProvider, ScannedSkill, ScannedSkillPath, UniversalScanInfo, UNIVERSAL_PROVIDER_ID,
 };
 
@@ -425,6 +425,236 @@ pub fn scan_installed(ctx: &ScanContext) -> Result<InstalledScanSnapshot, String
     })
 }
 
+fn project_marker(path: &Path) -> bool {
+    [
+        ".git",
+        "package.json",
+        "Cargo.toml",
+        "pyproject.toml",
+        "go.mod",
+        "pom.xml",
+        "requirements.txt",
+        "composer.json",
+    ]
+    .iter()
+    .any(|marker| path.join(marker).exists())
+}
+
+/// Discover project directories one or two levels below the selected root.
+/// A marked project stops traversal, preventing nested package directories from
+/// being reported as separate projects.
+pub fn list_projects(root: &Path) -> Result<Vec<ProjectInfo>, String> {
+    if !root.is_dir() {
+        return Err(format!(
+            "Coding folder is not a directory: {}",
+            root.display()
+        ));
+    }
+
+    let mut marked = Vec::new();
+    let mut unmarked = Vec::new();
+    let first_level = fs::read_dir(root)
+        .map_err(|e| format!("Failed to read coding folder: {e}"))?
+        .flatten()
+        .filter(|entry| entry.path().is_dir())
+        .collect::<Vec<_>>();
+
+    for first in first_level {
+        let first_path = first.path();
+        let first_is_project = project_marker(&first_path);
+        if first_is_project {
+            marked.push((first_path, 1));
+            continue;
+        }
+        unmarked.push((first_path.clone(), 1));
+        let Ok(entries) = fs::read_dir(&first_path) else {
+            continue;
+        };
+        for second in entries.flatten().filter(|entry| entry.path().is_dir()) {
+            let second_path = second.path();
+            if project_marker(&second_path) {
+                marked.push((second_path, 2));
+            } else {
+                unmarked.push((second_path, 2));
+            }
+        }
+    }
+
+    let candidates = if marked.is_empty() { unmarked } else { marked };
+    let mut projects = candidates
+        .into_iter()
+        .filter_map(|(path, depth)| {
+            let name = path.file_name()?.to_str()?.to_string();
+            Some(ProjectInfo {
+                name,
+                path: normalize_path_for_serialization(&path),
+                depth,
+            })
+        })
+        .collect::<Vec<_>>();
+    projects.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    Ok(projects)
+}
+
+/// Scan the conventional project-local skill folders. This intentionally
+/// avoids provider detection based on the user's home directory.
+pub fn scan_project(
+    project_path: &Path,
+    ctx: &ScanContext,
+) -> Result<InstalledScanSnapshot, String> {
+    if !project_path.is_dir() {
+        return Err(format!(
+            "Project is not a directory: {}",
+            project_path.display()
+        ));
+    }
+    let registry = load_registry()?;
+    let mut skills_map = BTreeMap::new();
+    let mut warnings = Vec::new();
+    let universal_dir = project_path.join(".agents/skills");
+    let mut universal_count = 0;
+
+    if universal_dir.is_dir() {
+        let outcome = scan_skills_dir(
+            &universal_dir,
+            ctx.include_internal,
+            Some(UNIVERSAL_PROVIDER_ID),
+        );
+        warnings.extend(outcome.warnings);
+        for (name, description, path) in outcome.skills {
+            universal_count += 1;
+            merge_project_skill(
+                &mut skills_map,
+                name,
+                description,
+                UNIVERSAL_PROVIDER_ID,
+                path,
+            );
+        }
+    }
+    if universal_count == 0 {
+        warnings.push(ScanWarning {
+            code: if universal_dir.is_dir() {
+                ScanWarningCode::UniversalEmpty
+            } else {
+                ScanWarningCode::SkillsDirMissing
+            },
+            message: format!(
+                "Project Universal skills directory missing or empty: {}",
+                normalize_path_for_serialization(&universal_dir)
+            ),
+            provider_id: Some(UNIVERSAL_PROVIDER_ID.into()),
+            path: Some(normalize_path_for_serialization(&universal_dir)),
+        });
+    }
+
+    let mut providers = Vec::new();
+    for provider in &registry.providers {
+        let skills_dir = project_path.join(&provider.skills_dir);
+        let shares_universal = skills_dir == universal_dir;
+        let exists = skills_dir.is_dir();
+        let mut count = 0;
+        if shares_universal {
+            count = universal_count;
+            for skill in skills_map.values_mut() {
+                if skill
+                    .provider_ids
+                    .iter()
+                    .any(|id| id == UNIVERSAL_PROVIDER_ID)
+                    && !skill.provider_ids.iter().any(|id| id == &provider.id)
+                {
+                    skill.provider_ids.push(provider.id.clone());
+                }
+            }
+        } else if exists {
+            let outcome = scan_skills_dir(&skills_dir, ctx.include_internal, Some(&provider.id));
+            warnings.extend(outcome.warnings);
+            for (name, description, path) in outcome.skills {
+                count += 1;
+                merge_project_skill(&mut skills_map, name, description, &provider.id, path);
+            }
+        }
+        if !exists && provider.skills_dir == ".agents/skills" {
+            continue;
+        }
+        providers.push(ScannedProvider {
+            id: provider.id.clone(),
+            name: provider.display_name.clone(),
+            universal: provider.universal,
+            detected: exists,
+            skills_dir: Some(normalize_path_for_serialization(&skills_dir)),
+            skills_dir_exists: exists,
+            skill_count: count,
+        });
+    }
+    providers.sort_by(|a, b| {
+        b.skill_count
+            .cmp(&a.skill_count)
+            .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+    });
+
+    Ok(InstalledScanSnapshot {
+        scanned_at: ctx.scanned_at.clone().unwrap_or_else(scanned_at_timestamp),
+        source: ProviderRegistrySourceMeta {
+            repository_url: registry.source.repository_url,
+            commit: registry.source.commit,
+            license: registry.source.license,
+            attribution: registry.source.attribution,
+        },
+        universal: UniversalScanInfo {
+            skills_dir: normalize_path_for_serialization(&universal_dir),
+            skills_dir_exists: universal_dir.is_dir(),
+            skill_count: universal_count,
+        },
+        providers,
+        skills: skills_map.into_values().collect(),
+        warnings,
+    })
+}
+
+fn merge_project_skill(
+    map: &mut BTreeMap<String, ScannedSkill>,
+    name: String,
+    description: String,
+    provider_id: &str,
+    entry: SkillDirEntry,
+) {
+    let skill_path = ScannedSkillPath {
+        path: normalize_path_for_serialization(&entry.entry_path),
+        original_path: entry
+            .original_path
+            .as_ref()
+            .map(|p| normalize_path_for_serialization(p)),
+    };
+    let key = format!("project:{name}");
+    if let Some(existing) = map.get_mut(&key) {
+        if !existing.provider_ids.iter().any(|id| id == provider_id) {
+            existing.provider_ids.push(provider_id.to_string());
+        }
+        if !existing.paths.iter().any(|p| p.path == skill_path.path) {
+            existing.paths.push(skill_path);
+        }
+    } else {
+        let uninstall_name = entry
+            .entry_path
+            .file_name()
+            .and_then(|v| v.to_str())
+            .unwrap_or(&name)
+            .to_string();
+        map.insert(
+            key,
+            ScannedSkill {
+                name,
+                uninstall_name,
+                description,
+                scope: "project".into(),
+                provider_ids: vec![provider_id.to_string()],
+                paths: vec![skill_path],
+            },
+        );
+    }
+}
+
 /// Resolve a provider (or Universal) skills directory without scanning skills.
 pub fn resolve_provider_skills_dir(
     provider_id: &str,
@@ -550,6 +780,39 @@ mod tests {
         ));
         fs::create_dir_all(&dir).unwrap();
         dir
+    }
+
+    #[test]
+    fn discovers_marked_projects_at_depth_one_and_two() {
+        let root = temp_home("projects");
+        fs::create_dir_all(root.join("direct/.git")).unwrap();
+        fs::create_dir_all(root.join("projects/nested")).unwrap();
+        fs::write(root.join("projects/nested/package.json"), "{}").unwrap();
+        fs::create_dir_all(root.join("projects/not-a-project")).unwrap();
+
+        let projects = list_projects(&root).unwrap();
+        assert_eq!(projects.len(), 2);
+        assert_eq!(projects[0].depth, 1);
+        assert_eq!(projects[1].depth, 2);
+    }
+
+    #[test]
+    fn scans_project_universal_skills_with_project_scope() {
+        let root = temp_home("project-scan");
+        let project = root.join("project");
+        write_skill(
+            &project.join(".agents/skills"),
+            "local-skill",
+            "local-skill",
+            "Project skill",
+        );
+
+        let snapshot = scan_project(&project, &scan_ctx(&root)).unwrap();
+        assert_eq!(snapshot.skills.len(), 1);
+        assert_eq!(snapshot.skills[0].scope, "project");
+        assert!(snapshot.skills[0]
+            .provider_ids
+            .contains(&"universal".to_string()));
     }
 
     #[test]

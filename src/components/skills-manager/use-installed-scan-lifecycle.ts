@@ -3,6 +3,7 @@ import { platform } from '@platform';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
 import type { SkillsNavId } from './types';
+import { useProjectsStore } from '@/store/projects-store';
 
 /** Rescan when Installed Skills is active; hydrate sidebar counts otherwise. */
 export function useInstalledScanLifecycle(active: SkillsNavId) {
@@ -17,6 +18,9 @@ export function useInstalledScanLifecycle(active: SkillsNavId) {
       return () => {
         resetShowAllUniversal();
       };
+    }
+    if (active === 'projects') {
+      void useProjectsStore.getState().refresh();
     }
     void hydrate();
   }, [active, rescan, hydrate, resetShowAllUniversal]);

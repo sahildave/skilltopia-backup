@@ -1,14 +1,3 @@
-import { describe, expect, it } from 'vitest';
-import {
-  ALL_AGENTS_FILTER_ID,
-  buildCopyProviderDialogModel,
-  buildProviderSidebarModel,
-  contentWarningsForSelection,
-  filterSkillSectionsByQuery,
-  filterSkillsForSelection,
-  providerBadgesForSkill,
-  warningRevealProviderId,
-} from './installed-skills-model';
 import {
   MOCK_EMPTY_SCAN,
   MOCK_INSTALLED_SCAN,
@@ -16,6 +5,18 @@ import {
   MOCK_UNIVERSAL_ONLY_SCAN,
 } from '@/platform/fixtures';
 import { UNIVERSAL_PROVIDER_ID } from '@/platform/types';
+import { describe, expect, it } from 'vitest';
+import {
+  ALL_AGENTS_FILTER_ID,
+  buildCopyProviderDialogModel,
+  buildProviderSidebarModel,
+  contentWarningsForSelection,
+  filterSkillSectionsByQuery,
+  filterSkillSectionsByView,
+  filterSkillsForSelection,
+  providerBadgesForSkill,
+  warningRevealProviderId,
+} from './installed-skills-model';
 
 describe('filterSkillsForSelection', () => {
   it('returns all skills alphabetically for All Agents', () => {
@@ -77,7 +78,7 @@ describe('filterSkillSectionsByQuery', () => {
     expect(filtered.universalSection).toBeNull();
   });
 
-  it('matches catalog repo source when provided', () => {
+  it('matches catalog repo source when provider', () => {
     const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID, false);
     const sources = new Map([
       ['find-skills', 'vercel-labs/agent-skills'],
@@ -98,6 +99,27 @@ describe('filterSkillSectionsByQuery', () => {
     const filtered = filterSkillSectionsByQuery(sections, 'design');
     expect(filtered.primary.map((s) => s.name)).toEqual([]);
     expect(filtered.universalSection?.map((s) => s.name)).toEqual(['frontend-design']);
+  });
+});
+
+describe('filterSkillSectionsByView', () => {
+  it('separates provider folders from Universal and symlinked skills', () => {
+    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID, false);
+    expect(
+      filterSkillSectionsByView(sections, MOCK_INSTALLED_SCAN, 'provider').primary.map(
+        (s) => s.name,
+      ),
+    ).toEqual(['code-review']);
+    expect(
+      filterSkillSectionsByView(sections, MOCK_INSTALLED_SCAN, 'available').primary.map(
+        (s) => s.name,
+      ),
+    ).toEqual(['find-skills', 'frontend-design']);
+  });
+
+  it('keeps the current sections unchanged for All', () => {
+    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID, false);
+    expect(filterSkillSectionsByView(sections, MOCK_INSTALLED_SCAN, 'all')).toEqual(sections);
   });
 });
 

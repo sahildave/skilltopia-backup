@@ -12,7 +12,9 @@ import {
   ALL_AGENTS_FILTER_ID,
   contentWarningsForSelection,
   filterSkillSectionsByQuery,
+  filterSkillSectionsByView,
   filterSkillsForSelection,
+  type InstalledSkillView,
 } from './installed-skills-model';
 import { InstalledContent } from './InstalledContent';
 import { InstalledToolbar } from './InstalledToolbar';
@@ -41,6 +43,7 @@ function LocalInstalledSkillsView() {
   const layoutMode = useInstalledSkillsUiStore((state) => state.layoutMode);
   const setLayoutMode = useInstalledSkillsUiStore((state) => state.setLayoutMode);
   const [skillQuery, setSkillQuery] = useState('');
+  const [installedSkillView, setInstalledSkillView] = useState<InstalledSkillView>('all');
 
   const showPermissionCard = error !== null && isPermissionError(error);
   const catalogSourcesByKey = catalogSourcesByInstalledKey(
@@ -49,8 +52,12 @@ function LocalInstalledSkillsView() {
   const providerSections = snapshot
     ? filterSkillsForSelection(snapshot, providerFilter, showAllUniversal)
     : null;
-  const sections = providerSections
-    ? filterSkillSectionsByQuery(providerSections, skillQuery, catalogSourcesByKey)
+  const viewSections =
+    providerSections && snapshot
+      ? filterSkillSectionsByView(providerSections, snapshot, installedSkillView)
+      : providerSections;
+  const sections = viewSections
+    ? filterSkillSectionsByQuery(viewSections, skillQuery, catalogSourcesByKey)
     : null;
   const warnings = snapshot ? contentWarningsForSelection(snapshot, providerFilter) : [];
   const pathInfo = snapshot ? resolveSelectedPath(snapshot, providerFilter) : null;
@@ -73,10 +80,12 @@ function LocalInstalledSkillsView() {
         showUniversalToggle={showUniversalToggle}
         showAllUniversal={showAllUniversal}
         layoutMode={layoutMode}
+        installedSkillView={installedSkillView}
         skillQuery={skillQuery}
         onRescan={() => void rescan()}
         onShowAllUniversalChange={setShowAllUniversal}
         onLayoutModeChange={setLayoutMode}
+        onInstalledSkillViewChange={setInstalledSkillView}
         onSkillQueryChange={setSkillQuery}
       />
       <InstalledContent

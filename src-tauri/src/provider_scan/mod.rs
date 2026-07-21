@@ -8,7 +8,7 @@ mod types;
 
 pub use copy::{copy_skill_to_providers, CopySkillToProvidersResult};
 pub use scan::{
-    delete_universal_skill_dir, resolve_provider_skills_dir, reveal_skills_dir, scan_installed,
-    ScanContext,
+    delete_universal_skill_dir, list_projects, resolve_provider_skills_dir, reveal_skills_dir,
+    scan_installed, scan_project, ScanContext,
 };
-pub use types::InstalledScanSnapshot;
+pub use types::{InstalledScanSnapshot, ProjectInfo};

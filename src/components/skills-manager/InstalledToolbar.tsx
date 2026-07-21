@@ -108,7 +108,7 @@ export function InstalledToolbar({
               ) : null}
             </div>
             <div className="text-muted-foreground flex max-w-2xl flex-row flex-wrap items-center gap-1 text-sm text-pretty">
-              {description}{' '}
+              Skills within your projects in {description}{' '}
               {pathInfo ? (
                 <div className="flex flex-wrap items-center gap-0">
                   <button

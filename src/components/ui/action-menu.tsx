@@ -89,7 +89,7 @@ export function ActionMenuPanel({
           style={{ transformOrigin: align === 'right' ? 'top right' : 'top left' }}
           role="menu"
           className={cn(
-            'pointer-events-auto absolute top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-lg sm:w-[220px]',
+            'pointer-events-auto absolute top-full z-50 overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-lg sm:w-[220px]',
             align === 'right' ? 'right-0' : 'left-0',
             className,
           )}

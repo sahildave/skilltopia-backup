@@ -61,7 +61,7 @@ jobs:
 
       - name: Validate updater release config
         run: |
-          node --input-type=module -e "import fs from 'node:fs'; import { validateUpdaterReleaseConfig } from './scripts/release-config.mjs'; const config = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8')); const errors = validateUpdaterReleaseConfig(config); if (errors.length > 0) { console.error('Updater release configuration is not ready:'); for (const error of errors) console.error(`- ${error}`); process.exit(1); }"
+          node --input-type=module -e "import fs from 'node:fs'; import { validateUpdaterReleaseConfig } from './scripts/release-config.mjs'; const config = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8')); const errors = validateUpdaterReleaseConfig(config); if (errors.length > 0) { console.error('Updater release configuration is not ready:'); for (const error of errors) console.error('- ' + error); process.exit(1); }"
 
       - name: Validate updater signing secrets
         shell: bash

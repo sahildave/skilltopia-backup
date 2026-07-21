@@ -6,11 +6,11 @@
  *
  *   MAX_ENRICHED=20 npm run page-cache:coverage
  *   MAX_ENRICHED=50 npm run page-cache:coverage
- *   MAX_ENRICHED=50 npm run page-cache:coverage -- --canvas
+ *   MAX_ENRICHED=1500 npm run page-cache:coverage -- --canvas
  *   SKILL_IDS=a/b/c,d/e/f npm run page-cache:coverage
  *
  * Env:
- *   MAX_ENRICHED          Cap (default 20; max 500 for this script's list page)
+ *   MAX_ENRICHED          Same as scrape (`api/_lib/max-enriched.ts`: default 500, hard cap 1500)
  *   SKILLS_PROXY_BASE_URL Backend origin (default https://skills-explorer-six.vercel.app)
  *   SKILL_IDS             Comma-separated ids (skips leaderboard)
  *   COVERAGE_CANVAS_PATH  Override canvas output path when using --canvas
@@ -27,6 +27,7 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { maxEnrichedFromEnv } from '../api/_lib/max-enriched.ts';
 
 const PRIMARY_KEYS = ['sourceOrRepo', 'summary', 'weeklyInstalls'];
 const SECONDARY_KEYS = ['skillMdPreview', 'installCommand'];
@@ -65,14 +66,6 @@ function parseArgs(argv) {
     json: argv.includes('--json'),
     canvas: argv.includes('--canvas'),
   };
-}
-
-function maxEnriched() {
-  const raw = process.env.MAX_ENRICHED?.trim();
-  if (!raw) return 20;
-  const n = Number.parseInt(raw, 10);
-  if (!Number.isFinite(n) || n < 1) return 20;
-  return Math.min(n, 500);
 }
 
 function baseUrl() {
@@ -458,7 +451,7 @@ function printTsv(rows) {
 
 async function main() {
   const flags = parseArgs(process.argv.slice(2));
-  const limit = maxEnriched();
+  const limit = maxEnrichedFromEnv();
   console.error(`[coverage] base=${baseUrl()} limit=${limit}`);
 
   const ids = await loadSkillIds(limit);

@@ -171,12 +171,14 @@ Pipeline docs: [list-snapshots-pipeline.md](./list-snapshots-pipeline.md),
 MAX_ENRICHED=20 npm run page-cache:coverage -- --canvas
 MAX_ENRICHED=50 npm run page-cache:coverage -- --canvas
 MAX_ENRICHED=200 npm run page-cache:coverage -- --canvas
+MAX_ENRICHED=1500 npm run page-cache:coverage -- --canvas
 # SKILL_IDS=owner/repo/a,owner/repo/b npm run page-cache:coverage
 ```
 
-  Coverage loads ids from the leaderboard (or `SKILL_IDS`), then fetches
-  snapshot fields in batches of 100 via `GET /api/skills/page-cache` (one or
-  a few requests — stays under the proxy IP rate limit).
+  `MAX_ENRICHED` uses the same helper as scrape (`maxEnrichedFromEnv`: default
+  **500**, hard cap **1500**). Coverage loads ids from the leaderboard (or
+  `SKILL_IDS`), then fetches snapshot fields in batches of 100 via
+  `GET /api/skills/page-cache` (paginates leaderboard at `per_page` ≤ 500).
   Coverage is tiered: **primary** (`source`/`repository` as alternatives,
   `summary`, installs), **secondary** (`skillMdPreview`, `installCommand`),
   **tertiary** (`topics`, `related`, `stars`, `firstSeen`). Columns follow that

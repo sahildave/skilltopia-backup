@@ -4,6 +4,15 @@ Skilltopia is a desktop and web app for discovering, reviewing, and installing a
 
 Skilltopia is created by Coduo Studio, LLC. The main creators are [Sahil Dave](https://github.com/sahildave) and [Indhuja](https://github.com/indhuja).
 
+## Downloads
+
+- [Apple Silicon macOS (.dmg)](https://github.com/sahildave/skilltopia/releases/latest/download/tauri-app_0.1.0_aarch64.dmg)
+- [Intel macOS](https://github.com/sahildave/skilltopia/releases/latest)
+- [Windows](https://github.com/sahildave/skilltopia/releases/latest)
+- [Linux (.AppImage)](https://github.com/sahildave/skilltopia/releases/latest/download/tauri-app_0.1.0_amd64.AppImage)
+
+Apple Silicon and Linux links point straight to the latest published asset and should start downloading immediately. Intel macOS and Windows currently fall back to the latest release page until those bundle assets are attached there.
+
 The app has two runtime targets:
 
 - **Web**: browse and search the live catalog in Chrome during development.

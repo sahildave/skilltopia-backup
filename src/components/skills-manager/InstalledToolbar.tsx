@@ -79,13 +79,12 @@ export function InstalledToolbar({
           </Button>
         ) : null}
         {/* title description */}
-
         <div className="relative flex min-w-0 w-full flex-row flex-wrap items-center justify-between gap-4 p-8 pb-4 pt-16">
           <div className="flex min-w-0 flex-col px-1 items-start gap-2.5">
-            <div className="flex min-w-0 flex-row items-start gap-2.5">
+            <div className="flex min-w-0 flex-row items-center  gap-2.5">
               <h1 className="text-3xl leading-none text-balance">{title}</h1>
               {skillCount !== null ? (
-                <Badge variant="secondary" className="tabular-nums">
+                <Badge variant="secondary" size="sm" className="mt-3.5 tabular-nums">
                   {skillCount}
                 </Badge>
               ) : null}

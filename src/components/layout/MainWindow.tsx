@@ -19,8 +19,8 @@ import { RightSideBar } from './RightSideBar';
  * Sidebar defaults + main default must equal 100.
  */
 const LAYOUT = {
-  leftSidebar: { default: 16, min: 15, max: 18 },
-  rightSidebar: { default: 20, min: 15, max: 40 },
+  leftSidebar: { default: 16, min: 16, max: 18 },
+  rightSidebar: { default: 20, min: 16, max: 40 },
   main: { min: 60 },
 } as const;
 

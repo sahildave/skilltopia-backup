@@ -492,7 +492,7 @@ pub fn list_projects(root: &Path) -> Result<Vec<ProjectInfo>, String> {
             })
         })
         .collect::<Vec<_>>();
-    projects.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    projects.sort_by_key(|a| a.name.to_lowercase());
     Ok(projects)
 }
 

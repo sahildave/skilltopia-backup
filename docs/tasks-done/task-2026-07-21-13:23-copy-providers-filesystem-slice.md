@@ -1,7 +1,7 @@
 # Copy providers: filesystem slice
 
 **Milestone:** mvp  
-**Depends on:** [installed-skills-copy-providers-mvp](./task-x-installed-skills-copy-providers-mvp.md)
+**Depends on:** [installed-skills-copy-providers-mvp](../tasks-todo/task-x-installed-skills-copy-providers-mvp.md)
 
 ## Goal
 

@@ -4,7 +4,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MorphingDialogSubtitle, MorphingDialogTitle } from '@/components/ui/morphing-dialog';
-import { Separator } from '@/components/ui/separator';
 import { entranceEase, layoutDuration, opacityTransition } from '@/lib/animation';
 import { useSkillAudits, useSkillDetail } from '@/services/skills-sh';
 import { platform } from '@platform';
@@ -29,11 +28,27 @@ function DetailList({ values }: { values: string[] }) {
 }
 
 function AuditStatusBadge({ status }: { status: SkillAuditEntry['status']; className?: string }) {
-  const variant = isPassAuditStatus(status) ? 'secondary' : 'outline';
+  const variant = isPassAuditStatus(status) ? 'secondary' : 'secondary';
   return (
-    <Badge variant={variant} size="md" className="capitalize text-teal-700 dark:text-teal-500">
-      {status}
-    </Badge>
+    <>
+      {status == 'passed' || status == 'pass' ? (
+        <Badge
+          variant={variant}
+          size="md"
+          className="capitalize bg-teal-500/10 text-teal-700 dark:text-teal-500"
+        >
+          {status}
+        </Badge>
+      ) : (
+        <Badge
+          variant={variant}
+          size="md"
+          className="capitalize text-amber-700 dark:bg-amber-500/10 bg-amber-200/50 dark:text-amber-500"
+        >
+          {status}
+        </Badge>
+      )}
+    </>
   );
 }
 
@@ -72,20 +87,20 @@ function AuditsSection({
   }
 
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="flex flex-col gap-4">
       {audits.map((audit) => (
         <li
           key={`${audit.provider}-${audit.slug}-${audit.auditedAt}`}
-          className="rounded-lg border bg-muted/30 px-3 py-3"
+          className="flex flex-col gap-1 border-b pb-4 border-border/60 last:pb-2 first:pt-2 last:border-b-0"
         >
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-start justify-between gap-2">
             <span className="text-base font-medium">{audit.provider}</span>
             <AuditStatusBadge
               status={audit.status}
               className="capitalize text-teal-700 dark:text-teal-500"
             />
           </div>
-          <p className="text-muted-foreground mt-1 text-sm text-pretty">{audit.summary}</p>
+          <p className="text-muted-foreground text-sm text-pretty w-8/9">{audit.summary}</p>
         </li>
       ))}
     </ul>
@@ -196,8 +211,8 @@ export function SkillDetailBody({ skill }: { skill: SkillsShSkill }) {
 
   return (
     <AnimateAutoHeight reduceMotion={reduceMotion}>
-      <div className="relative flex flex-col gap-5">
-        <div className="flex flex-col gap-2 pe-8 px-2 pb-4 border-b border-border bg-card">
+      <div className="relative flex flex-col gap-3">
+        <div className="flex flex-col gap-1.5 pe-8 px-3 pb-2 pt-2">
           <MorphingDialogTitle className="text-lg leading-none font-semibold text-balance">
             {skill.name}
           </MorphingDialogTitle>
@@ -205,10 +220,11 @@ export function SkillDetailBody({ skill }: { skill: SkillsShSkill }) {
             {originHref ? (
               <button
                 type="button"
-                className="text-muted-foreground hover:text-foreground text-start text-sm break-all underline-offset-2 hover:underline"
+                className="text-muted-foreground flex-row flex items-center gap-1 hover:text-foreground text-start text-sm break-all underline-offset-2 hover:underline"
                 onClick={() => void platform.openExternal(originHref)}
               >
                 {originValue}/{skill.name}
+                <ExternalLink size={12} />
               </button>
             ) : (
               <p className="text-muted-foreground text-sm break-all">
@@ -253,33 +269,46 @@ export function SkillDetailBody({ skill }: { skill: SkillsShSkill }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1, transition: fadeTransition }}
               exit={{ opacity: 0, transition: fadeTransition }}
-              className="flex flex-col gap-5"
+              className="flex flex-col gap-3"
             >
-              <div className="grid gap-8 sm:grid-cols-2 px-4">
-                <section className="flex flex-col gap-2">
-                  <h3 className="text-lg leading-none text-balance">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <section className="flex flex-col gap-2 py-4 pb-0 overflow-hidden rounded-[min(var(--radius-4xl),24px)] border bg-background">
+                  <h3 className="text-lg leading-none px-4 text-balance">
                     {t('skills.detail.installs')}
                   </h3>
-                  <p className="text-muted-foreground text-sm tabular-nums">
+                  <p className="text-muted-foreground px-4 text-sm tabular-nums">
                     {installCount.toLocaleString()}
                   </p>
                   {installSeries.length > 0 ? (
                     <div className="h-12 w-full">
-                      <Sparkline data={installSeries} color="blue" className="h-12 w-full" />
+                      <Sparkline
+                        data={installSeries}
+                        color="blue"
+                        className="h-12 overflow-hidden w-full"
+                      />
                     </div>
-                  ) : null}
+                  ) : (
+                    <div className="pb-2" />
+                  )}
                 </section>
                 {topics.length > 0 ? (
-                  <section className="flex flex-col gap-4">
+                  <section className="flex flex-col gap-3 rounded-[min(var(--radius-4xl),24px)] px-4 py-4 border bg-background">
                     <h3 className="text-lg leading-none text-balance">
                       {t('skills.detail.topics')}
                     </h3>
                     <DetailList values={topics} />
                   </section>
-                ) : null}
+                ) : (
+                  <section className="flex flex-col gap-3 rounded-[min(var(--radius-4xl),24px)] px-4 py-4 border bg-background">
+                    <h3 className="text-lg leading-none text-balance">
+                      {t('skills.detail.topics')}
+                    </h3>
+                    <p className="text-muted-foreground text-sm text-pretty">No topics yet.</p>
+                  </section>
+                )}
               </div>
               {summary ? (
-                <section className="rounded-lg border bg-muted/30 p-4">
+                <section className="rounded-[min(var(--radius-4xl),24px)] border bg-background py-4 px-4">
                   <h3 className="text-lg leading-none text-balance">
                     {t('skills.detail.summary')}
                   </h3>
@@ -287,9 +316,7 @@ export function SkillDetailBody({ skill }: { skill: SkillsShSkill }) {
                 </section>
               ) : null}
 
-              <Separator />
-
-              <section className="flex flex-col gap-3">
+              <section className="flex flex-col gap-4 rounded-[min(var(--radius-4xl),24px)] border bg-background py-4 px-4">
                 <h3 className="text-lg leading-none text-balance">{t('skills.detail.audits')}</h3>
                 <AuditsSection
                   audits={auditEntries}
@@ -304,7 +331,7 @@ export function SkillDetailBody({ skill }: { skill: SkillsShSkill }) {
                 />
               </section>
 
-              <div className="flex justify-end border-t pt-4">
+              <div className="flex justify-center pt-4 pb-2">
                 <Button variant="outline" onClick={() => void platform.openExternal(skill.url)}>
                   <ExternalLink data-icon="inline-start" />
                   {t('skills.detail.openExternal')}

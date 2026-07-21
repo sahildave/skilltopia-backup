@@ -8,19 +8,13 @@ Welcome! This guide covers the core features available in the app.
 
 ### Global Shortcuts
 
-| Shortcut        | Mac          | Windows/Linux | Action                |
-| --------------- | ------------ | ------------- | --------------------- |
-| Command Palette | Cmd+K        | Ctrl+K        | Open command palette  |
-| Preferences     | Cmd+,        | Ctrl+,        | Open preferences      |
-| Quick Pane      | Configurable | Configurable  | Open quick entry pane |
-| Left Sidebar    | Cmd+1        | Ctrl+1        | Toggle left sidebar   |
-| Right Sidebar   | Cmd+2        | Ctrl+2        | Toggle right sidebar  |
+| Shortcut     | Mac          | Windows/Linux | Action                |
+| ------------ | ------------ | ------------- | --------------------- |
+| Preferences  | Cmd+,        | Ctrl+,        | Open preferences      |
+| Quick Pane   | Configurable | Configurable  | Open quick entry pane |
+| Left Sidebar | Cmd+1        | Ctrl+1        | Toggle left sidebar   |
 
 ## Core Features
-
-### Command Palette
-
-Press **Cmd+K** to open the command palette - a quick way to find and run any action. Start typing to search through available commands.
 
 ### Quick Pane
 
@@ -41,16 +35,15 @@ Press **Cmd+,** to open preferences:
 Access features from the menu bar:
 
 - **App Menu**: About, Check for Updates, Preferences, Quit
-- **View Menu**: Toggle sidebars
+- **View Menu**: Toggle left sidebar
 
-All menu items have keyboard shortcuts and are also available in the command palette.
+All menu items have keyboard shortcuts.
 
 ## Layout
 
 - **Title Bar**: Window controls and app title
 - **Left Sidebar**: Collapsible panel (Cmd+1)
 - **Main Content**: Primary app content
-- **Right Sidebar**: Collapsible panel (Cmd+2)
 
 ## Updates
 

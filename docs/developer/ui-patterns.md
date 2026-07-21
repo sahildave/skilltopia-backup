@@ -222,7 +222,6 @@ src/components/
 ├── layout/           # App structure
 │   ├── MainWindow.tsx
 │   ├── LeftSideBar.tsx
-│   ├── RightSideBar.tsx
 │   └── MainWindowContent.tsx
 ├── titlebar/         # Window chrome
 │   ├── TitleBar.tsx
@@ -232,7 +231,7 @@ src/components/
 │   ├── button.tsx
 │   ├── dialog.tsx
 │   └── ...
-├── command-palette/  # Command palette feature
+├── command-palette/  # Command palette (unmounted; available for later)
 ├── preferences/      # Preferences dialog
 ├── ThemeProvider.tsx
 └── ErrorBoundary.tsx

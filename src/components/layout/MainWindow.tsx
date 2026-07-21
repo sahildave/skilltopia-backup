@@ -1,4 +1,3 @@
-import { CommandPalette } from '@/components/command-palette/CommandPalette';
 import { PreferencesDialog } from '@/components/preferences/PreferencesDialog';
 import { SkillsContent, SkillsSidebar, type SkillsNavId } from '@/components/skills-manager';
 import { TitleBar } from '@/components/titlebar/TitleBar';
@@ -11,7 +10,6 @@ import { useState } from 'react';
 import { Toaster } from 'sonner';
 import { LeftSideBar } from './LeftSideBar';
 import { MainWindowContent } from './MainWindowContent';
-import { RightSideBar } from './RightSideBar';
 
 /**
  * Layout sizing configuration for resizable panels.
@@ -20,19 +18,15 @@ import { RightSideBar } from './RightSideBar';
  */
 const LAYOUT = {
   leftSidebar: { default: 16, min: 16, max: 18 },
-  rightSidebar: { default: 20, min: 16, max: 40 },
   main: { min: 60 },
 } as const;
 
 export function MainWindow() {
   const { theme } = useTheme();
   const leftSidebarVisible = useUIStore((state) => state.leftSidebarVisible);
-  const rightSidebarVisible = useUIStore((state) => state.rightSidebarVisible);
   const [activeNav, setActiveNav] = useState<SkillsNavId>('explore');
 
-  const mainDefault = rightSidebarVisible
-    ? 100 - LAYOUT.leftSidebar.default - LAYOUT.rightSidebar.default
-    : 100 - LAYOUT.leftSidebar.default;
+  const mainDefault = 100 - LAYOUT.leftSidebar.default;
 
   // Set up global event listeners (keyboard shortcuts, etc.)
   useMainWindowEventListeners();
@@ -61,22 +55,10 @@ export function MainWindow() {
               <SkillsContent active={activeNav} />
             </MainWindowContent>
           </ResizablePanel>
-
-          <ResizableHandle className={cn(!rightSidebarVisible && 'hidden')} />
-
-          <ResizablePanel
-            defaultSize={LAYOUT.rightSidebar.default}
-            minSize={LAYOUT.rightSidebar.min}
-            maxSize={LAYOUT.rightSidebar.max}
-            className={cn(!rightSidebarVisible && 'hidden')}
-          >
-            <RightSideBar />
-          </ResizablePanel>
         </ResizablePanelGroup>
       </div>
 
       {/* Global UI Components (hidden until triggered) */}
-      <CommandPalette />
       <PreferencesDialog />
       <Toaster
         position="top-right"

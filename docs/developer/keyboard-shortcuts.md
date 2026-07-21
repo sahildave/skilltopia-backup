@@ -4,12 +4,10 @@ Centralized keyboard shortcut management using native DOM event listeners.
 
 ## Current Shortcuts
 
-| Shortcut             | Mac   | Windows/Linux | Action                |
-| -------------------- | ----- | ------------- | --------------------- |
-| Open Preferences     | Cmd+, | Ctrl+,        | Opens settings dialog |
-| Command Palette      | Cmd+K | Ctrl+K        | Opens command search  |
-| Toggle Left Sidebar  | Cmd+1 | Ctrl+1        | Show/hide left panel  |
-| Toggle Right Sidebar | Cmd+2 | Ctrl+2        | Show/hide right panel |
+| Shortcut            | Mac   | Windows/Linux | Action                |
+| ------------------- | ----- | ------------- | --------------------- |
+| Open Preferences    | Cmd+, | Ctrl+,        | Opens settings dialog |
+| Toggle Left Sidebar | Cmd+1 | Ctrl+1        | Show/hide left panel  |
 
 ## Architecture
 

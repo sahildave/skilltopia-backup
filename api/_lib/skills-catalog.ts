@@ -29,15 +29,17 @@ type FetchCatalog = (url: string) => Promise<unknown>;
  * List responses include `url`; detail omits it — reconstruct from id shape.
  * GitHub: `owner/repo/skill` → `https://www.skills.sh/{id}`
  * Well-known: `domain.com/skill` → `https://www.skills.sh/site/{id}`
+ * Path segments are percent-encoded (e.g. `react:components` → `react%3Acomponents`).
  */
 export function skillPageUrl(skillId: string, knownUrl?: string | null): string {
   const trimmed = knownUrl?.trim();
   if (trimmed) return trimmed;
   const segments = skillId.split('/').filter(Boolean);
+  const encodedPath = segments.map((segment) => encodeURIComponent(segment)).join('/');
   if (segments.length === 2) {
-    return `https://www.skills.sh/site/${skillId}`;
+    return `https://www.skills.sh/site/${encodedPath}`;
   }
-  return `https://www.skills.sh/${skillId}`;
+  return `https://www.skills.sh/${encodedPath}`;
 }
 
 export type ClassifiedOrigin = {

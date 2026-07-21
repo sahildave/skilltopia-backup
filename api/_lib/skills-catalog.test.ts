@@ -29,6 +29,9 @@ describe('skillPageUrl', () => {
     expect(skillPageUrl('anthropics/skills/frontend-design')).toBe(
       'https://www.skills.sh/anthropics/skills/frontend-design',
     );
+    expect(skillPageUrl('google-labs-code/stitch-skills/react:components')).toBe(
+      'https://www.skills.sh/google-labs-code/stitch-skills/react%3Acomponents',
+    );
   });
 });
 

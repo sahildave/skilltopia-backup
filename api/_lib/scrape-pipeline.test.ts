@@ -29,6 +29,7 @@ describe('scrape pipeline', () => {
       countInstallSnapshots: vi.fn(),
       upsertInstallSnapshots: vi.fn(),
       getSkillAuditCache: vi.fn().mockResolvedValue(null),
+      getSkillPageCache: vi.fn().mockResolvedValue(null),
       upsertSkillAudits: vi.fn(),
       ...overrides,
     };
@@ -261,6 +262,63 @@ describe('scrape pipeline', () => {
         source: 'https://open.feishu.cn',
         repository: undefined,
       }),
+    );
+  });
+
+  it('keeps the requested skill id when detail strips characters (e.g. colon)', async () => {
+    const repository = repositoryStub({
+      countInstallSnapshots: vi.fn().mockResolvedValue(8),
+      getSkillPageCache: vi.fn().mockResolvedValue({
+        skillId: 'google-labs-code/stitch-skills/react:components',
+        pageSnapshot: null,
+        pageScrapedAt: null,
+        repository: 'google-labs-code/stitch-skills',
+        source: null,
+        installCount: 50_432,
+        sourceUrl: 'https://www.skills.sh/google-labs-code/stitch-skills/react%3Acomponents',
+      }),
+    });
+    const requestedId = 'google-labs-code/stitch-skills/react:components';
+    const mangledId = 'google-labs-code/stitch-skills/reactcomponents';
+    const fetchPageHtml = vi.fn(async () => pageHtml);
+    const loadAudits = vi.fn(async () => null);
+
+    await expect(
+      runScrapePipeline({
+        repository: repository as never,
+        skillIds: [requestedId],
+        maxEnriched: 1,
+        throttleMs: 0,
+        loadDetail: async () => ({
+          ...detail('sha256:abc', mangledId, null),
+          installs: 0,
+          source: 'google-labs-code/stitch-skills',
+        }),
+        loadAudits,
+        fetchPageHtml,
+      }),
+    ).resolves.toMatchObject({ scraped: 1, failed: [] });
+
+    expect(fetchPageHtml).toHaveBeenCalledWith(
+      'https://www.skills.sh/google-labs-code/stitch-skills/react%3Acomponents',
+    );
+    expect(repository.upsertSkillMetadata).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skillId: requestedId,
+        sourceUrl: 'https://www.skills.sh/google-labs-code/stitch-skills/react%3Acomponents',
+        installCount: 50_432,
+        rawStoragePrefix: requestedId,
+      }),
+    );
+    expect(repository.getSkillAuditCache).toHaveBeenCalledWith(requestedId);
+    expect(loadAudits).toHaveBeenCalledWith(requestedId);
+    expect(repository.upsertPageSnapshot).toHaveBeenCalledWith(
+      requestedId,
+      expect.objectContaining({ summary: 'Hello' }),
+      expect.any(String),
+    );
+    expect(repository.upsertSkillMetadata).not.toHaveBeenCalledWith(
+      expect.objectContaining({ skillId: mangledId }),
     );
   });
 });

@@ -37,7 +37,11 @@ Backend’s 600/min budget. See [infisical.md](./infisical.md) and
 HTML page fetches are unauthenticated. GitHub skills use
 `https://www.skills.sh/{owner}/{repo}/{skill}`; well-known skills use
 `https://www.skills.sh/site/{domain}/{skill}` (detail API omits `url`, so the
-scrape reconstructs from id shape — see `skillPageUrl`). API `source` is
+scrape reconstructs from id shape — see `skillPageUrl`, with path segments
+percent-encoded). **Always write under the requested catalog `skillId`**, not
+`detail.id`: the skills.sh detail API sometimes strips characters (e.g.
+`react:components` → `reactcomponents`). On mismatch, keep list
+`install_count` when present and log a warning. API `source` is
 classified into `skill_metadata.repository` (GitHub `owner/repo`) or
 `skill_metadata.source` (external origin URL). `source_url` remains the
 skills.sh page URL. HTML parsing also stores `page_snapshot.repository` /

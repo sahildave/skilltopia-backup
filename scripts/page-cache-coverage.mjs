@@ -53,10 +53,11 @@ function skillPageUrl(skillId, knownUrl) {
   const trimmed = typeof knownUrl === 'string' ? knownUrl.trim() : '';
   if (trimmed) return trimmed;
   const segments = skillId.split('/').filter(Boolean);
+  const encodedPath = segments.map((segment) => encodeURIComponent(segment)).join('/');
   if (segments.length === 2) {
-    return `https://www.skills.sh/site/${skillId}`;
+    return `https://www.skills.sh/site/${encodedPath}`;
   }
-  return `https://www.skills.sh/${skillId}`;
+  return `https://www.skills.sh/${encodedPath}`;
 }
 
 function parseArgs(argv) {

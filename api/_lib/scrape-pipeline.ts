@@ -52,16 +52,28 @@ export function skillIdsFromEnv(environment = process.env): string[] | undefined
   return ids.length > 0 ? ids : undefined;
 }
 
-function sourceMetadata(detail: SkillDetail): SkillSourceMetadata {
-  const origin = classifySkillOrigin(detail.id, detail.source);
+/**
+ * Build metadata for the *requested* catalog id.
+ * skills.sh detail sometimes returns a mangled `id` (e.g. strips `:` from
+ * `react:components` → `reactcomponents`); never write under that mangled id.
+ */
+function sourceMetadata(
+  skillId: string,
+  detail: SkillDetail,
+  existingInstallCount?: number | null,
+): SkillSourceMetadata {
+  const origin = classifySkillOrigin(skillId, detail.source);
+  const detailIdMismatched = detail.id !== skillId;
   return {
-    skillId: detail.id,
+    skillId,
     contentHash: detail.hash ?? '',
-    sourceUrl: skillPageUrl(detail.id, detail.url),
+    sourceUrl: skillPageUrl(skillId, detail.url),
     repository: origin.repository,
     source: origin.source,
-    installCount: detail.installs,
-    rawStoragePrefix: detail.id,
+    installCount: detailIdMismatched
+      ? (existingInstallCount ?? detail.installs)
+      : detail.installs,
+    rawStoragePrefix: skillId,
   };
 }
 
@@ -166,15 +178,23 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
         continue;
       }
 
-      const source = sourceMetadata(detail);
+      if (detail.id !== skillId) {
+        log(
+          `${step}: detail id mismatch (api=${detail.id}); keeping requested id for writes`,
+          'warn',
+        );
+      }
+
+      const previousPage = await options.repository.getSkillPageCache(skillId);
+      const source = sourceMetadata(skillId, detail, previousPage?.installCount);
       log(`${step}: upserting metadata…`, 'step');
-      const previousCache = await options.repository.getSkillAuditCache(detail.id);
+      const previousCache = await options.repository.getSkillAuditCache(skillId);
       await options.repository.upsertSkillMetadata(source);
 
       try {
         log(`${step}: refreshing audits if needed…`, 'step');
         const auditResult = await refreshSkillAuditsIfNeeded({
-          skillId: detail.id,
+          skillId,
           currentHash: detail.hash,
           previousContentHash: previousCache?.contentHash ?? null,
           cached: previousCache,
@@ -192,30 +212,33 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
         log(`${step}: audit refresh failed — ${message}`, 'warn');
       }
 
-      const url = skillPageUrl(detail.id, detail.url);
+      const url = skillPageUrl(
+        skillId,
+        detail.id === skillId ? detail.url : (previousPage?.sourceUrl ?? detail.url),
+      );
       let snapshot = null;
       try {
         log(`${step}: scraping HTML ${url}…`, 'step');
         const html = await scrapeWithRetry(fetchPageHtml, url);
         snapshot = parsePageSnapshot(html);
-        await options.repository.upsertPageSnapshot(detail.id, snapshot, scrapeDate.toISOString());
+        await options.repository.upsertPageSnapshot(skillId, snapshot, scrapeDate.toISOString());
         result.scraped += 1;
         log(`${step}: scraped`, 'ok');
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         // Clear stale snapshot so rotation can retry; metadata/hash already saved.
-        await options.repository.upsertPageSnapshot(detail.id, null, scrapeDate.toISOString());
+        await options.repository.upsertPageSnapshot(skillId, null, scrapeDate.toISOString());
         result.failed.push({ skillId, message });
         log(`${step}: scrape failed after retry — ${message}`, 'error');
       }
 
       const weekly = snapshot?.weeklyInstalls;
       if (weekly && weekly.length > 0) {
-        const existing = await options.repository.countInstallSnapshots(detail.id);
+        const existing = await options.repository.countInstallSnapshots(skillId);
         if (existing < 8) {
           log(`${step}: backfilling ${weekly.length} install snapshot(s)…`, 'step');
           await options.repository.upsertInstallSnapshots(
-            mapWeeklyInstallsToDates(weekly, detail.id, scrapeDate),
+            mapWeeklyInstallsToDates(weekly, skillId, scrapeDate),
           );
         } else {
           log(`${step}: skip install backfill (have ${existing} rows)`, 'warn');

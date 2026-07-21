@@ -96,7 +96,20 @@ export function SkillDetailBody({ skill }: { skill: SkillsShSkill }) {
   const pageSnapshot = detail?.pageSnapshot ?? null;
   const installCount = detail?.installCount ?? skill.installs;
   const repository = detail?.repository ?? pageSnapshot?.repository ?? null;
-  const sourceUrl = detail?.sourceUrl ?? null;
+  const source = detail?.source ?? pageSnapshot?.source ?? null;
+  const originLabel = repository
+    ? t('skills.detail.repository')
+    : source
+      ? t('skills.detail.source')
+      : null;
+  const originValue = repository ?? source;
+  const originHref = repository
+    ? `https://github.com/${repository}`
+    : source
+      ? /^https?:\/\//iu.test(source)
+        ? source
+        : `https://${source}`
+      : null;
   const installSeries = detail?.installSeries ?? [];
   const topics = pageSnapshot?.topics ?? [];
   const summary = pageSnapshot?.summary;
@@ -156,26 +169,22 @@ export function SkillDetailBody({ skill }: { skill: SkillsShSkill }) {
                 </div>
               ) : null}
             </section>
-            <section className="flex flex-col gap-2">
-              <h3 className="text-sm font-semibold">{t('skills.detail.repository')}</h3>
-              {repository ? (
-                sourceUrl || repository.includes('/') ? (
+            {originLabel && originValue ? (
+              <section className="flex flex-col gap-2">
+                <h3 className="text-sm font-semibold">{originLabel}</h3>
+                {originHref ? (
                   <button
                     type="button"
                     className="text-muted-foreground hover:text-foreground text-start text-sm break-all underline-offset-2 hover:underline"
-                    onClick={() =>
-                      void platform.openExternal(sourceUrl ?? `https://github.com/${repository}`)
-                    }
+                    onClick={() => void platform.openExternal(originHref)}
                   >
-                    {repository}
+                    {originValue}
                   </button>
                 ) : (
-                  <p className="text-muted-foreground text-sm break-all">{repository}</p>
-                )
-              ) : (
-                <p className="text-muted-foreground text-sm">{t('skills.detail.notSpecified')}</p>
-              )}
-            </section>
+                  <p className="text-muted-foreground text-sm break-all">{originValue}</p>
+                )}
+              </section>
+            ) : null}
           </div>
 
           <Separator />

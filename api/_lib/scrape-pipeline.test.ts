@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
-import { runScrapePipeline } from './scrape-pipeline.js';
+import { runScrapePipeline, skillIdsFromEnv } from './scrape-pipeline.js';
 
-function detail(hash: string | null, id = 'owner/skill') {
+function detail(hash: string | null, id = 'owner/skill', url?: string | null) {
   return {
     id,
-    source: 'owner/repo',
-    slug: 'skill',
+    source: id.includes('.') && id.split('/').length === 2 ? id.split('/')[0]! : 'owner/repo',
+    slug: id.split('/').pop() ?? 'skill',
     installs: 10,
     hash,
-    url: `https://skills.sh/${id}`,
+    ...(url === undefined ? { url: `https://skills.sh/${id}` } : url === null ? {} : { url }),
     files: hash ? [{ path: 'SKILL.md', contents: '# Skill' }] : null,
   };
 }
@@ -198,5 +198,69 @@ describe('scrape pipeline', () => {
     expect(loadLeaderboard).not.toHaveBeenCalled();
     expect(loadDetail).toHaveBeenCalledWith('a/one');
     expect(loadDetail).toHaveBeenCalledWith('b/two');
+  });
+
+  it('reads SKILL_IDS from env via skillIdsFromEnv', () => {
+    expect(skillIdsFromEnv({ SKILL_IDS: ' a/b , c/d/e ' })).toEqual(['a/b', 'c/d/e']);
+    expect(skillIdsFromEnv({})).toBeUndefined();
+  });
+
+  it('stops between skills when AbortSignal fires', async () => {
+    const repository = repositoryStub({
+      countInstallSnapshots: vi.fn().mockResolvedValue(8),
+    });
+    const abort = new AbortController();
+    const loadDetail = vi.fn(async (id: string) => {
+      if (id === 'b/two') abort.abort();
+      return detail('sha256:abc', id);
+    });
+
+    await expect(
+      runScrapePipeline({
+        repository: repository as never,
+        skillIds: ['a/one', 'b/two', 'c/three'],
+        maxEnriched: 10,
+        throttleMs: 0,
+        signal: abort.signal,
+        loadDetail,
+        loadAudits: async () => null,
+        fetchPageHtml: async () => pageHtml,
+      }),
+    ).resolves.toMatchObject({ attempted: 2, scraped: 2, aborted: true });
+
+    expect(loadDetail).toHaveBeenCalledTimes(2);
+    expect(loadDetail).not.toHaveBeenCalledWith('c/three');
+  });
+
+  it('fetches /site/ HTML and stores page url when detail omits url (well-known)', async () => {
+    const repository = repositoryStub({
+      countInstallSnapshots: vi.fn().mockResolvedValue(8),
+    });
+    const fetchPageHtml = vi.fn(async () => pageHtml);
+    const skillId = 'open.feishu.cn/lark-approval';
+
+    await expect(
+      runScrapePipeline({
+        repository: repository as never,
+        skillIds: [skillId],
+        maxEnriched: 1,
+        throttleMs: 0,
+        loadDetail: async () => detail('sha256:abc', skillId, null),
+        loadAudits: async () => null,
+        fetchPageHtml,
+      }),
+    ).resolves.toMatchObject({ scraped: 1, failed: [] });
+
+    expect(fetchPageHtml).toHaveBeenCalledWith(
+      'https://www.skills.sh/site/open.feishu.cn/lark-approval',
+    );
+    expect(repository.upsertSkillMetadata).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skillId,
+        sourceUrl: 'https://www.skills.sh/site/open.feishu.cn/lark-approval',
+        source: 'https://open.feishu.cn',
+        repository: undefined,
+      }),
+    );
   });
 });

@@ -73,6 +73,7 @@ pub struct RelatedSkill {
     pub skill_id: String,
     pub score: f64,
     pub repository: Option<String>,
+    pub source: Option<String>,
     #[serde(rename = "sourceUrl")]
     pub source_url: Option<String>,
     #[serde(rename = "installCount")]
@@ -87,6 +88,8 @@ pub struct SkillPageSnapshot {
     pub topics: Option<Vec<String>>,
     #[serde(default)]
     pub repository: Option<String>,
+    #[serde(default)]
+    pub source: Option<String>,
     #[serde(default)]
     pub stars: Option<i32>,
     #[serde(rename = "firstSeen", default)]
@@ -111,6 +114,8 @@ pub struct SkillDetailData {
     pub page_scraped_at: Option<String>,
     #[serde(default)]
     pub repository: Option<String>,
+    #[serde(default)]
+    pub source: Option<String>,
     #[serde(rename = "installCount", default)]
     pub install_count: Option<i32>,
     #[serde(rename = "sourceUrl", default)]

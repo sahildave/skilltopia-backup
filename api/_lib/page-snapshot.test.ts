@@ -59,6 +59,18 @@ describe('parsePageSnapshot', () => {
     ]);
   });
 
+  it('extracts Source for well-known skills without a Repository', () => {
+    const html = `
+      <div><span>Source</span></div>
+      <a href="https://open.feishu.cn" title="open.feishu.cn">open.feishu.cn</a>
+      <div><span>First Seen</span></div>
+      <div>Apr 14, 2026</div>
+    `;
+    const snapshot = parsePageSnapshot(html);
+    expect(snapshot.source).toBe('https://open.feishu.cn');
+    expect(snapshot.repository).toBeUndefined();
+  });
+
   it('prefers aria-label weekly series when RSC values are absent', () => {
     const html = `<svg aria-label="Weekly installs: 1, 2, 3, 4, 5, 6, 7, 8"></svg>`;
     expect(parsePageSnapshot(html).weeklyInstalls).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
@@ -66,6 +78,22 @@ describe('parsePageSnapshot', () => {
 
   it('returns an empty sparse object for blank HTML', () => {
     expect(parsePageSnapshot('')).toEqual({});
+  });
+
+  it('strips /site/ from related skill hrefs', () => {
+    const html = `
+      <section>
+        <div>Related skills</div>
+        <ul>
+          <li><a href="/site/open.feishu.cn/lark-doc"><h3>lark-doc</h3></a></li>
+          <li><a href="/anthropics/skills/frontend-design"><h3>frontend-design</h3></a></li>
+        </ul>
+      </section>
+    `;
+    expect(parsePageSnapshot(html).related).toEqual([
+      { id: 'open.feishu.cn/lark-doc', name: 'lark-doc' },
+      { id: 'anthropics/skills/frontend-design', name: 'frontend-design' },
+    ]);
   });
 });
 

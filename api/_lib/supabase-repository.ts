@@ -22,6 +22,7 @@ export type SkillEnrichmentRecord = {
 export type SkillMetadataRecord = SkillEnrichmentRecord & {
   sourceUrl?: string;
   repository?: string;
+  source?: string;
   installCount?: number;
   rawStoragePrefix?: string;
 };
@@ -31,6 +32,7 @@ export type SkillSourceMetadata = {
   contentHash: string;
   sourceUrl?: string;
   repository?: string;
+  source?: string;
   installCount?: number;
   rawStoragePrefix?: string;
 };
@@ -40,6 +42,7 @@ export type SkillPageSnapshot = {
   summary?: string;
   topics?: string[];
   repository?: string;
+  source?: string;
   stars?: number;
   firstSeen?: string;
   installCommand?: string;
@@ -63,6 +66,7 @@ export type SkillPageCacheRecord = {
   pageSnapshot: SkillPageSnapshot | null;
   pageScrapedAt: string | null;
   repository: string | null;
+  source: string | null;
   installCount: number | null;
   sourceUrl: string | null;
 };
@@ -71,7 +75,8 @@ export type SkillPageCacheRecord = {
 export type SkillListSighting = {
   skillId: string;
   installCount: number;
-  repository?: string;
+  repository?: string | null;
+  source?: string | null;
   sourceUrl?: string;
 };
 
@@ -95,6 +100,7 @@ type Database = {
           estimated_read_time_minutes: number | null;
           source_url: string | null;
           repository: string | null;
+          source: string | null;
           install_count: number | null;
           raw_storage_prefix: string | null;
           page_snapshot: SkillPageSnapshot | null;
@@ -153,6 +159,7 @@ function sourceMetadataRow(record: SkillSourceMetadata): Record<string, unknown>
     content_hash: record.contentHash,
     source_url: record.sourceUrl ?? null,
     repository: record.repository ?? null,
+    source: record.source ?? null,
     install_count: record.installCount ?? null,
     raw_storage_prefix: record.rawStoragePrefix ?? null,
   };
@@ -173,6 +180,7 @@ function toSkillMetadataRecord(row: Record<string, unknown>): SkillMetadataRecor
     ...toSkillEnrichmentRecord(row),
     sourceUrl: row.source_url ? String(row.source_url) : undefined,
     repository: row.repository ? String(row.repository) : undefined,
+    source: row.source ? String(row.source) : undefined,
     installCount:
       row.install_count === null || row.install_count === undefined
         ? undefined
@@ -380,7 +388,9 @@ export function createSupabaseRepository(client: RepositoryClient) {
     async getSkillPageCache(skillId: string): Promise<SkillPageCacheRecord | null> {
       const result = await client
         .from('skill_metadata')
-        .select('skill_id, page_snapshot, page_scraped_at, repository, install_count, source_url')
+        .select(
+          'skill_id, page_snapshot, page_scraped_at, repository, source, install_count, source_url',
+        )
         .eq('skill_id', skillId)
         .maybeSingle();
       throwOnError(result.error);
@@ -391,6 +401,7 @@ export function createSupabaseRepository(client: RepositoryClient) {
         pageSnapshot: (row.page_snapshot as SkillPageSnapshot | null) ?? null,
         pageScrapedAt: row.page_scraped_at ? String(row.page_scraped_at) : null,
         repository: row.repository ? String(row.repository) : null,
+        source: row.source ? String(row.source) : null,
         installCount: typeof row.install_count === 'number' ? row.install_count : null,
         sourceUrl: row.source_url ? String(row.source_url) : null,
       };
@@ -470,6 +481,7 @@ export function createSupabaseRepository(client: RepositoryClient) {
           raw_storage_prefix: record.skillId,
         };
         if (record.repository !== undefined) row.repository = record.repository;
+        if (record.source !== undefined) row.source = record.source;
         if (record.sourceUrl !== undefined) row.source_url = record.sourceUrl;
         return row;
       });

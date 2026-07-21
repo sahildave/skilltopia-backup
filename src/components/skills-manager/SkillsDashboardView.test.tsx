@@ -33,6 +33,7 @@ describe('SkillsDashboardView', () => {
       pageSnapshot: null,
       pageScrapedAt: null,
       repository: null,
+      source: null,
       installCount: null,
       sourceUrl: null,
       installSeries: [],

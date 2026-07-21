@@ -225,6 +225,7 @@
   "skills.detail.topics": "Topics",
   "skills.detail.installs": "Installs",
   "skills.detail.repository": "Repository",
+  "skills.detail.source": "Source",
   "skills.detail.audits": "Security audits",
   "skills.detail.auditsLoading": "Loading audits...",
   "skills.detail.auditsFailed": "Couldn't load audits",

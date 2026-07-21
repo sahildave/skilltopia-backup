@@ -68,7 +68,8 @@ function parseRelated(html: string): unknown[] | undefined {
     ),
   ]
     .map((match) => {
-      const id = match[1]?.trim();
+      const rawId = match[1]?.trim();
+      const id = rawId?.replace(/^site\//u, '');
       const name = decodeEntities(match[2]?.trim() ?? '');
       const description = decodeEntities(match[3]?.trim() ?? '');
       if (!id) return null;
@@ -109,6 +110,13 @@ export function parsePageSnapshot(html: string): SkillPageSnapshot {
     )?.[1] ?? html.match(/>Repository[\s\S]*?href="https:\/\/github\.com\/([^"]+)"/iu)?.[1];
   if (repository && !/verified/iu.test(repository)) {
     snapshot.repository = decodeEntities(repository.trim());
+  }
+
+  const sourceHref =
+    html.match(/>Source[\s\S]*?href="(https?:\/\/[^"]+)"/iu)?.[1] ??
+    html.match(/>Source[\s\S]*?href="([^"]+)"/iu)?.[1];
+  if (sourceHref && !/verified/iu.test(sourceHref) && !/skills\.sh\//iu.test(sourceHref)) {
+    snapshot.source = decodeEntities(sourceHref.trim());
   }
 
   const starsRaw = html.match(/>GitHub Stars<\/span>[\s\S]*?<span>([^<]+)<\/span>/iu)?.[1];

@@ -5,6 +5,8 @@ import {
   fetchLeaderboard,
   fetchSkillAudits,
   fetchSkillDetail,
+  classifySkillOrigin,
+  skillPageUrl,
   type SkillDetail,
 } from './skills-catalog.js';
 import {
@@ -22,11 +24,12 @@ export type ScrapePipelineOptions = {
   skillIds?: string[];
   throttleMs?: number;
   scrapeDate?: Date;
+  signal?: AbortSignal;
   loadLeaderboard?: typeof fetchLeaderboard;
   loadDetail?: typeof fetchSkillDetail;
   loadAudits?: typeof fetchSkillAudits;
   fetchPageHtml?: (url: string) => Promise<string>;
-  sleep?: (milliseconds: number) => Promise<void>;
+  sleep?: (milliseconds: number, signal?: AbortSignal) => Promise<void>;
   log?: (message: string, level?: ScrapeLogLevel) => void;
 };
 
@@ -35,22 +38,31 @@ export type ScrapeRunResult = {
   scraped: number;
   skipped: number;
   failed: Array<{ skillId: string; message: string }>;
+  aborted?: boolean;
 };
 
+/** Comma-separated `SKILL_IDS` env → list, or undefined when unset. */
+export function skillIdsFromEnv(environment = process.env): string[] | undefined {
+  const raw = environment.SKILL_IDS?.trim();
+  if (!raw) return undefined;
+  const ids = raw
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return ids.length > 0 ? ids : undefined;
+}
+
 function sourceMetadata(detail: SkillDetail): SkillSourceMetadata {
+  const origin = classifySkillOrigin(detail.id, detail.source);
   return {
     skillId: detail.id,
     contentHash: detail.hash ?? '',
-    sourceUrl: detail.url,
-    repository: detail.source,
+    sourceUrl: skillPageUrl(detail.id, detail.url),
+    repository: origin.repository,
+    source: origin.source,
     installCount: detail.installs,
     rawStoragePrefix: detail.id,
   };
-}
-
-function pageUrl(detail: SkillDetail): string {
-  if (detail.url?.trim()) return detail.url.trim();
-  return `https://skills.sh/${detail.id}`;
 }
 
 async function fetchSkillsShHtml(url: string): Promise<string> {
@@ -72,11 +84,41 @@ async function scrapeWithRetry(
   }
 }
 
+function defaultSleep(milliseconds: number, signal?: AbortSignal): Promise<void> {
+  if (!signal) {
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
+  }
+  if (signal.aborted) {
+    return Promise.reject(new DOMException('Aborted', 'AbortError'));
+  }
+  return new Promise((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(new DOMException('Aborted', 'AbortError'));
+    };
+    const timer = setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, milliseconds);
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof Error && error.name === 'AbortError') ||
+    (typeof DOMException !== 'undefined' &&
+      error instanceof DOMException &&
+      error.name === 'AbortError')
+  );
+}
+
 export async function runScrapePipeline(options: ScrapePipelineOptions): Promise<ScrapeRunResult> {
   const maxEnriched = Math.min(options.maxEnriched ?? MAX_ENRICHED_DEFAULT, MAX_ENRICHED);
   const throttleMs = options.throttleMs ?? 1000;
   const scrapeDate = options.scrapeDate ?? new Date();
-  const sleep = options.sleep ?? (async (ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const signal = options.signal;
+  const sleep = options.sleep ?? defaultSleep;
   const loadLeaderboard = options.loadLeaderboard ?? fetchLeaderboard;
   const loadDetail = options.loadDetail ?? fetchSkillDetail;
   const loadAudits = options.loadAudits ?? fetchSkillAudits;
@@ -97,7 +139,8 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
 
   let skillIds: string[];
   if (explicitIds) {
-    skillIds = explicitIds.slice(0, maxEnriched);
+    // Explicit list ignores MAX_ENRICHED default; still hard-capped.
+    skillIds = explicitIds.slice(0, MAX_ENRICHED);
     log(`using ${skillIds.length} explicit skill id(s)`, 'ok');
   } else {
     log('fetching leaderboard from skills.sh…', 'step');
@@ -106,6 +149,12 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
   }
 
   for (const [index, skillId] of skillIds.entries()) {
+    if (signal?.aborted) {
+      result.aborted = true;
+      log(`aborted before ${skillId} (${index}/${skillIds.length} done)`, 'warn');
+      break;
+    }
+
     const step = `[${index + 1}/${skillIds.length}] ${skillId}`;
     result.attempted += 1;
     try {
@@ -143,10 +192,10 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
         log(`${step}: audit refresh failed — ${message}`, 'warn');
       }
 
-      const url = pageUrl(detail);
+      const url = skillPageUrl(detail.id, detail.url);
       let snapshot = null;
       try {
-        log(`${step}: scraping HTML…`, 'step');
+        log(`${step}: scraping HTML ${url}…`, 'step');
         const html = await scrapeWithRetry(fetchPageHtml, url);
         snapshot = parsePageSnapshot(html);
         await options.repository.upsertPageSnapshot(detail.id, snapshot, scrapeDate.toISOString());
@@ -178,15 +227,24 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
       log(`${step}: failed — ${message}`, 'error');
     }
 
-    if (throttleMs > 0) {
+    if (throttleMs > 0 && index < skillIds.length - 1) {
       log(`${step}: throttling ${throttleMs}ms…`, 'step');
-      await sleep(throttleMs);
+      try {
+        await sleep(throttleMs, signal);
+      } catch (error) {
+        if (isAbortError(error) || signal?.aborted) {
+          result.aborted = true;
+          log('aborted during throttle', 'warn');
+          break;
+        }
+        throw error;
+      }
     }
   }
 
   log(
-    `done attempted=${result.attempted} scraped=${result.scraped} skipped=${result.skipped} failed=${result.failed.length}`,
-    result.failed.length > 0 ? 'warn' : 'ok',
+    `done attempted=${result.attempted} scraped=${result.scraped} skipped=${result.skipped} failed=${result.failed.length}${result.aborted ? ' aborted=1' : ''}`,
+    result.failed.length > 0 || result.aborted ? 'warn' : 'ok',
   );
   return result;
 }
@@ -198,6 +256,7 @@ export async function runLocalScrape(options: LocalScrapeOptions = {}): Promise<
   return runScrapePipeline({
     repository: options.repository ?? createSupabaseRepositoryFromEnv(),
     ...options,
+    skillIds: options.skillIds ?? skillIdsFromEnv(),
     maxEnriched: options.maxEnriched ?? maxEnrichedFromEnv(),
   });
 }

@@ -351,8 +351,9 @@ describe('Supabase skill repository', () => {
             page_snapshot: snapshot,
             page_scraped_at: '2026-07-21T00:00:00.000Z',
             repository: 'anthropics/skills',
+            source: null,
             install_count: 42,
-            source_url: 'https://github.com/anthropics/skills',
+            source_url: 'https://www.skills.sh/anthropics/skills/frontend-design',
           },
           error: null,
         }),
@@ -378,8 +379,9 @@ describe('Supabase skill repository', () => {
       pageSnapshot: snapshot,
       pageScrapedAt: '2026-07-21T00:00:00.000Z',
       repository: 'anthropics/skills',
+      source: null,
       installCount: 42,
-      sourceUrl: 'https://github.com/anthropics/skills',
+      sourceUrl: 'https://www.skills.sh/anthropics/skills/frontend-design',
     });
     await expect(repository.listInstallSnapshots(enrichment.skillId, 8)).resolves.toEqual([
       { skillId: enrichment.skillId, date: '2026-07-20', installs: 40 },

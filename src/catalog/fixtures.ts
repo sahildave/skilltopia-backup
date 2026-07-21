@@ -33,8 +33,9 @@ export const MOCK_DETAIL: SkillDetailData = {
   },
   pageScrapedAt: '2026-07-20T00:00:00.000Z',
   repository: 'vercel-labs/agent-skills',
+  source: null,
   installCount: 128_000,
-  sourceUrl: 'https://github.com/vercel-labs/agent-skills',
+  sourceUrl: 'https://www.skills.sh/vercel-labs/agent-skills/find-skills',
   installSeries: [100, 110, 120, 130, 140, 150, 160, 170],
   enrichment: {
     skillId: 'vercel-labs/agent-skills/find-skills',
@@ -56,6 +57,7 @@ export const MOCK_UNCACHED_DETAIL: SkillDetailData = {
   pageSnapshot: null,
   pageScrapedAt: null,
   repository: null,
+  source: null,
   installCount: 64_000,
   sourceUrl: null,
   installSeries: [],

@@ -5,11 +5,54 @@ import {
   fetchLeaderboardPage,
   fetchSkillAudits,
   fetchSkillDetail,
+  classifySkillOrigin,
   resolveBatchOidcToken,
+  skillPageUrl,
 } from './skills-catalog.js';
 
 afterEach(() => {
   vi.unstubAllEnvs();
+});
+
+describe('skillPageUrl', () => {
+  it('prefers a known url from the list API', () => {
+    expect(
+      skillPageUrl('open.feishu.cn/lark-approval', 'https://www.skills.sh/site/open.feishu.cn/lark-approval'),
+    ).toBe('https://www.skills.sh/site/open.feishu.cn/lark-approval');
+  });
+
+  it('reconstructs well-known and GitHub page urls when detail omits url', () => {
+    expect(skillPageUrl('open.feishu.cn/lark-approval')).toBe(
+      'https://www.skills.sh/site/open.feishu.cn/lark-approval',
+    );
+    expect(skillPageUrl('mintlify.com/mintlify')).toBe('https://www.skills.sh/site/mintlify.com/mintlify');
+    expect(skillPageUrl('anthropics/skills/frontend-design')).toBe(
+      'https://www.skills.sh/anthropics/skills/frontend-design',
+    );
+  });
+});
+
+describe('classifySkillOrigin', () => {
+  it('maps GitHub skills to repository', () => {
+    expect(classifySkillOrigin('vercel-labs/skills/find-skills', 'vercel-labs/skills')).toEqual({
+      repository: 'vercel-labs/skills',
+    });
+  });
+
+  it('maps well-known skills to https source', () => {
+    expect(classifySkillOrigin('open.feishu.cn/lark-approval', 'open.feishu.cn')).toEqual({
+      source: 'https://open.feishu.cn',
+    });
+    expect(classifySkillOrigin('open.feishu.cn/lark-approval', 'https://open.feishu.cn')).toEqual({
+      source: 'https://open.feishu.cn',
+    });
+  });
+
+  it('treats host-like API source as external even on odd ids', () => {
+    expect(classifySkillOrigin('odd/id', 'https://example.com/skills')).toEqual({
+      source: 'https://example.com/skills',
+    });
+  });
 });
 
 describe('resolveBatchOidcToken', () => {

@@ -29,6 +29,7 @@ export interface RelatedSkill {
   skillId: string;
   score: number;
   repository: string | null;
+  source: string | null;
   sourceUrl: string | null;
   installCount: number | null;
 }
@@ -38,6 +39,7 @@ export interface SkillPageSnapshot {
   summary?: string;
   topics?: string[];
   repository?: string;
+  source?: string;
   stars?: number;
   firstSeen?: string;
   installCommand?: string;
@@ -51,6 +53,7 @@ export interface SkillDetailData {
   pageSnapshot: SkillPageSnapshot | null;
   pageScrapedAt: string | null;
   repository: string | null;
+  source: string | null;
   installCount: number | null;
   sourceUrl: string | null;
   /** Up to 8 install counts for the sparkline (scraped weekly, else local snapshots). */

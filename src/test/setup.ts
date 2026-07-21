@@ -57,6 +57,7 @@ vi.mock('@/lib/tauri-bindings', () => ({
         pageSnapshot: null,
         pageScrapedAt: null,
         repository: null,
+        source: null,
         installCount: null,
         sourceUrl: null,
         installSeries: [],

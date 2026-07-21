@@ -5,7 +5,7 @@ import type { LanguageModel } from 'ai';
 import { createHash } from 'node:crypto';
 import { distilledEnrichmentText, enrichWithModel } from './enrichment.js';
 import { MAX_ENRICHED, MAX_ENRICHED_DEFAULT, maxEnrichedFromEnv } from './max-enriched.js';
-import { fetchLeaderboard, fetchSkillDetail } from './skills-catalog.js';
+import { fetchLeaderboard, fetchSkillDetail, classifySkillOrigin, skillPageUrl } from './skills-catalog.js';
 import {
   createSupabaseRepositoryFromEnv,
   estimateReadTimeMinutes,
@@ -51,11 +51,13 @@ function hashFiles(files: Array<{ path: string; contents: string }>): string {
 }
 
 function metadata(detail: Awaited<ReturnType<typeof fetchSkillDetail>>): SkillSourceMetadata {
+  const origin = classifySkillOrigin(detail.id, detail.source);
   return {
     skillId: detail.id,
     contentHash: detail.hash ?? hashFiles(detail.files ?? []),
-    sourceUrl: detail.url,
-    repository: detail.source,
+    sourceUrl: skillPageUrl(detail.id, detail.url),
+    repository: origin.repository,
+    source: origin.source,
     installCount: detail.installs,
     rawStoragePrefix: detail.id,
   };

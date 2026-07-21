@@ -17,6 +17,7 @@ export const catalog: CatalogPort = {
       pageSnapshot: data.pageSnapshot ?? null,
       pageScrapedAt: data.pageScrapedAt ?? null,
       repository: data.repository ?? null,
+      source: data.source ?? null,
       installCount: data.installCount ?? null,
       sourceUrl: data.sourceUrl ?? null,
       installSeries: data.installSeries ?? [],

@@ -24,6 +24,64 @@ export type { SkillAuditsPayload };
 
 type FetchCatalog = (url: string) => Promise<unknown>;
 
+/**
+ * Public skills.sh HTML page URL.
+ * List responses include `url`; detail omits it — reconstruct from id shape.
+ * GitHub: `owner/repo/skill` → `https://www.skills.sh/{id}`
+ * Well-known: `domain.com/skill` → `https://www.skills.sh/site/{id}`
+ */
+export function skillPageUrl(skillId: string, knownUrl?: string | null): string {
+  const trimmed = knownUrl?.trim();
+  if (trimmed) return trimmed;
+  const segments = skillId.split('/').filter(Boolean);
+  if (segments.length === 2) {
+    return `https://www.skills.sh/site/${skillId}`;
+  }
+  return `https://www.skills.sh/${skillId}`;
+}
+
+export type ClassifiedOrigin = {
+  repository?: string;
+  source?: string;
+};
+
+function looksLikeHost(value: string): boolean {
+  if (/^https?:\/\//iu.test(value)) return true;
+  const host = value.split('/')[0] ?? '';
+  return /^[a-z0-9.-]+\.[a-z]{2,}$/iu.test(host);
+}
+
+/** Prefer absolute URLs for external Source values. */
+export function normalizeExternalSource(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+  if (/^https?:\/\//iu.test(trimmed)) return trimmed;
+  if (looksLikeHost(trimmed)) return `https://${trimmed}`;
+  return trimmed;
+}
+
+/**
+ * Split skills.sh API `source` into GitHub `repository` vs external `source`.
+ * Well-known ids (`domain.com/skill`) and host/URL values → source;
+ * `owner/repo` (and GitHub skill ids) → repository.
+ */
+export function classifySkillOrigin(
+  skillId: string,
+  apiSource: string | null | undefined,
+): ClassifiedOrigin {
+  const trimmed = apiSource?.trim();
+  if (!trimmed) return {};
+
+  const segments = skillId.split('/').filter(Boolean);
+  const isWellKnown = segments.length === 2 && (segments[0]?.includes('.') ?? false);
+
+  if (isWellKnown || looksLikeHost(trimmed)) {
+    return { source: normalizeExternalSource(trimmed) };
+  }
+
+  return { repository: trimmed };
+}
+
 /** Batch/backend OIDC: secondary (Infisical/GHA) preferred; else VERCEL_OIDC_TOKEN. */
 export function resolveBatchOidcToken(): string | undefined {
   const secondary = process.env.VERCEL_OIDC_TOKEN_SECONDARY?.trim();

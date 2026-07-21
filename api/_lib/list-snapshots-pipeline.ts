@@ -1,4 +1,4 @@
-import { fetchAllLeaderboard, type CatalogSkill, type LeaderboardView } from './skills-catalog.js';
+import { fetchAllLeaderboard, classifySkillOrigin, skillPageUrl, type CatalogSkill, type LeaderboardView } from './skills-catalog.js';
 import { createSupabaseRepositoryFromEnv, type SkillListSighting } from './supabase-repository.js';
 
 type Repository = ReturnType<typeof createSupabaseRepositoryFromEnv>;
@@ -39,12 +39,16 @@ function mergeByHighestInstalls(skills: CatalogSkill[]): CatalogSkill[] {
 }
 
 function toSightings(skills: CatalogSkill[]): SkillListSighting[] {
-  return skills.map((skill) => ({
-    skillId: skill.id,
-    installCount: skill.installs,
-    repository: skill.source,
-    sourceUrl: skill.url,
-  }));
+  return skills.map((skill) => {
+    const origin = classifySkillOrigin(skill.id, skill.source);
+    return {
+      skillId: skill.id,
+      installCount: skill.installs,
+      repository: origin.repository ?? null,
+      source: origin.source ?? null,
+      sourceUrl: skillPageUrl(skill.id, skill.url),
+    };
+  });
 }
 
 export async function runListSnapshotsPipeline(

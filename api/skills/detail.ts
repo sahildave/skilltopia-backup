@@ -30,6 +30,7 @@ export async function GET(request: Request): Promise<Response> {
     pageSnapshot: pageCache?.pageSnapshot ?? null,
     pageScrapedAt: pageCache?.pageScrapedAt ?? null,
     repository: pageCache?.pageSnapshot?.repository ?? pageCache?.repository ?? null,
+    source: pageCache?.pageSnapshot?.source ?? pageCache?.source ?? null,
     installCount: pageCache?.installCount ?? null,
     sourceUrl: pageCache?.sourceUrl ?? null,
     installSeries,
@@ -38,6 +39,7 @@ export async function GET(request: Request): Promise<Response> {
       skillId: string;
       score: number;
       repository: string | null;
+      source: string | null;
       sourceUrl: string | null;
       installCount: number | null;
     }>,
@@ -73,6 +75,7 @@ export async function GET(request: Request): Promise<Response> {
                 skillId: item.skillId,
                 score: item.score,
                 repository: itemMetadata.repository ?? null,
+                source: itemMetadata.source ?? null,
                 sourceUrl: itemMetadata.sourceUrl ?? null,
                 installCount: itemMetadata.installCount ?? null,
               },

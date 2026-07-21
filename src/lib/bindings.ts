@@ -276,7 +276,7 @@ export type RecoveryError =
  * JSON serialization/deserialization error
  */
 { type: "ParseError"; message: string }
-export type RelatedSkill = { skillId: string; score: number; repository: string | null; sourceUrl: string | null; installCount: number | null }
+export type RelatedSkill = { skillId: string; score: number; repository: string | null; source: string | null; sourceUrl: string | null; installCount: number | null }
 export type ScanWarning = { code: ScanWarningCode; message: string; providerId?: string | null; path?: string | null }
 export type ScanWarningCode = "provider_empty" | "skills_dir_missing" | "entry_skipped" | "universal_empty"
 export type ScannedProvider = { id: string; name: string; universal: boolean; detected: boolean; skillsDir: string | null; skillsDirExists: boolean; skillCount: number }
@@ -285,10 +285,10 @@ export type ScannedSkillPath = { path: string; originalPath?: string | null }
 export type SkillAuditEntry = { provider: string; slug: string; status: string; summary: string; auditedAt: string; riskLevel?: string | null; categories?: string[] | null }
 export type SkillAuditsData = { skillId: string; audits: SkillAuditsPayload | null; source: string; auditsFetchedAt: string | null }
 export type SkillAuditsPayload = { id: string; source: string; slug: string; audits: SkillAuditEntry[] }
-export type SkillDetailData = { skillId: string; pageSnapshot?: SkillPageSnapshot | null; pageScrapedAt?: string | null; repository?: string | null; installCount?: number | null; sourceUrl?: string | null; installSeries?: number[]; enrichment: SkillEnrichment | null; related: RelatedSkill[] }
+export type SkillDetailData = { skillId: string; pageSnapshot?: SkillPageSnapshot | null; pageScrapedAt?: string | null; repository?: string | null; source?: string | null; installCount?: number | null; sourceUrl?: string | null; installSeries?: number[]; enrichment: SkillEnrichment | null; related: RelatedSkill[] }
 export type SkillEnrichment = { skillId: string; contentHash: string; required: SkillEnrichmentRequired; optional: JsonValue; estimatedReadTimeMinutes: number }
 export type SkillEnrichmentRequired = { primaryGoal: string; requires: string[]; estimatedComplexity: string; bestFor: string[] }
-export type SkillPageSnapshot = { summary?: string | null; topics?: string[] | null; repository?: string | null; stars?: number | null; firstSeen?: string | null; installCommand?: string | null; related?: JsonValue | null; weeklyInstalls?: number[] | null; skillMdPreview?: string | null }
+export type SkillPageSnapshot = { summary?: string | null; topics?: string[] | null; repository?: string | null; source?: string | null; stars?: number | null; firstSeen?: string | null; installCommand?: string | null; related?: JsonValue | null; weeklyInstalls?: number[] | null; skillMdPreview?: string | null }
 export type SkillsShSkill = { id: string; slug: string; name: string; source: string; installs: number; sourceType: string; installUrl?: string | null; url: string; isDuplicate?: boolean | null }
 export type UniversalScanInfo = { skillsDir: string; skillsDirExists: boolean; skillCount: number }
 

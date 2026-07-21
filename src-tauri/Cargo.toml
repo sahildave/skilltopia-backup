@@ -1,6 +1,6 @@
 [package]
 name = "skilltopia"
-version = "0.1.0"
+version = "0.2.0"
 description = "Skilltopia is a platform for managing your AI agent skills and downloading them from the web."
 authors = ["Coduo Studio, LLC"]
 license = "MIT"

@@ -100,13 +100,16 @@ Web module graph must not import desktop-only startup (menus, quick panes, recov
 | ----------------- | ----------------------------------- | --------- | ------------------------------------------------------------------------------------ |
 | `dev` / `dev:web` | Vite browser shell                  | `web`     | Vite proxies `/api` → deployed Backend                                               |
 | `dev:mock`        | Vite browser shell + fixtures       | `mock`    | No Backend required for UI states                                                    |
+| `dev:desktop`     | Vite desktop entry (`desktop.html`) | `desktop` | Used by Tauri `beforeDevCommand`; sets `TARGET` via `cross-env` (Windows-safe)       |
 | `dev:all`         | web Vite **+** `tauri:dev` only     | both      | Web on `:5173`, Tauri Vite on `:1420`. **No** `proxy:dev`                            |
 | `tauri:dev`       | Tauri + Vite child (`desktop.html`) | `desktop` | Rust → deployed Backend (or Infisical override)                                      |
 | `build:web`       | Static web bundle + Tauri scan      | `web`     | Fails if `dist/` contains Tauri markers (`scan:web-bundle`)                          |
 | `scan:web-bundle` | Scan `dist/` only                   | n/a       | Used by `build:web` / CI; markers: `@tauri-apps`, `__TAURI__`, `__TAURI_INTERNALS__` |
-| `build:desktop`   | Desktop + quick-pane bundle         | `desktop` | Used by Tauri `beforeBuildCommand`                                                   |
+| `build:desktop`   | Desktop + quick-pane bundle         | `desktop` | Used by Tauri `beforeBuildCommand`; `cross-env` for Windows CI                       |
 | `proxy:dev`       | Local Backend on `:3000`            | n/a       | Optional with `tauri:dev:local` — **not** part of `dev:all`                          |
 | `dev:local:proxy` | `proxy:dev` + `tauri:dev:local`     | desktop   | Optional both-local path; see [external-apis.md](./external-apis.md)                 |
+
+`TARGET=…` env prefixes must go through `cross-env` so Windows `cmd.exe` (GitHub Actions `windows-latest`) can run the same scripts as macOS/Linux.
 
 ### Network ports (TCP)
 

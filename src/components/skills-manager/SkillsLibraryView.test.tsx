@@ -75,7 +75,6 @@ describe('SkillsLibraryView (local / mock)', () => {
     });
     useInstalledSkillsUiStore.setState({
       providerFilter: ALL_AGENTS_FILTER_ID,
-      showAllUniversal: false,
       layoutMode: 'grid',
     });
   });
@@ -189,40 +188,6 @@ describe('SkillsLibraryView (local / mock)', () => {
     expect(scanMock.revealProviderSkillsDir).toHaveBeenCalledWith('universal');
   });
 
-  it('shows Universal Skills section when Show all Universal is enabled', async () => {
-    const user = userEvent.setup();
-    useInstalledSkillsUiStore.setState({ providerFilter: 'claude-code' });
-    render(<SkillsLibraryView />);
-
-    await user.click(screen.getByRole('switch', { name: /show all universal/i }));
-    expect(screen.getByText('Universal Skills')).toBeInTheDocument();
-    expect(screen.getByText('frontend-design')).toBeInTheDocument();
-  });
-
-  it('resets Show all Universal when changing providers', async () => {
-    const user = userEvent.setup();
-    useInstalledSkillsUiStore.setState({
-      providerFilter: 'claude-code',
-      showAllUniversal: true,
-    });
-    render(
-      <>
-        <SkillsSidebar active="installed" onSelect={vi.fn()} />
-        <SkillsLibraryView />
-      </>,
-    );
-
-    expect(screen.getByRole('switch', { name: /show all universal/i })).toBeChecked();
-    const claudeCodeButton = screen.getAllByRole('button', {
-      name: /Claude Code/i,
-    })[0];
-    if (!claudeCodeButton) {
-      throw new Error('Expected Claude Code sidebar button');
-    }
-    await user.click(claudeCodeButton);
-    expect(useInstalledSkillsUiStore.getState().showAllUniversal).toBe(false);
-  });
-
   it('manual Rescan replaces the shared snapshot while keeping prior cards', async () => {
     const user = userEvent.setup();
     let resolveScan: (value: typeof MOCK_EMPTY_SCAN) => void = () => undefined;
@@ -295,7 +260,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText(/already installed/i)).toBeInTheDocument();
 
-    await user.click(screen.getByText(/other providers/i));
+    await user.click(screen.getByRole('button', { name: /^other providers$/i }));
     await user.click(screen.getByRole('checkbox', { name: /cursor/i }));
     expect(screen.getByRole('button', { name: /^copy$/i })).toBeEnabled();
 
@@ -399,7 +364,6 @@ describe('SkillsSidebar providers', () => {
     });
     useInstalledSkillsUiStore.setState({
       providerFilter: ALL_AGENTS_FILTER_ID,
-      showAllUniversal: false,
       layoutMode: 'grid',
     });
   });

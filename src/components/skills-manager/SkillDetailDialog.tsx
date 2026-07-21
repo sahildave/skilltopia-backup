@@ -190,11 +190,7 @@ export function SkillDetailBody({ skill }: { skill: SkillsShSkill }) {
   const installCount = detail?.installCount ?? skill.installs;
   const repository = detail?.repository ?? pageSnapshot?.repository ?? null;
   const source = detail?.source ?? pageSnapshot?.source ?? null;
-  const originLabel = repository
-    ? t('skills.detail.repository')
-    : source
-      ? t('skills.detail.source')
-      : null;
+
   const originValue = repository ?? source;
   const originHref = repository
     ? `https://github.com/${repository}`

@@ -147,14 +147,13 @@ In development, use the `forcePlatform` prop to preview other platform layouts:
 If building custom title bars, use the shared components:
 
 ```tsx
-import { TitleBarLeftActions, TitleBarRightActions, TitleBarTitle } from '@/components/titlebar';
+import { TitleBarLeftActions, TitleBarTitle } from '@/components/titlebar';
 
 function CustomTitleBar() {
   return (
     <div data-tauri-drag-region className="...">
       <TitleBarLeftActions />
       <TitleBarTitle title="My App" />
-      <TitleBarRightActions />
     </div>
   );
 }

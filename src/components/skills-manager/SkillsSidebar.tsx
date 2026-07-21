@@ -7,8 +7,8 @@ import {
   InputGroupInput,
 } from '@/components/ui/input-group';
 import { Separator } from '@/components/ui/separator';
-import { useCommandContext } from '@/hooks/use-command-context';
-import { executeCommand } from '@/lib/commands/registry';
+import { useTheme } from '@/hooks/use-theme';
+import { CODUO_URL, GITHUB_REPO_URL } from '@/lib/desktop-download';
 import { cn } from '@/lib/utils';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
@@ -17,14 +17,16 @@ import type { LucideIcon } from 'lucide-react';
 import {
   AlertTriangle,
   BookOpen,
+  FolderGit2,
   ChevronDown,
   LayoutDashboard,
+  Moon,
   Search,
-  Settings,
+  Sun,
   X,
   type Sparkles,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type SVGProps } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ALL_AGENTS_FILTER_ID,
@@ -35,6 +37,15 @@ import {
 } from './installed-skills-model';
 import type { SkillsNavId } from './types';
 
+/** Lucide dropped brand icons; keep the GitHub mark as a local SVG. */
+function GithubIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z" />
+    </svg>
+  );
+}
+
 const PRIMARY_NAV: {
   id: SkillsNavId;
   labelKey: string;
@@ -42,6 +53,7 @@ const PRIMARY_NAV: {
 }[] = [
   { id: 'explore', labelKey: 'skills.nav.explore', icon: LayoutDashboard },
   { id: 'installed', labelKey: 'skills.nav.installed', icon: BookOpen },
+  { id: 'projects', labelKey: 'skills.nav.projects', icon: FolderGit2 },
 ];
 
 interface SkillsSidebarProps {
@@ -51,7 +63,7 @@ interface SkillsSidebarProps {
 
 export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
   const { t } = useTranslation();
-  const commandContext = useCommandContext();
+  const { theme, setTheme } = useTheme();
   const snapshot = useInstalledScanStore((state) => state.snapshot);
   const providerFilter = useInstalledSkillsUiStore((state) => state.providerFilter);
   const setProviderFilter = useInstalledSkillsUiStore((state) => state.setProviderFilter);
@@ -78,12 +90,12 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
     filteredInactiveProviders.length > 0;
   const inactiveExpanded = inactiveOpen || query.length > 0;
 
-  const handleOpenPreferences = async () => {
-    const result = await executeCommand('open-preferences', commandContext);
-    if (!result.success && result.error) {
-      commandContext.showToast(result.error, 'error');
-    }
+  const handleThemeChange = (value: 'light' | 'dark' | 'system') => {
+    setTheme(value);
   };
+  const isDark =
+    theme === 'dark' ||
+    (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   return (
     <div className="flex h-full flex-col bg-muted/40">
@@ -254,15 +266,38 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
         ) : null}
       </nav>
 
-      <div className="border-t p-2">
-        <Button
-          variant="ghost"
-          className="text-muted-foreground w-full justify-start"
-          onClick={handleOpenPreferences}
-        >
-          <Settings className="size-4" />
-          {t('skills.nav.settings')}
-        </Button>
+      <div className="border-t group flex flex-row gap-1 p-2 items-center justify-between">
+        <div className="flex flex-row gap-1 items-center">
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon-sm"
+            aria-label={t('skills.sidebar.toggleTheme')}
+            onClick={() => handleThemeChange(isDark ? 'light' : 'dark')}
+          >
+            {isDark ? <Sun /> : <Moon />}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon-sm"
+            aria-label={t('skills.sidebar.openGithub')}
+            onClick={() => void platform.openExternal(GITHUB_REPO_URL)}
+          >
+            <GithubIcon />
+          </Button>
+        </div>
+        <div className="flex flex-col text-[10px] text-muted-foreground text-right items-end gap-0">
+          <span>Made by</span>
+          <Button
+            variant="link"
+            size="sm"
+            className="px-0 py-0 h-3 text-xs rounded-sm text-muted-foreground group-hover:text-primary"
+            onClick={() => void platform.openExternal(CODUO_URL)}
+          >
+            coduo.co
+          </Button>
+        </div>
       </div>
     </div>
   );

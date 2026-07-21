@@ -195,7 +195,7 @@ breathable. Use monospace only for commands, paths, identifiers, and code.
 - Keep application content left-aligned within the shell; center empty states
   and focused setup panels when that improves the next-action hierarchy.
 - Use the existing shell structure: title bar or web shell, navigation rail or
-  sidebar, main content, optional right sidebar, and global overlays.
+  sidebar, main content, and global overlays.
 - Use 1px quiet dividers and surface shifts before shadows.
 - Use small radii for compact blocks, medium radii for navigation rows, large
   radii for cards/composers, and pills for actions, chips, and badges.

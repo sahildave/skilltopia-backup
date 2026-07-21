@@ -84,3 +84,11 @@ pub struct InstalledScanSnapshot {
     pub skills: Vec<ScannedSkill>,
     pub warnings: Vec<ScanWarning>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectInfo {
+    pub name: String,
+    pub path: String,
+    pub depth: u8,
+}

@@ -2,12 +2,7 @@
 export { TitleBar } from './TitleBar';
 
 // Shared content components
-export {
-  TitleBarContent,
-  TitleBarLeftActions,
-  TitleBarRightActions,
-  TitleBarTitle,
-} from './TitleBarContent';
+export { TitleBarContent, TitleBarLeftActions, TitleBarTitle } from './TitleBarContent';
 
 // Platform-specific components (generally not needed externally)
 export { LinuxTitleBar } from './LinuxTitleBar';

@@ -82,6 +82,14 @@ Then GitHub Actions will:
 
 Finally, manually publish the draft release on GitHub.
 
+After the draft is published (not while it is still a draft), sync README download links from the real release assets:
+
+```bash
+npm run sync:readme-downloads
+```
+
+That rewrites the marked Downloads block in `README.md` to match the latest published release. Commit the README change when the script reports updates.
+
 ### macOS First-Open Note
 
 Until the app is signed and notarized with an Apple Developer account, some

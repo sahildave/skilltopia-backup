@@ -102,10 +102,8 @@ MainWindow (Top-level orchestrator)
 ├── TitleBar (Window controls + toolbar)
 ├── LeftSidebar (Collapsible panel)
 ├── MainWindowContent (Primary content area)
-├── RightSidebar (Collapsible panel)
 └── Global Overlays
     ├── PreferencesDialog (Settings)
-    ├── CommandPalette (Cmd+K)
     └── Toaster (Notifications)
 ```
 

@@ -56,3 +56,7 @@ probe-output/
 .env*
 
 /samples
+
+# Mobile icons from `tauri icon` (desktop-only app)
+src-tauri/icons/android/
+src-tauri/icons/ios/

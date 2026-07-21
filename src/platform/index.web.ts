@@ -14,6 +14,18 @@ export const platform: PlatformPort = {
     return EMPTY_INSTALLED_SCAN;
   },
 
+  async listProjects() {
+    return [];
+  },
+
+  async scanProject() {
+    return EMPTY_INSTALLED_SCAN;
+  },
+
+  async pickCodingFolder() {
+    return null;
+  },
+
   async revealProviderSkillsDir() {
     return false;
   },

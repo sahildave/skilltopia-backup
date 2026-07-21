@@ -21,6 +21,7 @@ import type {
   InstallableSkill,
   InstalledScanSnapshot,
   InstallScope,
+  ProjectInfo,
   PlatformPort,
   SkillEntry,
   SkillProvider,
@@ -37,7 +38,7 @@ function normalizeSnapshot(snapshot: RustInstalledScanSnapshot): InstalledScanSn
     providers: snapshot.providers,
     skills: snapshot.skills.map((skill) => ({
       ...skill,
-      scope: 'global',
+      scope: skill.scope === 'project' ? 'project' : 'global',
       uninstallName: skill.uninstallName,
       paths: skill.paths.map((path) => ({
         path: path.path,
@@ -156,6 +157,24 @@ export const platform: PlatformPort = {
 
   getInstalledScan: ensureScan,
   scanInstalled: refreshScan,
+
+  async listProjects(root): Promise<ProjectInfo[]> {
+    return unwrapResult(await commands.listProjects(root));
+  },
+
+  async scanProject(projectPath) {
+    const snapshot = normalizeSnapshot(unwrapResult(await commands.scanProjectSkills(projectPath)));
+    return snapshot;
+  },
+
+  async pickCodingFolder() {
+    const selected = await open({
+      directory: true,
+      multiple: false,
+      title: i18n.t('skills.projects.chooseFolder'),
+    });
+    return typeof selected === 'string' && selected.length > 0 ? selected : null;
+  },
 
   async revealProviderSkillsDir(providerId) {
     return unwrapResult(await commands.revealProviderSkillsDir(providerId));

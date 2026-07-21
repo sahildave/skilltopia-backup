@@ -17,6 +17,18 @@ export const platform: PlatformPort = {
     return cachedScan;
   },
 
+  async listProjects() {
+    return [];
+  },
+
+  async scanProject() {
+    return cachedScan;
+  },
+
+  async pickCodingFolder() {
+    return null;
+  },
+
   async revealProviderSkillsDir(providerId) {
     if (providerId === 'universal') {
       return cachedScan.universal.skillsDirExists;

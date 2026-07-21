@@ -6,10 +6,13 @@ Skilltopia is created by Coduo Studio, LLC. The main creators are [Sahil Dave](h
 
 ## Downloads
 
-- [Apple Silicon macOS (.dmg)](https://github.com/sahildave/skilltopia/releases/latest/download/tauri-app_0.1.0_aarch64.dmg)
+<!-- downloads:start -->
+
+- [Apple Silicon macOS (.dmg)](https://github.com/sahildave/skilltopia/releases/latest/download/skilltopia_0.2.0_aarch64.dmg)
 - [Intel macOS](https://github.com/sahildave/skilltopia/releases/latest)
 - [Windows](https://github.com/sahildave/skilltopia/releases/latest)
-- [Linux (.AppImage)](https://github.com/sahildave/skilltopia/releases/latest/download/tauri-app_0.1.0_amd64.AppImage)
+- [Linux (.AppImage)](https://github.com/sahildave/skilltopia/releases/latest/download/skilltopia_0.2.0_amd64.AppImage)
+<!-- downloads:end -->
 
 Apple Silicon and Linux links point straight to the latest published asset and should start downloading immediately. Intel macOS and Windows currently fall back to the latest release page until those bundle assets are attached there.
 

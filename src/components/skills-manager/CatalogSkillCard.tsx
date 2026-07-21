@@ -28,7 +28,7 @@ import { isInstallCancelled, isPermissionError } from './library-errors';
 import { SkillDetailBody } from './SkillDetailDialog';
 import type { InstallScope } from './types';
 
-const MORPH_TRANSITION = { type: 'spring', stiffness: 200, damping: 24 } as const;
+const MORPH_TRANSITION = { stiffness: 26.7, damping: 4.1, mass: 0.2 } as const;
 
 const DETAIL_CONTENT_CLASS =
   'app-material-strong bg-background relative max-h-[85vh] w-full max-w-[calc(100%-2rem)] overflow-y-auto rounded-[min(var(--radius-4xl),24px)] border p-6 scrollbar-none shadow-lg sm:max-w-2xl';

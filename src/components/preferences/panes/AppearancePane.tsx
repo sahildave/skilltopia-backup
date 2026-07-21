@@ -26,13 +26,8 @@ export function AppearancePane() {
   const savePreferences = useSavePreferences();
 
   const handleThemeChange = (value: 'light' | 'dark' | 'system') => {
-    // Update the theme provider immediately for instant UI feedback
+    // ThemeProvider persists to disk; avoid a second save/toast here
     setTheme(value);
-
-    // Persist the theme preference to disk, preserving other preferences
-    if (preferences) {
-      savePreferences.mutate({ ...preferences, theme: value });
-    }
   };
 
   const handleLanguageChange = async (value: string) => {

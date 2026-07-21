@@ -199,6 +199,28 @@ async scanInstalledSkills() : Promise<Result<InstalledScanSnapshot, string>> {
 }
 },
 /**
+ * Enumerate project directories at depth one or two below an explicitly selected root.
+ */
+async listProjects(root: string) : Promise<Result<ProjectInfo[], string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("list_projects", { root }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Scan project-local Universal and provider skill folders.
+ */
+async scanProjectSkills(projectPath: string) : Promise<Result<InstalledScanSnapshot, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("scan_project_skills", { projectPath }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Reveal a provider (or `universal`) skills directory in Finder/Explorer.
  * Returns `false` when the directory is missing. Does not rescan skills.
  */
@@ -266,6 +288,7 @@ export type CopyProviderStatus = "copied" | "conflict" | "failed"
 export type CopySkillToProvidersResult = { results: CopyProviderResult[] }
 export type InstalledScanSnapshot = { scannedAt: string; source: ProviderRegistrySourceMeta; universal: UniversalScanInfo; providers: ScannedProvider[]; skills: ScannedSkill[]; warnings: ScanWarning[] }
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
+export type ProjectInfo = { name: string; path: string; depth: number }
 export type ProviderRegistrySourceMeta = { repositoryUrl: string; commit: string; license: string; attribution: string }
 /**
  * Error types for recovery operations (typed for frontend matching)

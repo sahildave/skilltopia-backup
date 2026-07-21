@@ -198,6 +198,7 @@
   "skills.dashboard.searchLabel": "Search skills",
   "skills.dashboard.clearSearch": "Clear search",
   "skills.dashboard.searchFailed": "Couldn't load search results",
+  "skills.dashboard.searching": "Searching…",
   "skills.dashboard.refreshing": "Refreshing results...",
   "skills.dashboard.loadFailed": "Couldn't load skills",
   "skills.dashboard.noResultsTitle": "No skills found",

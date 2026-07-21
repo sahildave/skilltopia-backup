@@ -27,18 +27,18 @@ Each visited discovery tab already lives in TanStack Query under `['skills-sh', 
 
 ### Helpers
 
-- [ ] Add `collectCachedLeaderboardSkills` / `filterSkillsLocally` / merge helpers (e.g. `src/services/local-skills-search.ts`)
-- [ ] Unit tests: dedupe across tabs, name/slug/source match, API-only append, sync-gate behavior documented in tests where practical
+- [x] Add `collectCachedLeaderboardSkills` / `filterSkillsLocally` / merge helpers (e.g. `src/services/local-skills-search.ts`)
+- [x] Unit tests: dedupe across tabs, name/slug/source match, API-only append, sync-gate behavior documented in tests where practical
 
 ### Explore UI
 
-- [ ] Update `SkillsDashboardView`: search view from raw input; leaderboard always enabled; dual debounce; merge; bottom-center “Searching…”
-- [ ] Tabs do not filter search results; clearing search restores unfiltered leaderboard for the active tab
-- [ ] Add `skills.dashboard.searching` (and mirror in other locale files if present)
+- [x] Update `SkillsDashboardView`: search view from raw input; leaderboard always enabled; dual debounce; merge; bottom-center “Searching…”
+- [x] Tabs do not filter search results; clearing search restores unfiltered leaderboard for the active tab
+- [x] Add `skills.dashboard.searching` (and mirror in other locale files if present)
 
 ### Tests
 
-- [ ] Extend `SkillsDashboardView` tests: local cache hits before API; “Searching…” while pending/out of sync; clear restores leaderboard
+- [x] Extend `SkillsDashboardView` tests: local cache hits before API; “Searching…” while pending/out of sync; clear restores leaderboard
 
 ## Out of scope
 

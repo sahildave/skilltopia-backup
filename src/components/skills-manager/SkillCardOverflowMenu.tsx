@@ -154,7 +154,7 @@ export function SkillCardOverflowMenu({
                         onClick={() => void handleUninstall()}
                         className="flex-1 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        Yes, Delete
+                        {t('skills.installed.uninstallYes')}
                       </Button>
 
                       <Button
@@ -164,7 +164,7 @@ export function SkillCardOverflowMenu({
                         onClick={() => setConfirming(false)}
                         className="flex-1"
                       >
-                        Cancel
+                        {t('skills.installed.uninstallCancel')}
                       </Button>
                     </motion.div>
                   )}

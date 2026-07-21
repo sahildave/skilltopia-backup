@@ -10,6 +10,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { LibraryLayoutMode } from '@/store/installed-skills-ui-store';
+import { platform } from '@platform';
 import { ArrowLeft, LayoutGrid, LayoutList, LoaderCircle, Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DitherGradient } from '../dither-kit';
@@ -86,7 +87,7 @@ export function InstalledToolbar({
                 </span>
               ) : null}
             </div>
-            <p className="text-muted-foreground flex-row flex gap-1 max-w-2xl text-sm text-pretty">
+            <div className="text-muted-foreground flex max-w-2xl flex-row flex-wrap items-center gap-1 text-sm text-pretty">
               {description}{' '}
               {pathInfo ? (
                 <div className="flex flex-wrap items-center gap-0">
@@ -94,15 +95,7 @@ export function InstalledToolbar({
                     type="button"
                     className="hover:text-muted-foreground text-foreground inline-flex max-w-full items-center gap-0.5 text-sm disabled:pointer-events-none disabled:opacity-60"
                     onClick={() => {
-                      const platform = (
-                        window as Window & {
-                          platform?: {
-                            revealProviderSkillsDir: (id: string) => void;
-                          };
-                        }
-                      ).platform;
-
-                      platform?.revealProviderSkillsDir(pathInfo.revealId);
+                      void platform.revealProviderSkillsDir(pathInfo.revealId);
                     }}
                     disabled={Boolean(pathInfo.skillsDir) && !pathInfo.skillsDirExists}
                     title={
@@ -111,14 +104,13 @@ export function InstalledToolbar({
                         : t('skills.installed.pathMissing')
                     }
                   >
-                    {/* <FolderOpen className="size-3.5 shrink-0" aria-hidden /> */}
                     <code className="bg-muted truncate rounded px-1 py-0.5 text-xs">
                       {pathInfo.skillsDir || t('skills.installed.pathUnknown')}
                     </code>
                   </button>
                 </div>
               ) : null}
-            </p>
+            </div>
           </div>
           <InputGroup className="h-10 w-full max-w-sm shrink-0 rounded-xl bg-background!">
             <InputGroupAddon>

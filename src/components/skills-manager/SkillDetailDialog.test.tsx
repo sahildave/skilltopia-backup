@@ -1,7 +1,3 @@
-import { render, screen, waitFor } from '@/test/test-utils';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import userEvent from '@testing-library/user-event';
-import { catalog } from '@catalog';
 import {
   MOCK_AUDITS,
   MOCK_DETAIL,
@@ -14,6 +10,10 @@ import {
   MorphingDialogContent,
   MorphingDialogTrigger,
 } from '@/components/ui/morphing-dialog';
+import { render, screen, waitFor } from '@/test/test-utils';
+import { catalog } from '@catalog';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SkillDetailBody } from './SkillDetailDialog';
 
 vi.mock('@catalog', () => ({
@@ -88,7 +88,7 @@ describe('SkillDetailBody', () => {
     });
 
     expect(screen.getByText('exploration')).toBeInTheDocument();
-    expect(screen.getByText('vercel-labs/agent-skills')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /vercel-labs\/agent-skills/ })).toBeInTheDocument();
     expect(screen.getByText('128,000')).toBeInTheDocument();
     expect(screen.getByText('Socket')).toBeInTheDocument();
     expect(screen.getByText('No alerts')).toBeInTheDocument();

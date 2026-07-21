@@ -285,7 +285,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText(/already installed/i)).toBeInTheDocument();
 
-    await user.click(screen.getByText(/other providers/i));
+    await user.click(screen.getByRole('button', { name: /^other providers$/i }));
     await user.click(screen.getByRole('checkbox', { name: /cursor/i }));
     expect(screen.getByRole('button', { name: /^copy$/i })).toBeEnabled();
 

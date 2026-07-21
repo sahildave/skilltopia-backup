@@ -146,8 +146,8 @@ export function CatalogSkillCard({
                 </MorphingDialogTitle>
                 <Badge
                   variant="secondary"
-                  size="md"
-                  className="absolute top-1 right-1 shrink-0 tabular-nums font-mono"
+                  size="sm"
+                  className="absolute top-1 right-1 shrink-0 font-semibold text-muted-foreground font-mono"
                 >
                   {formatInstalls(skill.installs)}
                 </Badge>

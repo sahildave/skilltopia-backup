@@ -21,7 +21,7 @@ Flow already documented: `npm run release:prepare` → tag → [`release.yml`](.
 - [ ] Push tag; watch macOS / Windows / Linux matrix
 - [ ] Fix any CI failures (secrets, seed check, signing)
 - [ ] Publish the **draft** release on GitHub
-- [ ] **Clean Mac smoke test:** download DMG from release URL (not local artifact) — no `xattr`, app launches, catalog loads
+- [ ] **Clean Mac smoke test:** download DMG from the release URL (not a local artifact), move `Skilltopia.app` to `Applications`, run `xattr -dr com.apple.quarantine "/Applications/Skilltopia.app"` if Gatekeeper blocks opening, then verify the app launches and the catalog loads
 - [ ] **Clean Windows smoke test:** MSI install; note SmartScreen if unsigned
 - [ ] Confirm `latest.json` + `.sig` present; optional: second machine checks in-app update from a prior build
 - [ ] Update README install links to the release assets

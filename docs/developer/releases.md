@@ -82,6 +82,26 @@ Then GitHub Actions will:
 
 Finally, manually publish the draft release on GitHub.
 
+### macOS First-Open Note
+
+Until the app is signed and notarized with an Apple Developer account, some
+macOS machines may block the first launch even after the app is copied to
+`Applications`.
+
+If that happens, run:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Skilltopia.app"
+```
+
+If Terminal says the application was not found, verify the exact app name and
+location first, then rerun the command with the real path. For example, if the
+app is still in Downloads:
+
+```bash
+xattr -dr com.apple.quarantine "$HOME/Downloads/Skilltopia.app"
+```
+
 ### Manual Method
 
 ```bash

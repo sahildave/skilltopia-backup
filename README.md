@@ -9,7 +9,7 @@ The app has two runtime targets:
 - **Web**: browse and search the live catalog in Chrome during development.
 - **Desktop**: run the Tauri app to scan local skill directories, install skills, and use native desktop integrations.
 
-Desktop downloads will be published from [GitHub Releases](https://github.com/sahildave/skilltopia/releases) once the first signed build is available. Until then, clone the repo and run locally.
+Desktop downloads are published from [GitHub Releases](https://github.com/sahildave/skilltopia/releases). Until the app is signed and notarized with an Apple Developer account, some macOS machines may require a one-time `xattr` command before first open.
 
 Public site: [skilltopia.coduo.co](https://skilltopia.coduo.co)
 
@@ -46,6 +46,20 @@ Run the desktop app:
 
 ```bash
 npm run tauri:dev
+```
+
+If you download the macOS app from GitHub Releases and macOS blocks the first
+launch, move `Skilltopia.app` to `Applications` and run:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Skilltopia.app"
+```
+
+If Terminal says the application was not found, replace the path with the
+actual location of the app bundle, for example:
+
+```bash
+xattr -dr com.apple.quarantine "$HOME/Downloads/Skilltopia.app"
 ```
 
 The desktop command expects local desktop-safe environment variables to be injected through Infisical. See [docs/developer/infisical.md](docs/developer/infisical.md) before adding or changing secrets.

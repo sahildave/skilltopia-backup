@@ -5,7 +5,7 @@ description: A quiet, high-clarity interface system for skill discovery, agent w
 colors:
   primary: '#171717'
   on-primary: '#FAFAFA'
-  surface: '#FFFFFF'
+  surface: "#FAFAFB"
   surface-subtle: '#F5F5F5'
   surface-muted: '#F5F5F5'
   on-surface: '#171717'

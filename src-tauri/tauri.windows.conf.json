@@ -3,6 +3,7 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Skills Manager",
         "width": 1920,
         "height": 1080,

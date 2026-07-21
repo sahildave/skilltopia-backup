@@ -11,7 +11,7 @@ Cut the first public versioned Release (`v*`), publish the draft from Actions, a
 
 ## Context
 
-Flow already documented: `npm run release:prepare` → tag → [`release.yml`](../../.github/workflows/release.yml) → **draft** → manual publish. `includeUpdaterJson: true` already set.
+Flow already documented: `npm run release:prepare` → tag → [`release.yml`](../../.github/workflows/release.yml) → **draft** → manual publish. `uploadUpdaterJson: true` already set.
 
 ## Scope
 

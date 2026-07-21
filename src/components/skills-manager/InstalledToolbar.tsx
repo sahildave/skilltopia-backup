@@ -37,6 +37,10 @@ export function InstalledToolbar({
   onRescan,
   rescanLabel,
   leadingAction,
+  searchError,
+  searchPlaceholder,
+  searchLabel,
+  clearSearchLabel,
   showInstalledControls = true,
   onLayoutModeChange,
   onInstalledSkillViewChange,
@@ -59,6 +63,10 @@ export function InstalledToolbar({
   onRescan?: () => void;
   rescanLabel?: string;
   leadingAction?: ReactNode;
+  searchError?: ReactNode;
+  searchPlaceholder?: string;
+  searchLabel?: string;
+  clearSearchLabel?: string;
   showInstalledControls?: boolean;
   onLayoutModeChange?: (mode: LibraryLayoutMode) => void;
   onInstalledSkillViewChange?: (view: InstalledSkillView) => void;
@@ -131,8 +139,8 @@ export function InstalledToolbar({
             <InputGroupInput
               value={skillQuery}
               onChange={(event) => onSkillQueryChange(event.target.value)}
-              placeholder={t('skills.installed.searchSkills')}
-              aria-label={t('skills.installed.searchSkills')}
+              placeholder={searchPlaceholder ?? t('skills.installed.searchSkills')}
+              aria-label={searchLabel ?? t('skills.installed.searchSkills')}
               autoComplete="off"
               spellCheck={false}
             />
@@ -140,7 +148,7 @@ export function InstalledToolbar({
               <InputGroupAddon align="inline-end">
                 <InputGroupButton
                   size="icon-xs"
-                  aria-label={t('skills.installed.clearSkillSearch')}
+                  aria-label={clearSearchLabel ?? t('skills.installed.clearSkillSearch')}
                   onClick={() => onSkillQueryChange('')}
                 >
                   <X />
@@ -148,6 +156,7 @@ export function InstalledToolbar({
               </InputGroupAddon>
             ) : null}
           </InputGroup>
+          {searchError}
         </div>
       </div>
 

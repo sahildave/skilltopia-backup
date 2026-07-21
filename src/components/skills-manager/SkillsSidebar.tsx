@@ -18,6 +18,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   AlertTriangle,
   BookOpen,
+  Bot,
   ChevronDown,
   FolderOpen,
   FolderTree,
@@ -163,7 +164,7 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
                 : 'text-muted-foreground hover:bg-background/70 hover:text-foreground',
             )}
           >
-            <BookOpen className="size-4 shrink-0" />
+            <Bot className="size-4 shrink-0" />
             <span className="truncate">{t('skills.nav.providers')}</span>
           </button>
           <button

@@ -38,7 +38,7 @@ Add these secrets (Settings → Secrets and variables → Actions):
     "updater": {
       "active": true,
       "endpoints": [
-        "https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest/download/latest.json"
+        "https://github.com/sahildave/skills-explorer/releases/latest/download/latest.json"
       ],
       "dialog": false,
       "pubkey": "YOUR_PUBLIC_KEY_FROM_STEP_1"

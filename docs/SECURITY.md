@@ -2,16 +2,15 @@
 
 ## Supported Versions
 
-| Version | Supported |
-| ------- | --------- |
-| Latest  | ✅        |
-| < 1.0   | ❌        |
+Skilltopia has not shipped a stable public release yet. Security fixes target the main branch until versioned public releases exist.
 
 ## Reporting a Vulnerability
 
-Do not report security vulnerabilities through public GitHub issues.
+Do not report security vulnerabilities through public GitHub issues, discussions, or pull requests.
 
-**Contact**: YOUR_SECURITY_EMAIL
+Use GitHub private vulnerability reporting for this repository:
+
+https://github.com/sahildave/skills-explorer/security/advisories/new
 
 Include:
 
@@ -20,13 +19,6 @@ Include:
 - Potential impact
 - Suggested fixes (if any)
 
-### Response Timeline
-
-- **Initial Response**: Within 48 hours
-- **Assessment**: Within 7 days
-- **Fix**: Timeline depends on severity
-- **Disclosure**: After fix is available
-
 ## Security Measures
 
 This app uses Tauri's security model:
@@ -34,7 +26,7 @@ This app uses Tauri's security model:
 - **Permissions**: Minimal system permissions via `capabilities/`
 - **IPC**: Type-safe commands via tauri-specta
 - **File Access**: Scoped to app directories by default
-- **CSP**: Configured in `index.html`
+- **CSP**: Configured in Tauri configuration
 
 ## For Developers
 
@@ -57,6 +49,7 @@ std::fs::write(user_input, data)
 - Sync Infisical → Vercel for the Backend API; inject locally with `infisical run`
 - Do not put Backend secrets (`SUPABASE_*`, `QDRANT_*`, LLM keys) in the Tauri / desktop Infisical env
 - Use GitHub Secrets only for CI/CD that Infisical does not cover (e.g. Tauri signing keys)
+- If a secret is exposed, rotate it before sharing details.
 
 ### Dependency Audits
 

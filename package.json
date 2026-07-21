@@ -1,10 +1,10 @@
 {
-  "name": "tauri-app",
+  "name": "skilltopia",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "author": "Danny Smith",
-  "copyright": "Copyright © 2025 Danny Smith. All rights reserved.",
+  "author": "Coduo Studio, LLC",
+  "copyright": "Copyright © 2026 Coduo Studio, LLC. All rights reserved.",
   "license": "MIT",
   "overrides": {
     "typescript-eslint": {

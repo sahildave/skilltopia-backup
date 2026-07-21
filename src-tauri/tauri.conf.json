@@ -62,12 +62,12 @@
   },
   "plugins": {
     "updater": {
-      "active": false,
+      "active": true,
       "endpoints": [
         "https://github.com/sahildave/skills-explorer/releases/latest/download/latest.json"
       ],
       "dialog": true,
-      "pubkey": "YOUR_UPDATER_PUBLIC_KEY_HERE"
+      "pubkey": "~/.tauri/skills-explorer.key.pub"
     }
   }
 }

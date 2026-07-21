@@ -62,7 +62,7 @@
   },
   "plugins": {
     "updater": {
-      "active": true,
+      "active": false,
       "endpoints": [
         "https://github.com/sahildave/skills-explorer/releases/latest/download/latest.json"
       ],

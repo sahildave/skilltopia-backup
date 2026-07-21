@@ -3,6 +3,7 @@
 import fs from 'fs';
 import { execSync } from 'child_process';
 import readline from 'readline';
+import { validateUpdaterReleaseConfig } from './release-config.mjs';
 
 function exec(command, options = {}) {
   try {
@@ -101,8 +102,13 @@ async function prepareRelease() {
       console.log('✅ Updater artifacts enabled');
     }
 
-    if (!tauriConfig.plugins?.updater?.pubkey) {
-      console.warn('⚠️  Warning: Updater public key not configured');
+    const updaterConfigErrors = validateUpdaterReleaseConfig(tauriConfig);
+    if (updaterConfigErrors.length > 0) {
+      console.error('❌ Updater release configuration is not ready:');
+      for (const configError of updaterConfigErrors) {
+        console.error(`   • ${configError}`);
+      }
+      process.exit(1);
     } else {
       console.log('✅ Updater public key configured');
     }

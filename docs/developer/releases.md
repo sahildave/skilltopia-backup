@@ -17,16 +17,24 @@ The release system provides:
 
 ```bash
 npm install -g @tauri-apps/cli
-tauri signer generate -w ~/.tauri/myapp.key
+tauri signer generate -w ~/.tauri/skills-explorer.key
 # Outputs private key (saved) and public key (displayed)
 ```
+
+Use a password for the private key and store both values outside the repository.
+The updater is disabled in `src-tauri/tauri.conf.json` until the generated public
+key replaces the placeholder. Release prep rejects placeholder keys and
+placeholder endpoints.
 
 ### 2. Configure GitHub Repository
 
 Add these secrets (Settings → Secrets and variables → Actions):
 
-- `TAURI_PRIVATE_KEY`: Content of `~/.tauri/myapp.key`
-- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: Password you set (if any)
+- `TAURI_PRIVATE_KEY`: Content of `~/.tauri/skills-explorer.key`
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: Password for the private key
+
+The release workflow requires both secret names before building updater
+artifacts, so generate a password-protected private key.
 
 ### 3. Update Configuration
 
@@ -170,6 +178,11 @@ All updates are cryptographically signed:
 1. Private key signs releases during build
 2. Public key in config verifies downloads
 3. Invalid signatures are automatically rejected
+
+The Skills Explorer updater keypair is product-specific. Rotate by generating a
+new `~/.tauri/skills-explorer.key`, replacing only the public key in
+`tauri.conf.json`, and updating the two GitHub Actions secrets; never commit
+private key material.
 
 ## Troubleshooting
 

@@ -4,14 +4,14 @@
  * This module creates native menus from JavaScript, enabling i18n support
  * through react-i18next. Menus are rebuilt when the language changes.
  */
-import { Menu, MenuItem, Submenu, PredefinedMenuItem } from '@tauri-apps/api/menu';
-import { check } from '@tauri-apps/plugin-updater';
 import i18n from '@/i18n/config';
-import { useUIStore } from '@/store/ui-store';
 import { logger } from '@/lib/logger';
-import { notifications } from '@/lib/notifications';
+import { useUIStore } from '@/store/ui-store';
+import { Menu, MenuItem, PredefinedMenuItem, Submenu } from '@tauri-apps/api/menu';
+import { openUrl } from '@tauri-apps/plugin-opener';
+import { GITHUB_REPO_URL } from './desktop-download';
 
-const APP_NAME = 'Tauri Template';
+const APP_NAME = 'Skilltopia';
 
 /**
  * Build and set the application menu with translated labels.
@@ -28,19 +28,6 @@ export async function buildAppMenu(): Promise<Menu> {
           id: 'about',
           text: t('menu.about', { appName: APP_NAME }),
           action: handleAbout,
-        }),
-        await PredefinedMenuItem.new({ item: 'Separator' }),
-        await MenuItem.new({
-          id: 'check-updates',
-          text: t('menu.checkForUpdates'),
-          action: handleCheckForUpdates,
-        }),
-        await PredefinedMenuItem.new({ item: 'Separator' }),
-        await MenuItem.new({
-          id: 'preferences',
-          text: t('menu.preferences'),
-          accelerator: 'CmdOrCtrl+,',
-          action: handleOpenPreferences,
         }),
         await PredefinedMenuItem.new({ item: 'Separator' }),
         await PredefinedMenuItem.new({
@@ -129,27 +116,7 @@ export function setupMenuLanguageListener(): () => void {
 
 function handleAbout(): void {
   logger.info('About menu item clicked');
-  alert(`${APP_NAME}\n\nVersion: ${__APP_VERSION__}\n\nBuilt with Tauri v2 + React + TypeScript`);
-}
-
-async function handleCheckForUpdates(): Promise<void> {
-  logger.info('Check for Updates menu item clicked');
-  try {
-    const update = await check();
-    if (update) {
-      notifications.info('Update Available', `Version ${update.version} is available`);
-    } else {
-      notifications.success('Up to Date', 'You are running the latest version');
-    }
-  } catch (error) {
-    logger.error('Update check failed', { error });
-    notifications.error('Update Check Failed', 'Could not check for updates');
-  }
-}
-
-function handleOpenPreferences(): void {
-  logger.info('Preferences menu item clicked');
-  useUIStore.getState().setPreferencesOpen(true);
+  void openUrl(GITHUB_REPO_URL);
 }
 
 function handleToggleLeftSidebar(): void {

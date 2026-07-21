@@ -37,6 +37,7 @@ import {
 } from './installed-skills-model';
 import type { SkillsNavId } from './types';
 
+
 /** Lucide dropped brand icons; keep the GitHub mark as a local SVG. */
 function GithubIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -75,19 +76,14 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
   const query = providerQuery.trim().toLowerCase();
   const matchesQuery = (name: string) => !query || name.toLowerCase().includes(query);
 
-  const allAgentsLabel = t('skills.installed.allAgents');
   const universalLabel = t('skills.installed.universal');
-  const showAllAgents = matchesQuery(allAgentsLabel);
   const showUniversal = model ? matchesQuery(universalLabel) : false;
   const filteredActiveProviders =
     model?.activeProviders.filter((item) => matchesQuery(item.name)) ?? [];
   const filteredInactiveProviders =
     model?.inactiveProviders.filter((item) => matchesQuery(item.name)) ?? [];
   const hasProviderMatches =
-    showAllAgents ||
-    showUniversal ||
-    filteredActiveProviders.length > 0 ||
-    filteredInactiveProviders.length > 0;
+    showUniversal || filteredActiveProviders.length > 0 || filteredInactiveProviders.length > 0;
   const inactiveExpanded = inactiveOpen || query.length > 0;
 
   const handleThemeChange = (value: 'light' | 'dark' | 'system') => {
@@ -116,7 +112,12 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
             <button
               key={item.id}
               type="button"
-              onClick={() => onSelect(item.id)}
+              onClick={() => {
+                if (item.id === 'installed') {
+                  setProviderFilter(ALL_AGENTS_FILTER_ID);
+                }
+                onSelect(item.id);
+              }}
               className={cn(
                 'app-pressable app-pressable-subtle relative flex items-center gap-2 rounded-md px-3 py-2 text-sm',
                 isActive
@@ -174,18 +175,6 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
                   ) : null}
                 </InputGroup>
               </div>
-
-              {showAllAgents ? (
-                <ProviderRow
-                  id={ALL_AGENTS_FILTER_ID}
-                  name={allAgentsLabel}
-                  skillCount={model.allAgentsCount}
-                  selected={providerFilter === ALL_AGENTS_FILTER_ID}
-                  onSelect={setProviderFilter}
-                  installedTabActive={active === 'installed'}
-                  onEnsureInstalledTab={() => onSelect('installed')}
-                />
-              ) : null}
 
               {showUniversal ? (
                 <ProviderRow

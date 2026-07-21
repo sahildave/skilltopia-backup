@@ -153,9 +153,21 @@ export function InstalledToolbar({
           <ContinuousTabs
             value={installedSkillView}
             tabs={[
-              { id: 'all', label: t('skills.installed.viewAll') },
-              { id: 'provider', label: t('skills.installed.viewProvider') },
-              { id: 'available', label: t('skills.installed.viewAvailable') },
+              {
+                id: 'all',
+                label: t('skills.installed.viewAll'),
+                helpTooltip: t('skills.installed.viewHelp.all'),
+              },
+              {
+                id: 'provider',
+                label: t('skills.installed.viewProvider'),
+                helpTooltip: t('skills.installed.viewHelp.provider'),
+              },
+              {
+                id: 'available',
+                label: t('skills.installed.viewAvailable'),
+                helpTooltip: t('skills.installed.viewHelp.available'),
+              },
             ]}
             onChange={(id) => {
               if (id === 'all' || id === 'provider' || id === 'available') {

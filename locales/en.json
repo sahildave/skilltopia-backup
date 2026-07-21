@@ -1,5 +1,5 @@
 {
-  "app.name": "Tauri Template",
+  "app.name": "Skilltopia",
 
   "menu.about": "About {{appName}}",
   "menu.checkForUpdates": "Check for Updates...",
@@ -90,7 +90,7 @@
   "commandPalette.placeholder": "Type a command or search...",
   "commandPalette.noResults": "No results found.",
 
-  "titlebar.default": "Tauri App",
+  "titlebar.default": "Skilltopia",
   "titlebar.showLeftSidebar": "Show Left Sidebar",
   "titlebar.hideLeftSidebar": "Hide Left Sidebar",
   "titlebar.showRightSidebar": "Show Right Sidebar",
@@ -150,7 +150,7 @@
   "skills.nav.install": "Install Skills",
   "skills.nav.presets": "Presets",
   "skills.nav.settings": "Settings",
-  "skills.installed.title": "Installed Skills",
+  "skills.installed.title": "Installed",
   "skills.installed.description": "Installed global skills in",
   "skills.installed.webUnavailable": "Your local skill library lives on disk in the desktop app.",
   "skills.installed.getAppDescription": "Download Skills Explorer to browse installed skills and install them on your machine.",
@@ -186,6 +186,9 @@
   "skills.installed.viewAll": "All",
   "skills.installed.viewProvider": "Provider",
   "skills.installed.viewAvailable": "Available",
+  "skills.installed.viewHelp.all": "Every skill this selection can use as a slash command.",
+  "skills.installed.viewHelp.provider": "Skills installed as real folders in the provider’s own skills directory.",
+  "skills.installed.viewHelp.available": "Skills from Universal and provider symlinks — shared slash commands this agent can use.",
   "skills.installed.overflowMenu": "Skill actions",
   "skills.installed.providersBadge_one": "1 Provider",
   "skills.installed.providersBadge_other": "{{count}} Providers",

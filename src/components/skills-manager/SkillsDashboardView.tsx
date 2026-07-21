@@ -40,7 +40,11 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DitherGradient } from '../dither-kit';
 import { CatalogSkillCard, CatalogSkillListRow } from './CatalogSkillCard';
-import { installedSkillKeysFromSnapshot } from './catalog-installed-match';
+import {
+  findScannedSkillForCatalog,
+  installedSkillKeysFromSnapshot,
+  scannedSkillsByKey,
+} from './catalog-installed-match';
 
 const LIST_PER_PAGE = 100;
 
@@ -100,6 +104,7 @@ function SkillsResults({
   const { t } = useTranslation();
   const snapshot = useInstalledScanStore((state) => state.snapshot);
   const installedKeys = installedSkillKeysFromSnapshot(snapshot);
+  const scannedByKey = scannedSkillsByKey(snapshot?.skills ?? []);
 
   if (isLoading && skills.length === 0) {
     return <SkillsSkeleton layoutMode={layoutMode} />;
@@ -149,7 +154,13 @@ function SkillsResults({
       >
         {skills.map((skill) =>
           layoutMode === 'grid' ? (
-            <CatalogSkillCard key={skill.id} skill={skill} installedKeys={installedKeys} />
+            <CatalogSkillCard
+              key={skill.id}
+              skill={skill}
+              installedKeys={installedKeys}
+              snapshot={snapshot}
+              scannedSkill={findScannedSkillForCatalog(skill, scannedByKey)}
+            />
           ) : (
             <CatalogSkillListRow key={skill.id} skill={skill} installedKeys={installedKeys} />
           ),
@@ -205,7 +216,7 @@ export function SkillsDashboardView() {
 
   return (
     <div className="relative flex h-full min-w-0 flex-col overflow-hidden">
-      <div className="app-material border-border relative sticky top-0 z-10 flex min-w-0 flex-col border-b bg-background">
+      <div className="app-material border-border sticky top-0 z-10 flex min-w-0 flex-col border-b bg-background">
         <DitherGradient from="grey" />
 
         <div className="relative flex min-w-0 flex-row flex-wrap items-center justify-between gap-4 p-8 pb-4 pt-16">

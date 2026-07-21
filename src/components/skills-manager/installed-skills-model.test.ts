@@ -34,6 +34,76 @@ describe('filterSkillsForSelection', () => {
     expect(primary.map((s) => s.name)).toEqual(['code-review']);
   });
 
+  it('includes Universal skills for a universal-registry provider', () => {
+    const snapshot: typeof MOCK_INSTALLED_SCAN = {
+      ...MOCK_INSTALLED_SCAN,
+      providers: [
+        {
+          id: 'codex',
+          name: 'Codex',
+          universal: true,
+          detected: true,
+          skillsDir: '/Users/mock/.codex/skills',
+          skillsDirExists: true,
+          skillCount: 1,
+        },
+      ],
+      skills: [
+        {
+          name: 'baseline-ui',
+          uninstallName: 'baseline-ui',
+          description: 'Baseline UI skill',
+          scope: 'global',
+          providerIds: [UNIVERSAL_PROVIDER_ID],
+          paths: [{ path: '/Users/mock/.agents/skills/baseline-ui' }],
+        },
+        {
+          name: 'hatch-pet',
+          uninstallName: 'hatch-pet',
+          description: 'Codex-local skill',
+          scope: 'global',
+          providerIds: ['codex'],
+          paths: [{ path: '/Users/mock/.codex/skills/hatch-pet' }],
+        },
+        {
+          name: 'apple-design',
+          uninstallName: 'apple-design',
+          description: 'Symlinked into Codex',
+          scope: 'global',
+          providerIds: ['codex'],
+          paths: [
+            {
+              path: '/Users/mock/.codex/skills/apple-design',
+              originalPath: '/Users/mock/.agents/skills/apple-design',
+            },
+          ],
+        },
+      ],
+      universal: {
+        skillsDir: '/Users/mock/.agents/skills',
+        skillsDirExists: true,
+        skillCount: 1,
+      },
+    };
+
+    const { primary } = filterSkillsForSelection(snapshot, 'codex');
+    expect(primary.map((s) => s.name)).toEqual(['apple-design', 'baseline-ui', 'hatch-pet']);
+
+    const available = filterSkillSectionsByView(
+      { primary },
+      snapshot,
+      'available',
+    ).primary.map((s) => s.name);
+    expect(available).toEqual(['apple-design', 'baseline-ui']);
+
+    const providerOnly = filterSkillSectionsByView(
+      { primary },
+      snapshot,
+      'provider',
+    ).primary.map((s) => s.name);
+    expect(providerOnly).toEqual(['hatch-pet']);
+  });
+
   it('keeps same-name skills as one card with merged provider tags', () => {
     const skill = MOCK_INSTALLED_SCAN.skills.find((s) => s.name === 'find-skills');
     expect(skill?.providerIds).toEqual([UNIVERSAL_PROVIDER_ID, 'claude-code']);
@@ -77,7 +147,7 @@ describe('filterSkillSectionsByView', () => {
       filterSkillSectionsByView(sections, MOCK_INSTALLED_SCAN, 'provider').primary.map(
         (s) => s.name,
       ),
-    ).toEqual(['code-review']);
+    ).toEqual(['code-review', 'find-skills']);
     expect(
       filterSkillSectionsByView(sections, MOCK_INSTALLED_SCAN, 'available').primary.map(
         (s) => s.name,
@@ -203,10 +273,10 @@ describe('buildCopyProviderDialogModel', () => {
     if (!skill) return;
 
     const model = buildCopyProviderDialogModel(skill, MOCK_INSTALLED_SCAN);
-    expect(model.available.map((p) => p.id)).toEqual([]);
+    expect(model.available.map((p) => p.id)).toEqual(['cursor']);
     expect(model.installed.map((p) => p.id)).toEqual(['claude-code']);
     expect(model.installed.every((p) => p.id !== UNIVERSAL_PROVIDER_ID)).toBe(true);
-    expect(model.other.some((p) => p.id === 'cursor')).toBe(true);
+    expect(model.other.some((p) => p.id === 'cursor')).toBe(false);
     expect(model.other.some((p) => p.id === UNIVERSAL_PROVIDER_ID)).toBe(false);
     expect(model.other.some((p) => p.id === 'claude-code')).toBe(false);
   });
@@ -324,7 +394,10 @@ describe('buildCopyProviderDialogModel', () => {
 
     const model = buildCopyProviderDialogModel(skill, MOCK_INSTALLED_SCAN);
     expect(model.other.some((p) => p.id === 'cline')).toBe(false);
-    expect(model.other.some((p) => p.id === 'cursor')).toBe(true);
+    // Cursor is a detected universal agent that can invoke Universal skills, so it
+    // lands in Available (active) rather than Other when the skill is not installed there.
+    expect(model.available.some((p) => p.id === 'cursor')).toBe(true);
+    expect(model.other.some((p) => p.id === 'cursor')).toBe(false);
   });
 });
 
@@ -334,8 +407,10 @@ describe('buildProviderSidebarModel', () => {
     expect(model.universal.skillCount).toBe(2);
     expect(model.universal.skillsDir).toBe('/Users/mock/.agents/skills');
     expect(model.allAgentsCount).toBe(3);
-    expect(model.activeProviders.map((p) => p.id)).toEqual(['claude-code']);
-    expect(model.inactiveProviders.some((p) => p.id === 'cursor')).toBe(true);
+    // Cursor is universal:true with an empty own dir, but can invoke Universal skills.
+    expect(model.activeProviders.map((p) => p.id)).toEqual(['claude-code', 'cursor']);
+    expect(model.activeProviders.find((p) => p.id === 'cursor')?.skillCount).toBe(2);
+    expect(model.inactiveProviders.some((p) => p.id === 'cursor')).toBe(false);
     expect(model.inactiveProviders.length).toBeGreaterThan(0);
     expect(model.inactiveProviders.every((p) => !p.active)).toBe(true);
     expect(model.inactiveProviders.some((p) => p.id === 'claude-code')).toBe(false);

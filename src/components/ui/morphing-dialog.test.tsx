@@ -90,4 +90,28 @@ describe('MorphingDialog', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
   });
+
+  it('does not open when a nested interactive control is clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <MorphingDialog>
+        <MorphingDialogTrigger asChild>
+          <div>
+            <span>Card surface</span>
+            <button type="button">Install</button>
+          </div>
+        </MorphingDialogTrigger>
+        <MorphingDialogContainer>
+          <MorphingDialogContent>
+            <MorphingDialogTitle>Skill title</MorphingDialogTitle>
+            <MorphingDialogClose />
+          </MorphingDialogContent>
+        </MorphingDialogContainer>
+      </MorphingDialog>,
+    );
+
+    await user.click(screen.getByRole('button', { name: /install/i }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
 });

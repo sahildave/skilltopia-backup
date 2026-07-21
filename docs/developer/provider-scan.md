@@ -24,9 +24,11 @@ The Library tab is **Installed Skills**. Shared UI filters the cached snapshot
   providers, then a collapsed searchable inactive-registry group
 - Cards show stable tags such as `[Universal]` / `[Claude Code]` (paths stay in
   snapshot data for later inspection, not on the card)
-- Selected provider views filter to that provider’s direct directory; optional
-  **Show all Universal** appends a separate Universal section (off by default;
-  resets on tab/filter change)
+- Selected provider views filter to that provider’s invocable skills. Universal-
+  registry agents (Codex, Cursor, …) also include Universal (`~/.agents/skills`)
+  skills. Toolbar tabs: **All** (full surface), **Provider** (real folders in the
+  agent’s own skills dir), **Available** (Universal skills and provider
+  symlinks)
 - Path row uses `revealProviderSkillsDir` without rescanning
 - Web (`hasLocalLibrary: false`) shows the download-the-app state; mock TARGET
   keeps the full provider UI for Chrome development

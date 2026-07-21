@@ -49,7 +49,7 @@ describe('SkillsLibraryView (web)', () => {
     const user = userEvent.setup();
     render(<SkillsLibraryView />);
 
-    expect(screen.getByRole('heading', { name: 'Installed Skills' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Installed' })).toBeInTheDocument();
     expect(screen.getByText(/local skill library lives on disk/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Get the desktop app' }));
@@ -79,10 +79,10 @@ describe('SkillsLibraryView (local / mock)', () => {
     });
   });
 
-  it('lists All Agents skills with Universal and aggregated provider badges', () => {
+  it('lists installed skills with Universal and aggregated provider badges', () => {
     render(<SkillsLibraryView />);
 
-    expect(screen.getByRole('heading', { name: 'All Agents' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Installed' })).toBeInTheDocument();
     expect(screen.getByText('find-skills')).toBeInTheDocument();
     expect(screen.getAllByText('Universal').length).toBeGreaterThan(0);
     expect(screen.getAllByText('1 Provider').length).toBeGreaterThan(0);
@@ -369,41 +369,38 @@ describe('SkillsSidebar providers', () => {
   });
 
   it('does not show provider selection styling when Explore is active', () => {
+    useInstalledSkillsUiStore.setState({ providerFilter: 'claude-code' });
     render(<SkillsSidebar active="explore" onSelect={vi.fn()} />);
 
-    const allAgents = screen.getByText('All Agents').closest('button');
-    expect(allAgents).not.toHaveClass('font-medium');
-    expect(allAgents).not.toHaveClass('shadow-xs');
+    const claude = screen.getByText('Claude Code').closest('button');
+    expect(claude).not.toHaveClass('font-medium');
+    expect(claude).not.toHaveClass('shadow-xs');
   });
 
   it('shows provider selection styling when Installed is active', () => {
+    useInstalledSkillsUiStore.setState({ providerFilter: 'claude-code' });
     render(<SkillsSidebar active="installed" onSelect={vi.fn()} />);
 
-    const allAgents = screen.getByText('All Agents').closest('button');
-    expect(allAgents).toHaveClass('font-medium');
+    const claude = screen.getByText('Claude Code').closest('button');
+    expect(claude).toHaveClass('font-medium');
   });
 
-  it('shows Universal, filled providers, and collapsible other providers', async () => {
-    const user = userEvent.setup();
+  it('shows Universal, filled providers, and collapsible other providers', () => {
     const onSelect = vi.fn();
     render(<SkillsSidebar active="installed" onSelect={onSelect} />);
 
     expect(screen.getByText('Installed')).toBeInTheDocument();
     expect(screen.getByLabelText(/search providers/i)).toBeInTheDocument();
-    expect(screen.getByText('All Agents')).toBeInTheDocument();
+    expect(screen.queryByText('All Agents')).not.toBeInTheDocument();
     expect(screen.getByText('Universal')).toBeInTheDocument();
     expect(screen.getByText('Claude Code')).toBeInTheDocument();
-    expect(screen.queryByText('Cursor')).not.toBeInTheDocument();
+    // Universal-registry agents with a distinct dir list as active when Universal has skills.
+    expect(screen.getByText('Cursor')).toBeInTheDocument();
 
-    const allAgents = screen.getByText('All Agents').closest('button');
-    expect(allAgents).toHaveTextContent('3');
     const universal = screen.getByText('Universal').closest('button');
     expect(universal).toHaveTextContent('2');
-
-    await user.click(screen.getByText('Other providers'));
-    expect(screen.getByText('Cursor')).toBeInTheDocument();
     const cursorRow = screen.getByText('Cursor').closest('button');
-    expect(cursorRow).toHaveTextContent('0');
+    expect(cursorRow).toHaveTextContent('2');
   });
 
   it('filters active and inactive providers from the top search field', async () => {
@@ -412,16 +409,26 @@ describe('SkillsSidebar providers', () => {
 
     await user.type(screen.getByLabelText(/search providers/i), 'claude');
 
-    expect(screen.queryByText('All Agents')).not.toBeInTheDocument();
     expect(screen.queryByText('Universal')).not.toBeInTheDocument();
     expect(screen.getByText('Claude Code')).toBeInTheDocument();
     expect(screen.queryByText('Cursor')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /clear provider search/i }));
 
-    expect(screen.getByText('All Agents')).toBeInTheDocument();
     expect(screen.getByText('Universal')).toBeInTheDocument();
     expect(screen.getByText('Claude Code')).toBeInTheDocument();
+  });
+
+  it('clears the provider filter when Installed nav is clicked', async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    useInstalledSkillsUiStore.setState({ providerFilter: 'claude-code' });
+    render(<SkillsSidebar active="explore" onSelect={onSelect} />);
+
+    await user.click(screen.getByRole('button', { name: 'Installed' }));
+
+    expect(onSelect).toHaveBeenCalledWith('installed');
+    expect(useInstalledSkillsUiStore.getState().providerFilter).toBe(ALL_AGENTS_FILTER_ID);
   });
 
   it('selects a provider from the in-memory snapshot without scanning', async () => {

@@ -29,7 +29,9 @@ export function SkillCard({
     <Card className="gap-4 py-4">
       <CardHeader className="px-4">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="truncate text-sm">{skill.name}</CardTitle>
+          <CardTitle className="truncate text-balance line-clamp-1 font-semibold leading-normal">
+            {skill.name}
+          </CardTitle>
           <SkillCardOverflowMenu
             skill={skill}
             snapshot={snapshot}
@@ -42,9 +44,11 @@ export function SkillCard({
       <CardContent className="px-4">
         <SkillProviderBadges skill={skill} snapshot={snapshot} />
       </CardContent>
-      <CardFooter className="text-muted-foreground justify-between border-t px-4 pt-4 text-xs">
+      <CardFooter className="text-muted-foreground justify-between border-t px-5! pt-4! text-xs">
         <span>{skill.scope}</span>
-        <span>{t('skills.installed.cardInstalled')}</span>
+        <span className="font-semibold text-teal-700 dark:text-teal-400/50">
+          {t('skills.installed.cardInstalled')}
+        </span>
       </CardFooter>
     </Card>
   );

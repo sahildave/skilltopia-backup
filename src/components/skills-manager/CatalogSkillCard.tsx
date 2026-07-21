@@ -31,7 +31,7 @@ import type { InstallScope } from './types';
 const MORPH_TRANSITION = { stiffness: 26.7, damping: 4.1, mass: 0.2 } as const;
 
 const DETAIL_CONTENT_CLASS =
-  'app-material-strong bg-background relative max-h-[85vh] w-full max-w-[calc(100%-2rem)] overflow-y-auto rounded-[min(var(--radius-4xl),24px)]  border p-6 shadow-lg sm:max-w-2xl';
+  'app-material-strong bg-background relative max-h-[85vh] w-full max-w-[calc(100%-2rem)] overflow-y-auto rounded-[min(var(--radius-4xl),24px)] border p-6 scrollbar-none shadow-lg sm:max-w-2xl';
 
 function formatInstalls(count: number): string {
   return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(count);

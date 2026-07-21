@@ -8,6 +8,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { catalogSourcesByInstalledKey } from './catalog-installed-match';
 import {
+  ALL_AGENTS_FILTER_ID,
+  buildProviderSidebarModel,
   contentWarningsForSelection,
   filterSkillSectionsByQuery,
   filterSkillSectionsByView,
@@ -53,18 +55,34 @@ function LocalInstalledSkillsView() {
   const sections = viewSections
     ? filterSkillSectionsByQuery(viewSections, skillQuery, catalogSourcesByKey)
     : null;
+  const skillCount = sections ? sections.primary.length : null;
+  const sidebarModel = snapshot ? buildProviderSidebarModel(snapshot) : null;
+  const selectedProviderItem =
+    sidebarModel && providerFilter !== ALL_AGENTS_FILTER_ID
+      ? [
+          sidebarModel.universal,
+          ...sidebarModel.activeProviders,
+          ...sidebarModel.inactiveProviders,
+        ].find((item) => item.id === providerFilter)
+      : null;
+  const toolbarTitle =
+    providerFilter === ALL_AGENTS_FILTER_ID
+      ? t('skills.installed.allAgents')
+      : (selectedProviderItem?.name ?? t('skills.installed.title'));
+  const toolbarCount =
+    providerFilter === ALL_AGENTS_FILTER_ID
+      ? (sidebarModel?.allAgentsCount ?? null)
+      : (selectedProviderItem?.skillCount ?? skillCount);
   const warnings = snapshot ? contentWarningsForSelection(snapshot, providerFilter) : [];
   const pathInfo = snapshot ? resolveSelectedPath(snapshot, providerFilter) : null;
-
-  const skillCount = sections ? sections.primary.length : null;
   const hasActiveSkillQuery = skillQuery.trim().length > 0;
 
   return (
     <div className="relative flex h-full flex-col">
       <InstalledToolbar
-        title={t('skills.installed.title')}
+        title={toolbarTitle}
         description={t('skills.installed.description')}
-        skillCount={skillCount}
+        skillCount={toolbarCount}
         refreshing={refreshing}
         hasSnapshot={snapshot !== null}
         pathInfo={pathInfo}

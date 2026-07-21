@@ -1,4 +1,3 @@
-import { Folder, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -9,6 +8,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { FileText, Folder } from 'lucide-react';
 
 interface PlaceholderGridProps {
   title: string;
@@ -51,12 +51,16 @@ export function PlaceholderGrid({ title, description, count = 9 }: PlaceholderGr
             </CardHeader>
             <CardContent className="px-4">
               <div className="flex flex-wrap gap-1.5">
-                <Badge variant="outline">placeholder</Badge>
-                <Badge variant="outline">{item.kind}</Badge>
+                <Badge variant="outline" size="sm">
+                  placeholder
+                </Badge>
+                <Badge variant="outline" size="sm">
+                  {item.kind}
+                </Badge>
               </div>
             </CardContent>
             <CardFooter
-              className={cn('text-muted-foreground justify-between border-t px-4 pt-4 text-xs')}
+              className={cn('text-muted-foreground justify-between border-t px-5! pt-4! text-xs')}
             >
               <span>Generic</span>
               <span>Available</span>

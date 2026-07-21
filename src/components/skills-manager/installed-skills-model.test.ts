@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   ALL_AGENTS_FILTER_ID,
+  buildCopyProviderDialogModel,
   buildProviderSidebarModel,
   contentWarningsForSelection,
   filterSkillsForSelection,
-  providerTagsForSkill,
+  providerBadgesForSkill,
   warningRevealProviderId,
 } from './installed-skills-model';
 import {
@@ -62,12 +63,240 @@ describe('filterSkillsForSelection', () => {
   });
 });
 
-describe('providerTagsForSkill', () => {
-  it('builds stable provider tags with Universal first', () => {
+describe('providerBadgesForSkill', () => {
+  it('shows Universal plus an aggregated providers badge', () => {
     const skill = MOCK_INSTALLED_SCAN.skills.find((s) => s.name === 'find-skills');
     expect(skill).toBeDefined();
     if (!skill) return;
-    expect(providerTagsForSkill(skill, MOCK_INSTALLED_SCAN)).toEqual(['Universal', 'Claude Code']);
+    expect(providerBadgesForSkill(skill, MOCK_INSTALLED_SCAN)).toEqual([
+      { kind: 'universal' },
+      { kind: 'providers', count: 1, names: ['Claude Code'] },
+    ]);
+  });
+
+  it('omits the providers badge when only Universal is associated', () => {
+    const skill = MOCK_UNIVERSAL_ONLY_SCAN.skills[0];
+    expect(skill).toBeDefined();
+    if (!skill) return;
+    expect(providerBadgesForSkill(skill, MOCK_UNIVERSAL_ONLY_SCAN)).toEqual([
+      { kind: 'universal' },
+    ]);
+  });
+
+  it('omits Universal and aggregates multiple distinct providers', () => {
+    const skill = {
+      name: 'multi',
+      uninstallName: 'multi',
+      description: 'Multi provider skill',
+      scope: 'global' as const,
+      providerIds: ['claude-code', 'cursor'],
+      paths: [
+        { path: '/Users/mock/.claude/skills/multi' },
+        { path: '/Users/mock/.cursor/skills/multi' },
+      ],
+    };
+    const snapshot = {
+      ...MOCK_INSTALLED_SCAN,
+      skills: [skill],
+      providers: [
+        {
+          id: 'claude-code',
+          name: 'Claude Code',
+          universal: false,
+          detected: true,
+          skillsDir: '/Users/mock/.claude/skills',
+          skillsDirExists: true,
+          skillCount: 1,
+        },
+        {
+          id: 'cursor',
+          name: 'Cursor',
+          universal: true,
+          detected: true,
+          skillsDir: '/Users/mock/.cursor/skills',
+          skillsDirExists: true,
+          skillCount: 1,
+        },
+      ],
+    };
+    expect(providerBadgesForSkill(skill, snapshot)).toEqual([
+      { kind: 'providers', count: 2, names: ['Claude Code', 'Cursor'] },
+    ]);
+  });
+
+  it('excludes providers that share the Universal skills directory from counts', () => {
+    const skill = {
+      name: 'shared',
+      uninstallName: 'shared',
+      description: 'Shared dir skill',
+      scope: 'global' as const,
+      providerIds: [UNIVERSAL_PROVIDER_ID, 'cline', 'claude-code'],
+      paths: [
+        { path: '/Users/mock/.agents/skills/shared' },
+        { path: '/Users/mock/.agents/skills/shared' },
+        { path: '/Users/mock/.claude/skills/shared' },
+      ],
+    };
+    const snapshot = {
+      ...MOCK_INSTALLED_SCAN,
+      skills: [skill],
+      providers: [
+        {
+          id: 'cline',
+          name: 'Cline',
+          universal: true,
+          detected: true,
+          skillsDir: '/Users/mock/.agents/skills',
+          skillsDirExists: true,
+          skillCount: 1,
+        },
+        {
+          id: 'claude-code',
+          name: 'Claude Code',
+          universal: false,
+          detected: true,
+          skillsDir: '/Users/mock/.claude/skills',
+          skillsDirExists: true,
+          skillCount: 1,
+        },
+      ],
+    };
+    expect(providerBadgesForSkill(skill, snapshot)).toEqual([
+      { kind: 'universal' },
+      { kind: 'providers', count: 1, names: ['Claude Code'] },
+    ]);
+  });
+});
+
+describe('buildCopyProviderDialogModel', () => {
+  it('groups available, installed, and other providers without Universal', () => {
+    const skill = MOCK_INSTALLED_SCAN.skills.find((s) => s.name === 'find-skills');
+    expect(skill).toBeDefined();
+    if (!skill) return;
+
+    const model = buildCopyProviderDialogModel(skill, MOCK_INSTALLED_SCAN);
+    expect(model.available.map((p) => p.id)).toEqual([]);
+    expect(model.installed.map((p) => p.id)).toEqual(['claude-code']);
+    expect(model.installed.every((p) => p.id !== UNIVERSAL_PROVIDER_ID)).toBe(true);
+    expect(model.other.some((p) => p.id === 'cursor')).toBe(true);
+    expect(model.other.some((p) => p.id === UNIVERSAL_PROVIDER_ID)).toBe(false);
+    expect(model.other.some((p) => p.id === 'claude-code')).toBe(false);
+  });
+
+  it('puts uninstalled active providers in Available', () => {
+    const skill = MOCK_UNIVERSAL_ONLY_SCAN.skills[0];
+    expect(skill).toBeDefined();
+    if (!skill) return;
+
+    const snapshot = {
+      ...MOCK_UNIVERSAL_ONLY_SCAN,
+      providers: [
+        {
+          id: 'claude-code',
+          name: 'Claude Code',
+          universal: false,
+          detected: true,
+          skillsDir: '/Users/mock/.claude/skills',
+          skillsDirExists: true,
+          skillCount: 1,
+        },
+      ],
+      skills: [
+        skill,
+        {
+          name: 'other-skill',
+          uninstallName: 'other-skill',
+          description: 'Other',
+          scope: 'global' as const,
+          providerIds: ['claude-code'],
+          paths: [{ path: '/Users/mock/.claude/skills/other-skill' }],
+        },
+      ],
+    };
+
+    const model = buildCopyProviderDialogModel(skill, snapshot);
+    expect(model.available.map((p) => p.id)).toEqual(['claude-code']);
+    expect(model.installed).toEqual([]);
+  });
+
+  it('excludes Universal-directory-sharing providers from destinations', () => {
+    const skill = MOCK_INSTALLED_SCAN.skills.find((s) => s.name === 'code-review');
+    expect(skill).toBeDefined();
+    if (!skill) return;
+
+    const snapshot = {
+      ...MOCK_INSTALLED_SCAN,
+      providers: [
+        ...MOCK_INSTALLED_SCAN.providers,
+        {
+          id: 'cline',
+          name: 'Cline',
+          universal: true,
+          detected: true,
+          skillsDir: '/Users/mock/.agents/skills',
+          skillsDirExists: true,
+          skillCount: 0,
+        },
+      ],
+    };
+
+    const model = buildCopyProviderDialogModel(skill, snapshot);
+    expect(model.available.some((p) => p.id === 'cline')).toBe(false);
+    expect(model.installed.some((p) => p.id === 'cline')).toBe(false);
+    expect(model.other.some((p) => p.id === 'cline')).toBe(false);
+  });
+
+  it('lists Universal-directory agents under Already installed when associated', () => {
+    const skill = {
+      name: 'shared',
+      uninstallName: 'shared',
+      description: 'Shared',
+      scope: 'global' as const,
+      providerIds: [UNIVERSAL_PROVIDER_ID, 'cline', 'claude-code'],
+      paths: [
+        { path: '/Users/mock/.agents/skills/shared' },
+        { path: '/Users/mock/.claude/skills/shared' },
+      ],
+    };
+    const snapshot = {
+      ...MOCK_INSTALLED_SCAN,
+      skills: [skill],
+      providers: [
+        {
+          id: 'cline',
+          name: 'Cline',
+          universal: true,
+          detected: true,
+          skillsDir: '/Users/mock/.agents/skills',
+          skillsDirExists: true,
+          skillCount: 1,
+        },
+        {
+          id: 'claude-code',
+          name: 'Claude Code',
+          universal: false,
+          detected: true,
+          skillsDir: '/Users/mock/.claude/skills',
+          skillsDirExists: true,
+          skillCount: 1,
+        },
+      ],
+    };
+
+    const model = buildCopyProviderDialogModel(skill, snapshot);
+    expect(model.installed.map((p) => p.id).sort()).toEqual(['claude-code', 'cline']);
+    expect(model.available.some((p) => p.id === 'cline')).toBe(false);
+    expect(model.other.some((p) => p.id === 'cline')).toBe(false);
+  });
+
+  it('excludes unscanned Universal-directory agents from Other providers', () => {
+    const skill = MOCK_INSTALLED_SCAN.skills.find((s) => s.name === 'code-review');
+    expect(skill).toBeDefined();
+    if (!skill) return;
+
+    const model = buildCopyProviderDialogModel(skill, MOCK_INSTALLED_SCAN);
+    expect(model.other.some((p) => p.id === 'cline')).toBe(false);
+    expect(model.other.some((p) => p.id === 'cursor')).toBe(true);
   });
 });
 

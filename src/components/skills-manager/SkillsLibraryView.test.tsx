@@ -18,6 +18,7 @@ const scanMock = vi.hoisted(() => ({
   revealProviderSkillsDir: vi.fn(),
   openExternal: vi.fn(),
   uninstall: vi.fn(),
+  copySkillToProviders: vi.fn(),
 }));
 
 vi.mock('@platform', () => ({
@@ -33,6 +34,7 @@ vi.mock('@platform', () => ({
     listProviders: vi.fn(),
     install: vi.fn(),
     uninstall: (...args: unknown[]) => scanMock.uninstall(...args),
+    copySkillToProviders: (...args: unknown[]) => scanMock.copySkillToProviders(...args),
     openExternal: (...args: unknown[]) => scanMock.openExternal(...args),
   },
 }));
@@ -63,6 +65,9 @@ describe('SkillsLibraryView (local / mock)', () => {
     scanMock.getInstalledScan.mockResolvedValue(MOCK_INSTALLED_SCAN);
     scanMock.revealProviderSkillsDir.mockResolvedValue(true);
     scanMock.uninstall.mockResolvedValue(undefined);
+    scanMock.copySkillToProviders.mockResolvedValue({
+      results: [{ providerId: 'cursor', status: 'copied' }],
+    });
     useInstalledScanStore.setState({
       snapshot: MOCK_INSTALLED_SCAN,
       error: null,
@@ -75,12 +80,13 @@ describe('SkillsLibraryView (local / mock)', () => {
     });
   });
 
-  it('lists All Agents skills with provider tags and no filesystem paths on cards', () => {
+  it('lists All Agents skills with Universal and aggregated provider badges', () => {
     render(<SkillsLibraryView />);
 
     expect(screen.getByText('find-skills')).toBeInTheDocument();
     expect(screen.getAllByText('Universal').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Claude Code').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('1 Provider').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Claude Code')).not.toBeInTheDocument();
 
     const findSkillsCard = screen.getByText('find-skills').closest('[data-slot="card"]');
     expect(findSkillsCard).toBeTruthy();
@@ -233,6 +239,61 @@ describe('SkillsLibraryView (local / mock)', () => {
     expect(rescanSpy).toHaveBeenCalled();
     rescanSpy.mockRestore();
   }, 10_000);
+
+  it('opens copy dialog from card overflow and copies to selected providers', async () => {
+    const user = userEvent.setup();
+    const rescanSpy = vi.spyOn(useInstalledScanStore.getState(), 'rescan');
+    render(<SkillsLibraryView />);
+
+    const findSkillsCard = screen
+      .getByText('find-skills')
+      .closest('[data-slot="card"]') as HTMLElement;
+
+    await user.click(within(findSkillsCard).getByRole('button', { name: /skill actions/i }));
+    await user.click(screen.getByRole('menuitem', { name: /copy to other providers/i }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(/already installed/i)).toBeInTheDocument();
+
+    await user.click(screen.getByText(/other providers/i));
+    await user.click(screen.getByRole('checkbox', { name: /cursor/i }));
+    expect(screen.getByRole('button', { name: /^copy$/i })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: /^copy$/i }));
+
+    await waitFor(() => {
+      expect(scanMock.copySkillToProviders).toHaveBeenCalledWith('find-skills', ['cursor']);
+    });
+    expect(rescanSpy).toHaveBeenCalled();
+    rescanSpy.mockRestore();
+  }, 10_000);
+
+  it('opens the same copy dialog from list-row overflow', async () => {
+    const user = userEvent.setup();
+    useInstalledSkillsUiStore.setState({ layoutMode: 'list' });
+    render(<SkillsLibraryView />);
+
+    const listRow = screen.getByText('find-skills').closest('[data-slot="skill-list-row"]');
+    expect(listRow).toBeTruthy();
+
+    await user.click(
+      within(listRow as HTMLElement).getByRole('button', { name: /skill actions/i }),
+    );
+    await user.click(screen.getByRole('menuitem', { name: /copy to other providers/i }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /copy find-skills/i })).toBeInTheDocument();
+  }, 10_000);
+
+  it('hides copy action when the platform has no local library', () => {
+    scanMock.hasLocalLibrary = false;
+    render(<SkillsLibraryView />);
+
+    expect(screen.queryByRole('button', { name: /skill actions/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitem', { name: /copy to other providers/i }),
+    ).not.toBeInTheDocument();
+  });
 
   it('scopes uninstall to the selected provider', async () => {
     const user = userEvent.setup();

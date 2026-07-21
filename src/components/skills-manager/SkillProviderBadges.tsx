@@ -1,0 +1,50 @@
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
+import { useTranslation } from 'react-i18next';
+import { providerBadgesForSkill } from './installed-skills-model';
+
+export function SkillProviderBadges({
+  skill,
+  snapshot,
+}: {
+  skill: ScannedSkill;
+  snapshot: InstalledScanSnapshot;
+}) {
+  const { t } = useTranslation();
+  const badges = providerBadgesForSkill(skill, snapshot);
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {badges.map((badge) => {
+        if (badge.kind === 'universal') {
+          return (
+            <Badge key="universal" variant="outline">
+              {t('skills.installed.universal')}
+            </Badge>
+          );
+        }
+
+        const label = t('skills.installed.providersBadge', { count: badge.count });
+        const tooltipText = badge.names.join('\n');
+
+        return (
+          <Tooltip key="providers">
+            <TooltipTrigger asChild>
+              <Badge
+                variant="outline"
+                tabIndex={0}
+                aria-label={`${label}: ${badge.names.join(', ')}`}
+              >
+                {label}
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="whitespace-pre-line">
+              {tooltipText}
+            </TooltipContent>
+          </Tooltip>
+        );
+      })}
+    </div>
+  );
+}

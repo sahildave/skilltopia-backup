@@ -1,6 +1,6 @@
 # Installed skills: copy to providers MVP
 
-**Status:** Ready for implementation
+**Status:** Done (2026-07-21)
 
 **Context:** Follow-up to the installed-skills provider UI and desktop provider
 scan work. This document captures the decisions made during the grilling

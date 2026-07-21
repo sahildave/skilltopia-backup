@@ -240,6 +240,8 @@
   "skills.sidebar.review": "Review",
   "skills.sidebar.comingSoon": "Coming soon",
   "skills.sidebar.settings": "Settings",
+  "skills.sidebar.toggleTheme": "Toggle color theme",
+  "skills.sidebar.openGithub": "Open Skilltopia on GitHub",
   "skills.detail.titleFallback": "Skill details",
   "skills.detail.loading": "Loading skill details...",
   "skills.detail.loadFailed": "Couldn't load details",

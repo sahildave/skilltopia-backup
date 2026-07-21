@@ -53,13 +53,16 @@ Backend: /api/skills* (OIDC via @vercel/oidc)             → https://skills.sh/
 
 ### Endpoints used
 
-| App use                 | Proxy route                                         | Upstream                                   |
-| ----------------------- | --------------------------------------------------- | ------------------------------------------ |
-| Default grid (top 500)  | `GET /api/skills?view=all-time&page=0&per_page=500` | `GET /api/v1/skills`                       |
-| Hybrid debounced search | `GET /api/skills/search?q=…&limit=50`               | Keyword skills.sh + Qdrant semantic search |
-| Skill audits (cached)   | `GET /api/skills/audit?skill_id=…`                  | `GET /api/v1/skills/audit/{id}` + Supabase |
+| App use                   | Proxy route                                         | Upstream                                                                      |
+| ------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Default grid (top 500)    | `GET /api/skills?view=all-time&page=0&per_page=500` | `GET /api/v1/skills`                                                          |
+| Hybrid debounced search   | `GET /api/skills/search?q=…&limit=50`               | Keyword skills.sh + Qdrant semantic search                                    |
+| Skill audits (cached)     | `GET /api/skills/audit?skill_id=…`                  | `GET /api/v1/skills/audit/{id}` + Supabase                                    |
+| Skill detail (page cache) | `GET /api/skills/detail?skill_id=…`                 | Supabase `page_snapshot` + install series (+ enrichment/related when present) |
 
 Upstream auth: `Authorization: Bearer <Vercel OIDC token>`. Upstream rate limit: 600 requests/minute per (team, project). Errors: `400`, `401`, `404`, `429`, `503` (see upstream docs).
+
+**Dual projects:** user-facing Backend traffic and batch ingest must use **separate** Vercel projects (two 600/min budgets). See [ingest-oidc.md](./ingest-oidc.md).
 
 ### Open-source security model
 
@@ -129,6 +132,7 @@ Never commit Infisical exports or checked-in `.env` files.
 
 - Service: `src/services/skills-sh.ts` (`useSkillsLeaderboard`, `useSkillsSearch`, `useSkillDetail`, `useSkillAudits`) — calls `@catalog`
 - Desktop commands today: `fetch_skills_leaderboard`, `search_skills`, `fetch_skill_detail`, `fetch_skill_audits` (tauri-specta)
+- Detail dialog: page cache + install series from `/api/skills/detail`; audits from `/api/skills/audit` (on-demand)
 - Duplicate skills (`isDuplicate: true`) are filtered out in Rust before reaching the UI (desktop path)
 
 The search route returns one ranked list: keyword matches precede semantic-only

@@ -31,6 +31,7 @@ describe('list snapshots pipeline', () => {
     ).resolves.toMatchObject({
       seen: 4,
       queued: 1,
+      queuedIds: ['new/skill'],
       snapshots: 4,
     });
 

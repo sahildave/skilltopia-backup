@@ -157,6 +157,7 @@ describe('scrape pipeline', () => {
 
     repository.countInstallSnapshots.mockResolvedValue(8);
     upsertInstallSnapshots.mockClear();
+
     await runScrapePipeline({
       repository: repository as never,
       maxEnriched: 1,
@@ -168,5 +169,30 @@ describe('scrape pipeline', () => {
       fetchPageHtml: async () => pageHtml,
     });
     expect(upsertInstallSnapshots).not.toHaveBeenCalled();
+  });
+
+  it('scrapes explicit skillIds without calling the leaderboard', async () => {
+    const repository = repositoryStub({
+      countInstallSnapshots: vi.fn().mockResolvedValue(8),
+    });
+    const loadLeaderboard = vi.fn();
+    const loadDetail = vi.fn(async (id: string) => detail('sha256:abc', id));
+
+    await expect(
+      runScrapePipeline({
+        repository: repository as never,
+        skillIds: ['a/one', 'b/two'],
+        maxEnriched: 10,
+        throttleMs: 0,
+        loadLeaderboard,
+        loadDetail,
+        loadAudits: async () => null,
+        fetchPageHtml: async () => pageHtml,
+      }),
+    ).resolves.toMatchObject({ attempted: 2, scraped: 2, skipped: 0, failed: [] });
+
+    expect(loadLeaderboard).not.toHaveBeenCalled();
+    expect(loadDetail).toHaveBeenCalledWith('a/one');
+    expect(loadDetail).toHaveBeenCalledWith('b/two');
   });
 });

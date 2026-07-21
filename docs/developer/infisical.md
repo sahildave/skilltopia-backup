@@ -29,6 +29,9 @@ npm run dev:local       # alias of tauri:dev — desktop → deployed Backend (I
 npm run enrich:local    # Backend secrets from Infisical dev
 npm run scrape:local    # Same Infisical dev + OIDC; HTML page cache (no LLM)
 npm run list-snapshots:local  # List OIDC only; daily install_count + snapshots
+npm run rotate:local    # Daily 200-skill rotation (+ queued)
+npm run ingest:daily    # list-snapshots then rotation
+npm run scrape:sweep    # One-shot leaderboard scrape (default MAX_ENRICHED=1500)
 npm run dev:local:proxy # optional: vercel dev :3000 + tauri:dev:local (broken on some macOS; see external-apis.md)
 ```
 
@@ -70,10 +73,10 @@ Used by `npm run enrich:local` (Infisical `dev`) and any Backend enrich path tha
 | `GROQ_API_KEY`                 | **yes** | `@ai-sdk/groq` default. Primary free model.                                                                                                                                                                   |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | **yes** | `@ai-sdk/google` default. Gemini fallback.                                                                                                                                                                    |
 | `ENRICHMENT_MODEL_CHAIN`       | no      | Ordered `provider/model` list. Prefer Groq models that support structured outputs (`openai/gpt-oss-20b`). Default in code: `groq/openai/gpt-oss-20b,gemini/gemini-3.1-flash-lite`. Rule-based is always last. |
-| `MAX_ENRICHED`                 | no      | Config knob (capped at `500` in code); bounds `enrich:local` and `scrape:local`                                                                                                                               |
+| `MAX_ENRICHED`                 | no      | Config knob (default **500**, hard-capped at **1500**); bounds `enrich:local`, `scrape:local`, and `scrape:sweep`                                                                                             |
 | Enrich-route protect secret    | **yes** | Only if a secret-protected Backend enrich route is added                                                                                                                                                      |
 
-Missing provider keys are skipped at runtime; at least one of Groq/Gemini should be set for LLM enrichment. See [enrichment-pipeline.md](./enrichment-pipeline.md). Local HTML scrape/cache (`npm run scrape:local`) and daily list snapshots (`npm run list-snapshots:local`) need Supabase + OIDC but not LLM keys — see [scrape-pipeline.md](./scrape-pipeline.md) and [list-snapshots-pipeline.md](./list-snapshots-pipeline.md). Prefer a dedicated **ingest** Vercel project’s OIDC for batch scrape/enrich/list so the app Backend keeps its own 600/min budget.
+Missing provider keys are skipped at runtime; at least one of Groq/Gemini should be set for LLM enrichment. See [enrichment-pipeline.md](./enrichment-pipeline.md). Local HTML scrape/cache (`npm run scrape:local`), daily list snapshots (`npm run list-snapshots:local`), and rotation (`npm run rotate:local` / `ingest:daily`) need Supabase + OIDC but not LLM keys — see [scrape-pipeline.md](./scrape-pipeline.md), [list-snapshots-pipeline.md](./list-snapshots-pipeline.md), and [rotation-pipeline.md](./rotation-pipeline.md). Prefer a dedicated **ingest** Vercel project’s OIDC for batch work so the app Backend keeps its own 600/min budget — [ingest-oidc.md](./ingest-oidc.md).
 
 Hybrid search, enrichment UI, and seed (tasks 5–8) reuse the Backend set above; they do not add desktop secrets.
 

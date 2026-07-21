@@ -57,6 +57,16 @@ export type SkillInstallSnapshotRecord = {
   installs: number;
 };
 
+/** Page-cache fields for the skill detail dialog (no enrichment). */
+export type SkillPageCacheRecord = {
+  skillId: string;
+  pageSnapshot: SkillPageSnapshot | null;
+  pageScrapedAt: string | null;
+  repository: string | null;
+  installCount: number | null;
+  sourceUrl: string | null;
+};
+
 /** List-endpoint sighting: update installs; insert new skills with empty hash (detail queue). */
 export type SkillListSighting = {
   skillId: string;
@@ -365,6 +375,65 @@ export function createSupabaseRepository(client: RepositoryClient) {
         { onConflict: 'skill_id,date' },
       );
       throwOnError(result.error);
+    },
+
+    async getSkillPageCache(skillId: string): Promise<SkillPageCacheRecord | null> {
+      const result = await client
+        .from('skill_metadata')
+        .select('skill_id, page_snapshot, page_scraped_at, repository, install_count, source_url')
+        .eq('skill_id', skillId)
+        .maybeSingle();
+      throwOnError(result.error);
+      const row = result.data as Record<string, unknown> | null;
+      if (!row) return null;
+      return {
+        skillId: String(row.skill_id),
+        pageSnapshot: (row.page_snapshot as SkillPageSnapshot | null) ?? null,
+        pageScrapedAt: row.page_scraped_at ? String(row.page_scraped_at) : null,
+        repository: row.repository ? String(row.repository) : null,
+        installCount: typeof row.install_count === 'number' ? row.install_count : null,
+        sourceUrl: row.source_url ? String(row.source_url) : null,
+      };
+    },
+
+    async listInstallSnapshots(skillId: string, limit = 8): Promise<SkillInstallSnapshotRecord[]> {
+      const result = await client
+        .from('skill_install_snapshots')
+        .select('skill_id, date, installs')
+        .eq('skill_id', skillId)
+        .order('date', { ascending: false })
+        .limit(limit);
+      throwOnError(result.error);
+      return (result.data ?? [])
+        .map((row) => ({
+          skillId: String(row.skill_id),
+          date: String(row.date),
+          installs: Number(row.installs),
+        }))
+        .reverse();
+    },
+
+    /** Oldest page scrapes first (`page_scraped_at` nulls first). */
+    async listOldestPageScraped(limit = 160): Promise<string[]> {
+      const result = await client
+        .from('skill_metadata')
+        .select('skill_id')
+        .order('page_scraped_at', { ascending: true, nullsFirst: true })
+        .limit(limit);
+      throwOnError(result.error);
+      return (result.data ?? []).map((row) => String(row.skill_id));
+    },
+
+    /** Skills with empty `content_hash` waiting for detail/scrape. */
+    async listQueuedDetailSkills(limit = 500): Promise<string[]> {
+      const result = await client
+        .from('skill_metadata')
+        .select('skill_id')
+        .eq('content_hash', '')
+        .order('skill_id')
+        .limit(limit);
+      throwOnError(result.error);
+      return (result.data ?? []).map((row) => String(row.skill_id));
     },
 
     /**

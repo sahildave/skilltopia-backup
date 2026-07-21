@@ -13,17 +13,22 @@ detail, audit, or HTML scrape. Updates latest `install_count` and appends one
    detail/scrape queue; **do not** overwrite an existing hash.
 5. Upsert `skill_install_snapshots` for today (`PK (skill_id, date)` → idempotent).
 
-Null/empty hash skills stay queued. Scrape (`npm run scrape:local`) still skips
-them until a detail hash exists — this job never scrapes.
+Null/empty hash skills stay queued. Scrape / rotation still skips them until a
+detail hash exists — this job never scrapes.
 
-GHA scheduling lands in task-6; until then run locally.
+Scheduled via `.github/workflows/ingest.yml` (list then rotation). Local:
+
+```bash
+npm run list-snapshots:local
+npm run ingest:daily          # list + rotation
+```
 
 ## Auth / secrets
 
 Same as scrape: Infisical **`dev`** (Supabase service role) + skills.sh OIDC
 (`VERCEL_OIDC_TOKEN`). Prefer an **ingest** Vercel project’s OIDC so you do not
-share the app Backend’s 600/min budget. See [infisical.md](./infisical.md) and
-[external-apis.md](./external-apis.md).
+share the app Backend’s 600/min budget. See [ingest-oidc.md](./ingest-oidc.md),
+[infisical.md](./infisical.md), and [external-apis.md](./external-apis.md).
 
 ```bash
 npm run list-snapshots:local

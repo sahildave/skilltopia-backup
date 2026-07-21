@@ -4,7 +4,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import type { LanguageModel } from 'ai';
 import { createHash } from 'node:crypto';
 import { distilledEnrichmentText, enrichWithModel } from './enrichment.js';
-import { MAX_ENRICHED, maxEnrichedFromEnv } from './max-enriched.js';
+import { MAX_ENRICHED, MAX_ENRICHED_DEFAULT, maxEnrichedFromEnv } from './max-enriched.js';
 import { fetchLeaderboard, fetchSkillDetail } from './skills-catalog.js';
 import {
   createSupabaseRepositoryFromEnv,
@@ -13,7 +13,7 @@ import {
 } from './supabase-repository.js';
 import { upsertSkillEmbedding } from './qdrant.js';
 
-export { MAX_ENRICHED, maxEnrichedFromEnv };
+export { MAX_ENRICHED, MAX_ENRICHED_DEFAULT, maxEnrichedFromEnv };
 type Repository = ReturnType<typeof createSupabaseRepositoryFromEnv>;
 export type EnrichmentMode = 'seed' | 'sync' | 'force';
 export type EnrichmentLogLevel = 'info' | 'ok' | 'warn' | 'error' | 'step';
@@ -120,7 +120,7 @@ export async function runEnrichmentPipeline(
   options: EnrichmentPipelineOptions,
 ): Promise<EnrichmentRunResult> {
   const mode = options.mode ?? 'seed';
-  const maxEnriched = Math.min(options.maxEnriched ?? MAX_ENRICHED, MAX_ENRICHED);
+  const maxEnriched = Math.min(options.maxEnriched ?? MAX_ENRICHED_DEFAULT, MAX_ENRICHED);
   const throttleMs = options.throttleMs ?? 1000;
   const sleep = options.sleep ?? (async (ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   const loadLeaderboard = options.loadLeaderboard ?? fetchLeaderboard;

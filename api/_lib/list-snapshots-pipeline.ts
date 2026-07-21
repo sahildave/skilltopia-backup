@@ -18,6 +18,7 @@ export type ListSnapshotsPipelineOptions = {
 export type ListSnapshotsRunResult = {
   seen: number;
   queued: number;
+  queuedIds: string[];
   snapshots: number;
   views: Record<LeaderboardView, number>;
 };
@@ -75,8 +76,8 @@ export async function runListSnapshotsPipeline(
   log(`merged unique skills=${merged.length}`, 'info');
 
   log('syncing skill_metadata install counts…', 'step');
-  const { queued } = await options.repository.syncListSkills(toSightings(merged));
-  log(`queued new skills=${queued.length}`, queued.length > 0 ? 'warn' : 'ok');
+  const { queued: queuedIds } = await options.repository.syncListSkills(toSightings(merged));
+  log(`queued new skills=${queuedIds.length}`, queuedIds.length > 0 ? 'warn' : 'ok');
 
   const snapshots = merged.map((skill) => ({
     skillId: skill.id,
@@ -88,7 +89,8 @@ export async function runListSnapshotsPipeline(
 
   const result: ListSnapshotsRunResult = {
     seen: merged.length,
-    queued: queued.length,
+    queued: queuedIds.length,
+    queuedIds,
     snapshots: snapshots.length,
     views,
   };

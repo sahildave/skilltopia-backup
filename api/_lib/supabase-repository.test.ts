@@ -334,4 +334,94 @@ describe('Supabase skill repository', () => {
       { onConflict: 'skill_id,date' },
     );
   });
+
+  it('loads page cache metadata and recent install snapshots', async () => {
+    const client = createClient();
+    const snapshot = {
+      summary: 'A skill',
+      topics: ['design'],
+      repository: 'anthropics/skills',
+      weeklyInstalls: [1, 2, 3, 4, 5, 6, 7, 8],
+    };
+    client.metadata.select.mockReturnValue({
+      eq: () => ({
+        maybeSingle: async () => ({
+          data: {
+            skill_id: enrichment.skillId,
+            page_snapshot: snapshot,
+            page_scraped_at: '2026-07-21T00:00:00.000Z',
+            repository: 'anthropics/skills',
+            install_count: 42,
+            source_url: 'https://github.com/anthropics/skills',
+          },
+          error: null,
+        }),
+      }),
+    });
+    client.installSnapshots.select.mockReturnValue({
+      eq: () => ({
+        order: () => ({
+          limit: async () => ({
+            data: [
+              { skill_id: enrichment.skillId, date: '2026-07-21', installs: 42 },
+              { skill_id: enrichment.skillId, date: '2026-07-20', installs: 40 },
+            ],
+            error: null,
+          }),
+        }),
+      }),
+    });
+
+    const repository = createSupabaseRepository(client as never);
+    await expect(repository.getSkillPageCache(enrichment.skillId)).resolves.toEqual({
+      skillId: enrichment.skillId,
+      pageSnapshot: snapshot,
+      pageScrapedAt: '2026-07-21T00:00:00.000Z',
+      repository: 'anthropics/skills',
+      installCount: 42,
+      sourceUrl: 'https://github.com/anthropics/skills',
+    });
+    await expect(repository.listInstallSnapshots(enrichment.skillId, 8)).resolves.toEqual([
+      { skillId: enrichment.skillId, date: '2026-07-20', installs: 40 },
+      { skillId: enrichment.skillId, date: '2026-07-21', installs: 42 },
+    ]);
+  });
+
+  it('returns null page cache when skill metadata row is missing', async () => {
+    const client = createClient();
+    client.metadata.select.mockReturnValue({
+      eq: () => ({
+        maybeSingle: async () => ({ data: null, error: null }),
+      }),
+    });
+    const repository = createSupabaseRepository(client as never);
+    await expect(repository.getSkillPageCache(enrichment.skillId)).resolves.toBeNull();
+  });
+
+  it('lists oldest page scrapes and empty-hash detail queue', async () => {
+    const client = createClient();
+    const order = vi.fn().mockReturnValue({
+      limit: async () => ({
+        data: [{ skill_id: 'old/a' }, { skill_id: 'old/b' }],
+        error: null,
+      }),
+    });
+    client.metadata.select.mockReturnValue({
+      order,
+      eq: () => ({
+        order: () => ({
+          limit: async () => ({
+            data: [{ skill_id: 'new/a' }],
+            error: null,
+          }),
+        }),
+      }),
+    });
+
+    const repository = createSupabaseRepository(client as never);
+    await expect(repository.listOldestPageScraped(2)).resolves.toEqual(['old/a', 'old/b']);
+    expect(order).toHaveBeenCalledWith('page_scraped_at', { ascending: true, nullsFirst: true });
+
+    await expect(repository.listQueuedDetailSkills(10)).resolves.toEqual(['new/a']);
+  });
 });

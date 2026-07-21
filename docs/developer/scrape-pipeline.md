@@ -35,7 +35,12 @@ HTML page fetches are unauthenticated (`https://skills.sh/...`).
 
 ```bash
 MAX_ENRICHED=20 npm run scrape:local
+MAX_ENRICHED=1500 npm run scrape:sweep   # or 1000 fallback; see rotation-pipeline.md
 ```
 
-Invalid/missing `MAX_ENRICHED` defaults to 500 (hard-capped in code). Progress
+Invalid/missing `MAX_ENRICHED` defaults to **500**; hard-capped at **1500**. Progress
 logs go to stderr; a JSON summary goes to stdout.
+
+Batch jobs should use the **ingest** Vercel project’s OIDC (not the app Backend).
+See [ingest-oidc.md](./ingest-oidc.md). Daily rotation:
+[rotation-pipeline.md](./rotation-pipeline.md).

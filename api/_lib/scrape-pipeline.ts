@@ -1,4 +1,4 @@
-import { maxEnrichedFromEnv, MAX_ENRICHED } from './max-enriched.js';
+import { maxEnrichedFromEnv, MAX_ENRICHED, MAX_ENRICHED_DEFAULT } from './max-enriched.js';
 import { refreshSkillAuditsIfNeeded } from './audit-cache.js';
 import { mapWeeklyInstallsToDates, parsePageSnapshot } from './page-snapshot.js';
 import {
@@ -18,6 +18,8 @@ export type ScrapeLogLevel = 'info' | 'ok' | 'warn' | 'error' | 'step';
 export type ScrapePipelineOptions = {
   repository: Repository;
   maxEnriched?: number;
+  /** When set, scrape these ids instead of loading the leaderboard slice. */
+  skillIds?: string[];
   throttleMs?: number;
   scrapeDate?: Date;
   loadLeaderboard?: typeof fetchLeaderboard;
@@ -71,7 +73,7 @@ async function scrapeWithRetry(
 }
 
 export async function runScrapePipeline(options: ScrapePipelineOptions): Promise<ScrapeRunResult> {
-  const maxEnriched = Math.min(options.maxEnriched ?? MAX_ENRICHED, MAX_ENRICHED);
+  const maxEnriched = Math.min(options.maxEnriched ?? MAX_ENRICHED_DEFAULT, MAX_ENRICHED);
   const throttleMs = options.throttleMs ?? 1000;
   const scrapeDate = options.scrapeDate ?? new Date();
   const sleep = options.sleep ?? (async (ms) => new Promise((resolve) => setTimeout(resolve, ms)));
@@ -87,17 +89,28 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
     failed: [],
   };
 
-  log(`start maxEnriched=${maxEnriched} throttleMs=${throttleMs}`, 'info');
-  log('fetching leaderboard from skills.sh…', 'step');
-  const skills = (await loadLeaderboard(maxEnriched)).slice(0, maxEnriched);
-  log(`leaderboard returned ${skills.length} skill(s)`, 'ok');
+  const explicitIds = options.skillIds;
+  log(
+    `start maxEnriched=${maxEnriched} throttleMs=${throttleMs} mode=${explicitIds ? 'ids' : 'leaderboard'}`,
+    'info',
+  );
 
-  for (const [index, skill] of skills.entries()) {
-    const step = `[${index + 1}/${skills.length}] ${skill.id}`;
+  let skillIds: string[];
+  if (explicitIds) {
+    skillIds = explicitIds.slice(0, maxEnriched);
+    log(`using ${skillIds.length} explicit skill id(s)`, 'ok');
+  } else {
+    log('fetching leaderboard from skills.sh…', 'step');
+    skillIds = (await loadLeaderboard(maxEnriched)).slice(0, maxEnriched).map((skill) => skill.id);
+    log(`leaderboard returned ${skillIds.length} skill(s)`, 'ok');
+  }
+
+  for (const [index, skillId] of skillIds.entries()) {
+    const step = `[${index + 1}/${skillIds.length}] ${skillId}`;
     result.attempted += 1;
     try {
       log(`${step}: fetching detail…`, 'step');
-      const detail = await loadDetail(skill.id);
+      const detail = await loadDetail(skillId);
       if (!detail.hash) {
         result.skipped += 1;
         log(`${step}: skipped (null hash)`, 'warn');
@@ -142,7 +155,7 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         // Keep any prior page_snapshot; only metadata/hash was saved above.
-        result.failed.push({ skillId: skill.id, message });
+        result.failed.push({ skillId, message });
         log(`${step}: scrape failed after retry — ${message}`, 'error');
       }
 
@@ -160,7 +173,7 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      result.failed.push({ skillId: skill.id, message });
+      result.failed.push({ skillId, message });
       log(`${step}: failed — ${message}`, 'error');
     }
 

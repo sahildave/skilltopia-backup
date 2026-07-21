@@ -40,8 +40,9 @@ The local process also needs `VERCEL_OIDC_TOKEN` (e.g. from `.env.local` after
 | `--force` | Re-enrich even when enrichment already exists (same hash) |
 
 Set `MAX_ENRICHED` in Infisical (`dev`) or the shell (e.g. `MAX_ENRICHED=20 npm
-run enrich:local`) to bound a run. Invalid/missing values default to 500; the
-hard cap in code is always 500.
+run enrich:local`) to bound a run. Invalid/missing values default to **500**; the
+hard cap in code is **1500** (full scrape sweep). Keep enrich runs at ≤500 unless
+you intentionally raise the LLM budget.
 
 `npm run enrich:local` prints colored step-by-step progress on stderr, including
 per-model failures and `confidence=llm|rule-based`.

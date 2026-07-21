@@ -1,0 +1,72 @@
+name: Ingest (list + rotation)
+
+# Daily list install snapshots + 200-skill scrape rotation on the secondary
+# (backend/batch) OIDC budget. Manual dispatch supports a one-shot full sweep
+# toward MAX_ENRICHED.
+#
+# Secrets (ingest / secondary project — NOT the app Backend primary OIDC):
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+#   VERCEL_OIDC_TOKEN_SECONDARY  # preferred: partner/ingest Vercel project OIDC
+#   VERCEL_OIDC_TOKEN            # optional fallback when secondary unset
+#
+# See docs/developer/ingest-oidc.md
+
+on:
+  schedule:
+    - cron: '15 6 * * *' # 06:15 UTC daily
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'daily = list + 200 rotation; sweep = leaderboard scrape to MAX_ENRICHED'
+        required: true
+        default: daily
+        type: choice
+        options:
+          - daily
+          - sweep
+      max_enriched:
+        description: 'Sweep cap (1500 default; use 1000 if too heavy)'
+        required: false
+        default: '1500'
+        type: string
+
+concurrency:
+  group: ingest-skills
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    name: List + rotate (or sweep)
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Daily list + rotation
+        if: ${{ github.event_name == 'schedule' || inputs.mode == 'daily' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VERCEL_OIDC_TOKEN_SECONDARY: ${{ secrets.VERCEL_OIDC_TOKEN_SECONDARY }}
+          VERCEL_OIDC_TOKEN: ${{ secrets.VERCEL_OIDC_TOKEN }}
+        run: node --import tsx/esm scripts/ingest-daily.mjs
+
+      - name: Full scrape sweep
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'sweep' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VERCEL_OIDC_TOKEN_SECONDARY: ${{ secrets.VERCEL_OIDC_TOKEN_SECONDARY }}
+          VERCEL_OIDC_TOKEN: ${{ secrets.VERCEL_OIDC_TOKEN }}
+          MAX_ENRICHED: ${{ inputs.max_enriched }}
+        run: node --import tsx/esm scripts/scrape.mjs

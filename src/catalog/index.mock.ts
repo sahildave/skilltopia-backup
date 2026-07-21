@@ -1,5 +1,5 @@
 import type { CatalogPort } from './types';
-import { MOCK_DETAIL, MOCK_LEADERBOARD } from './fixtures';
+import { MOCK_AUDITS, MOCK_DETAIL, MOCK_LEADERBOARD, MOCK_UNCACHED_DETAIL } from './fixtures';
 
 export const catalog: CatalogPort = {
   async fetchLeaderboard(_view, _page, perPage) {
@@ -18,6 +18,22 @@ export const catalog: CatalogPort = {
 
   async fetchDetail(skillId) {
     if (skillId === MOCK_DETAIL.skillId) return MOCK_DETAIL;
-    return { skillId, enrichment: null, related: [] };
+    if (skillId === MOCK_UNCACHED_DETAIL.skillId) return MOCK_UNCACHED_DETAIL;
+    return {
+      skillId,
+      pageSnapshot: null,
+      pageScrapedAt: null,
+      repository: null,
+      installCount: null,
+      sourceUrl: null,
+      installSeries: [],
+      enrichment: null,
+      related: [],
+    };
+  },
+
+  async fetchAudits(skillId) {
+    if (skillId === MOCK_AUDITS.skillId) return MOCK_AUDITS;
+    return { skillId, audits: null, source: 'cache', auditsFetchedAt: null };
   },
 };

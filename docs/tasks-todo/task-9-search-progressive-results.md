@@ -1,7 +1,7 @@
 # Search performance: progressive keyword-first results
 
 **Milestone:** mvp  
-**Depends on:** task-1-search-performance-backend
+**Depends on:** task-8-search-performance-backend
 
 ## Goal
 
@@ -9,7 +9,7 @@ Perceived search latency drops to ~0.7s by showing keyword results immediately, 
 
 ## Context
 
-Even after task-1, full hybrid search remains ~3–3.5s because Qdrant Cloud Inference runs at query time. Users wait for the entire waterfall before seeing any results.
+Even after task-8, full hybrid search remains ~3–3.5s because Qdrant Cloud Inference runs at query time. Users wait for the entire waterfall before seeing any results.
 
 ## Approach
 
@@ -25,7 +25,7 @@ Alternative (out of scope unless Option A feels too chatty): SSE streaming from 
 
 - [ ] Add `semantic` query param to `/api/skills/search` (default `true` for backward compat):
   - `semantic=false` → keyword-only, ~700ms
-  - `semantic=true` → current hybrid (faster after task-1)
+  - `semantic=true` → current hybrid (faster after task-8)
 - [ ] Update `useSkillsSearch` in `src/services/skills-sh.ts`:
   - Phase 1: fetch keyword results, render immediately
   - Phase 2: fetch semantic enrichment, merge into list

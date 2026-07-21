@@ -7,7 +7,8 @@ import {
   InputGroupInput,
 } from '@/components/ui/input-group';
 import { Separator } from '@/components/ui/separator';
-import { executeCommand, useCommandContext } from '@/lib/commands';
+import { useCommandContext } from '@/hooks/use-command-context';
+import { executeCommand } from '@/lib/commands/registry';
 import { cn } from '@/lib/utils';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';

@@ -80,9 +80,43 @@ pub struct RelatedSkill {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SkillPageSnapshot {
+    #[serde(default)]
+    pub summary: Option<String>,
+    #[serde(default)]
+    pub topics: Option<Vec<String>>,
+    #[serde(default)]
+    pub repository: Option<String>,
+    #[serde(default)]
+    pub stars: Option<i32>,
+    #[serde(rename = "firstSeen", default)]
+    pub first_seen: Option<String>,
+    #[serde(rename = "installCommand", default)]
+    pub install_command: Option<String>,
+    #[serde(default)]
+    pub related: Option<serde_json::Value>,
+    #[serde(rename = "weeklyInstalls", default)]
+    pub weekly_installs: Option<Vec<i32>>,
+    #[serde(rename = "skillMdPreview", default)]
+    pub skill_md_preview: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct SkillDetailData {
     #[serde(rename = "skillId")]
     pub skill_id: String,
+    #[serde(rename = "pageSnapshot", default)]
+    pub page_snapshot: Option<SkillPageSnapshot>,
+    #[serde(rename = "pageScrapedAt", default)]
+    pub page_scraped_at: Option<String>,
+    #[serde(default)]
+    pub repository: Option<String>,
+    #[serde(rename = "installCount", default)]
+    pub install_count: Option<i32>,
+    #[serde(rename = "sourceUrl", default)]
+    pub source_url: Option<String>,
+    #[serde(rename = "installSeries", default)]
+    pub install_series: Vec<i32>,
     pub enrichment: Option<SkillEnrichment>,
     pub related: Vec<RelatedSkill>,
 }
@@ -90,6 +124,43 @@ pub struct SkillDetailData {
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct SkillDetailResponse {
     pub data: SkillDetailData,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SkillAuditEntry {
+    pub provider: String,
+    pub slug: String,
+    pub status: String,
+    pub summary: String,
+    #[serde(rename = "auditedAt")]
+    pub audited_at: String,
+    #[serde(rename = "riskLevel", default)]
+    pub risk_level: Option<String>,
+    #[serde(default)]
+    pub categories: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SkillAuditsPayload {
+    pub id: String,
+    pub source: String,
+    pub slug: String,
+    pub audits: Vec<SkillAuditEntry>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SkillAuditsData {
+    #[serde(rename = "skillId")]
+    pub skill_id: String,
+    pub audits: Option<SkillAuditsPayload>,
+    pub source: String,
+    #[serde(rename = "auditsFetchedAt")]
+    pub audits_fetched_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SkillAuditsResponse {
+    pub data: SkillAuditsData,
 }
 
 fn proxy_base_url() -> String {
@@ -223,6 +294,33 @@ pub async fn fetch_skill_detail(skill_id: String) -> Result<SkillDetailData, Str
         format!("/api/skills/detail?skill_id={encoded}")
     };
     let response: SkillDetailResponse = get_json(&path).await?;
+    Ok(response.data)
+}
+
+/// Fetches cached or on-demand security audits for a catalog skill.
+#[tauri::command]
+#[specta::specta]
+pub async fn fetch_skill_audits(skill_id: String) -> Result<SkillAuditsData, String> {
+    let skill_id = skill_id.trim().to_string();
+    if skill_id.is_empty() {
+        return Err("Skill ID must not be empty.".to_string());
+    }
+
+    if direct_token().is_some() {
+        // Maintainer direct path: upstream only (no Supabase cache).
+        let path = format!("/skills/audit/{skill_id}");
+        let payload: SkillAuditsPayload = get_json(&path).await?;
+        return Ok(SkillAuditsData {
+            skill_id,
+            audits: Some(payload),
+            source: "upstream".to_string(),
+            audits_fetched_at: None,
+        });
+    }
+
+    let encoded = urlencoding_encode(&skill_id);
+    let path = format!("/api/skills/audit?skill_id={encoded}");
+    let response: SkillAuditsResponse = get_json(&path).await?;
     Ok(response.data)
 }
 

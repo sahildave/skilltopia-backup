@@ -1,7 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { cn } from './lib';
 import { rgb } from './palette';
-import { BAYER4, fillOf, pixelBloomStyle, type PixelBloom, type PixelColor } from './pixel';
+import {
+  bayer4Threshold,
+  fillOf,
+  pixelBloomStyle,
+  type PixelBloom,
+  type PixelColor,
+} from './pixel';
 
 // Backing-resolution caps — a background wash never needs more cells than this.
 const MAX_COLS = 960;
@@ -69,7 +75,7 @@ function paintGradient(
               ? 1 - (x + 0.5) / cols
               : (x + 0.5) / cols;
       const density = 1 - t;
-      const lit = density > BAYER4[y & 3][x & 3];
+      const lit = density > bayer4Threshold(y, x);
       if (toFill) {
         // Two-tone: every cell is painted, the dither decides which colour.
         ctx.fillStyle = rgb(lit ? fromFill : toFill, 1, o);

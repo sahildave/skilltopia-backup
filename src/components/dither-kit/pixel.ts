@@ -9,6 +9,11 @@ export const BAYER4 = [
   [15, 7, 13, 5],
 ].map((row) => row.map((v) => (v + 0.5) / 16))
 
+/** y&3 / x&3 always land in 0..3 of the fixed 4×4 matrix. */
+export function bayer4Threshold(y: number, x: number): number {
+  return BAYER4[y & 3]?.[x & 3] ?? 0
+}
+
 export const clamp01 = (t: number) => (t < 0 ? 0 : t > 1 ? 1 : t)
 
 /** 32-bit FNV-1a hash — turns any string seed into a stable uint32. */

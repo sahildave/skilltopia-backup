@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@supabase/supabase-js';
+import type { SkillAuditsPayload } from './audit-cache.js';
 
 const RAW_SKILLS_BUCKET = 'raw-skills';
 
@@ -34,6 +35,48 @@ export type SkillSourceMetadata = {
   rawStoragePrefix?: string;
 };
 
+/** Sparse skills.sh HTML page snapshot; all fields optional. */
+export type SkillPageSnapshot = {
+  summary?: string;
+  topics?: string[];
+  repository?: string;
+  stars?: number;
+  firstSeen?: string;
+  installCommand?: string;
+  related?: unknown[];
+  weeklyInstalls?: number[];
+  skillMdPreview?: string;
+};
+
+/** Cached skills.sh /audit API payload (see audit-cache.ts). */
+export type SkillAudits = SkillAuditsPayload;
+
+export type SkillInstallSnapshotRecord = {
+  skillId: string;
+  date: string;
+  installs: number;
+};
+
+/** Page-cache fields for the skill detail dialog (no enrichment). */
+export type SkillPageCacheRecord = {
+  skillId: string;
+  pageSnapshot: SkillPageSnapshot | null;
+  pageScrapedAt: string | null;
+  repository: string | null;
+  installCount: number | null;
+  sourceUrl: string | null;
+};
+
+/** List-endpoint sighting: update installs; insert new skills with empty hash (detail queue). */
+export type SkillListSighting = {
+  skillId: string;
+  installCount: number;
+  repository?: string;
+  sourceUrl?: string;
+};
+
+const LIST_SYNC_CHUNK = 200;
+
 export type RawSkillFile = {
   path: string;
   content: string | Uint8Array;
@@ -54,6 +97,10 @@ type Database = {
           repository: string | null;
           install_count: number | null;
           raw_storage_prefix: string | null;
+          page_snapshot: SkillPageSnapshot | null;
+          audits: SkillAudits | null;
+          audits_fetched_at: string | null;
+          page_scraped_at: string | null;
         };
         Insert: Record<string, unknown>;
         Update: Record<string, unknown>;
@@ -64,6 +111,16 @@ type Database = {
           skill_id: string;
           file_path: string;
           storage_path: string;
+        };
+        Insert: Record<string, unknown>;
+        Update: Record<string, unknown>;
+        Relationships: [];
+      };
+      skill_install_snapshots: {
+        Row: {
+          skill_id: string;
+          date: string;
+          installs: number;
         };
         Insert: Record<string, unknown>;
         Update: Record<string, unknown>;
@@ -246,6 +303,185 @@ export function createSupabaseRepository(client: RepositoryClient) {
         files[String(row.file_path)] = await download.data.text();
       }
       return files;
+    },
+
+    async upsertPageSnapshot(
+      skillId: string,
+      snapshot: SkillPageSnapshot | null,
+      scrapedAt = new Date().toISOString(),
+    ): Promise<void> {
+      const result = await client
+        .from('skill_metadata')
+        .update({
+          page_snapshot: snapshot,
+          page_scraped_at: snapshot ? scrapedAt : null,
+        })
+        .eq('skill_id', skillId);
+      throwOnError(result.error);
+    },
+
+    async getSkillAuditCache(skillId: string): Promise<{
+      contentHash: string | null;
+      audits: SkillAudits | null;
+      auditsFetchedAt: string | null;
+    } | null> {
+      const result = await client
+        .from('skill_metadata')
+        .select('content_hash, audits, audits_fetched_at')
+        .eq('skill_id', skillId)
+        .maybeSingle();
+      throwOnError(result.error);
+      const row = result.data as Record<string, unknown> | null;
+      if (!row) return null;
+      return {
+        contentHash: row.content_hash ? String(row.content_hash) : null,
+        audits: (row.audits as SkillAudits | null) ?? null,
+        auditsFetchedAt: row.audits_fetched_at ? String(row.audits_fetched_at) : null,
+      };
+    },
+
+    async upsertSkillAudits(
+      skillId: string,
+      audits: SkillAudits | null,
+      fetchedAt = new Date().toISOString(),
+    ): Promise<void> {
+      const result = await client
+        .from('skill_metadata')
+        .update({
+          audits,
+          audits_fetched_at: audits ? fetchedAt : null,
+        })
+        .eq('skill_id', skillId);
+      throwOnError(result.error);
+    },
+
+    async countInstallSnapshots(skillId: string): Promise<number> {
+      const result = await client
+        .from('skill_install_snapshots')
+        .select('*', { count: 'exact', head: true })
+        .eq('skill_id', skillId);
+      throwOnError(result.error);
+      return result.count ?? 0;
+    },
+
+    async upsertInstallSnapshots(records: SkillInstallSnapshotRecord[]): Promise<void> {
+      if (records.length === 0) return;
+      const result = await client.from('skill_install_snapshots').upsert(
+        records.map((record) => ({
+          skill_id: record.skillId,
+          date: record.date,
+          installs: record.installs,
+        })),
+        { onConflict: 'skill_id,date' },
+      );
+      throwOnError(result.error);
+    },
+
+    async getSkillPageCache(skillId: string): Promise<SkillPageCacheRecord | null> {
+      const result = await client
+        .from('skill_metadata')
+        .select('skill_id, page_snapshot, page_scraped_at, repository, install_count, source_url')
+        .eq('skill_id', skillId)
+        .maybeSingle();
+      throwOnError(result.error);
+      const row = result.data as Record<string, unknown> | null;
+      if (!row) return null;
+      return {
+        skillId: String(row.skill_id),
+        pageSnapshot: (row.page_snapshot as SkillPageSnapshot | null) ?? null,
+        pageScrapedAt: row.page_scraped_at ? String(row.page_scraped_at) : null,
+        repository: row.repository ? String(row.repository) : null,
+        installCount: typeof row.install_count === 'number' ? row.install_count : null,
+        sourceUrl: row.source_url ? String(row.source_url) : null,
+      };
+    },
+
+    async listInstallSnapshots(skillId: string, limit = 8): Promise<SkillInstallSnapshotRecord[]> {
+      const result = await client
+        .from('skill_install_snapshots')
+        .select('skill_id, date, installs')
+        .eq('skill_id', skillId)
+        .order('date', { ascending: false })
+        .limit(limit);
+      throwOnError(result.error);
+      return (result.data ?? [])
+        .map((row) => ({
+          skillId: String(row.skill_id),
+          date: String(row.date),
+          installs: Number(row.installs),
+        }))
+        .reverse();
+    },
+
+    /** Oldest page scrapes first (`page_scraped_at` nulls first). */
+    async listOldestPageScraped(limit = 160): Promise<string[]> {
+      const result = await client
+        .from('skill_metadata')
+        .select('skill_id')
+        .order('page_scraped_at', { ascending: true, nullsFirst: true })
+        .limit(limit);
+      throwOnError(result.error);
+      return (result.data ?? []).map((row) => String(row.skill_id));
+    },
+
+    /** Skills with empty `content_hash` waiting for detail/scrape. */
+    async listQueuedDetailSkills(limit = 500): Promise<string[]> {
+      const result = await client
+        .from('skill_metadata')
+        .select('skill_id')
+        .eq('content_hash', '')
+        .order('skill_id')
+        .limit(limit);
+      throwOnError(result.error);
+      return (result.data ?? []).map((row) => String(row.skill_id));
+    },
+
+    /**
+     * Upsert list sightings: preserve existing content_hash; new skills get ''
+     * so scrape/detail can pick them up later (null-hash = stay queued).
+     */
+    async syncListSkills(records: SkillListSighting[]): Promise<{ queued: string[] }> {
+      if (records.length === 0) return { queued: [] };
+
+      const hashById = new Map<string, string>();
+      for (let offset = 0; offset < records.length; offset += LIST_SYNC_CHUNK) {
+        const chunk = records.slice(offset, offset + LIST_SYNC_CHUNK);
+        const result = await client
+          .from('skill_metadata')
+          .select('skill_id, content_hash')
+          .in(
+            'skill_id',
+            chunk.map((record) => record.skillId),
+          );
+        throwOnError(result.error);
+        for (const row of result.data ?? []) {
+          hashById.set(String(row.skill_id), String(row.content_hash));
+        }
+      }
+
+      const queued: string[] = [];
+      const rows = records.map((record) => {
+        const existingHash = hashById.get(record.skillId);
+        if (existingHash === undefined) queued.push(record.skillId);
+        const row: Record<string, unknown> = {
+          skill_id: record.skillId,
+          content_hash: existingHash ?? '',
+          install_count: record.installCount,
+          raw_storage_prefix: record.skillId,
+        };
+        if (record.repository !== undefined) row.repository = record.repository;
+        if (record.sourceUrl !== undefined) row.source_url = record.sourceUrl;
+        return row;
+      });
+
+      for (let offset = 0; offset < rows.length; offset += LIST_SYNC_CHUNK) {
+        const result = await client
+          .from('skill_metadata')
+          .upsert(rows.slice(offset, offset + LIST_SYNC_CHUNK), { onConflict: 'skill_id' });
+        throwOnError(result.error);
+      }
+
+      return { queued };
     },
   };
 }

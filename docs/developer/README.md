@@ -36,15 +36,21 @@ Technical documentation for building and extending this app. These docs describe
 
 ## Data & Storage
 
-| Document                                        | Description                                                      |
-| ----------------------------------------------- | ---------------------------------------------------------------- |
-| [Data Persistence](./data-persistence.md)       | File storage patterns, atomic writes, SQLite                     |
-| [External APIs](./external-apis.md)             | HTTP API calls, authentication, caching                          |
-| [Infisical Secrets](./infisical.md)             | Infisical envs, Backend vs desktop keys, how to obtain secrets   |
-| [Supabase Repository](./supabase-repository.md) | Server-only skill metadata and raw-file storage                  |
-| [Qdrant Embeddings](./qdrant.md)                | Server-only Cloud Inference vectors and nearest-neighbor helpers |
-| [Provider Registry](./provider-registry.md)     | Vendored skills.sh provider definitions, probes, weekly sync     |
-| [Provider Scan](./provider-scan.md)             | Desktop global skill scan snapshot, reveal, Rust FS boundary     |
+| Document                                                | Description                                                      |
+| ------------------------------------------------------- | ---------------------------------------------------------------- |
+| [Data Persistence](./data-persistence.md)               | File storage patterns, atomic writes, SQLite                     |
+| [External APIs](./external-apis.md)                     | HTTP API calls, authentication, caching                          |
+| [Infisical Secrets](./infisical.md)                     | Infisical envs, Backend vs desktop keys, how to obtain secrets   |
+| [Supabase Repository](./supabase-repository.md)         | Server-only skill metadata and raw-file storage                  |
+| [Page-cache ops](./page-cache-ops.md)                   | Manual setup + which scripts/GHA to run for scrape/cache         |
+| [Scrape Pipeline](./scrape-pipeline.md)                 | Local `scrape:local` HTML page cache + install backfill          |
+| [Rotation Pipeline](./rotation-pipeline.md)             | Daily 200-skill rotation + `ingest:daily` / GHA sweep            |
+| [Ingest OIDC](./ingest-oidc.md)                         | Primary (user-facing) vs secondary (backend/batch) OIDC          |
+| [Audit Cache](./audit-cache.md)                         | skills.sh `/audit` proxy, 7-day cache, async persist             |
+| [List Snapshots Pipeline](./list-snapshots-pipeline.md) | Local `list-snapshots:local` daily list install history          |
+| [Qdrant Embeddings](./qdrant.md)                        | Server-only Cloud Inference vectors and nearest-neighbor helpers |
+| [Provider Registry](./provider-registry.md)             | Vendored skills.sh provider definitions, probes, weekly sync     |
+| [Provider Scan](./provider-scan.md)                     | Desktop global skill scan snapshot, reveal, Rust FS boundary     |
 
 ## Quality & Tooling
 

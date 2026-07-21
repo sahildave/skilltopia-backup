@@ -21,6 +21,7 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         skills_sh::fetch_skills_leaderboard,
         skills_sh::search_skills,
         skills_sh::fetch_skill_detail,
+        skills_sh::fetch_skill_audits,
         provider_scan::scan_installed_skills,
         provider_scan::reveal_provider_skills_dir,
         provider_scan::delete_universal_skill,

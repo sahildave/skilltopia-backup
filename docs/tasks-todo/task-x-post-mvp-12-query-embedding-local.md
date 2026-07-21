@@ -2,7 +2,7 @@
 
 **Milestone:** post-mvp  
 **Post-MVP #:** 12  
-**Depends on:** task-1-search-performance-backend, qdrant-embeddings-setup (done)
+**Depends on:** task-8-search-performance-backend, qdrant-embeddings-setup (done)
 
 ## Goal
 

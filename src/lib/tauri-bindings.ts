@@ -33,9 +33,13 @@ export type {
   ScanWarningCode,
   ScannedProvider,
   ScannedSkill,
+  SkillAuditsData,
+  SkillAuditsPayload,
+  SkillAuditEntry,
   SkillDetailData,
   SkillEnrichment,
   SkillEnrichmentRequired,
+  SkillPageSnapshot,
   SkillsShSkill,
   UniversalScanInfo,
 } from './bindings';

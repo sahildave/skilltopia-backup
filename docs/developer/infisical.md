@@ -27,6 +27,12 @@ Package scripts already wrap Infisical. Daily workflow:
 ```bash
 npm run dev:local       # alias of tauri:dev — desktop → deployed Backend (Infisical local)
 npm run enrich:local    # Backend secrets from Infisical dev
+npm run scrape:local    # Same Infisical dev + OIDC; HTML page cache (no LLM)
+npm run list-snapshots:local  # List OIDC only; daily install_count + snapshots
+# Full operator path: docs/developer/page-cache-ops.md
+npm run rotate:local    # Daily 200-skill rotation (+ queued)
+npm run ingest:daily    # list-snapshots then rotation
+npm run scrape:sweep    # One-shot leaderboard scrape (default MAX_ENRICHED=1500)
 npm run dev:local:proxy # optional: vercel dev :3000 + tauri:dev:local (broken on some macOS; see external-apis.md)
 ```
 
@@ -68,10 +74,12 @@ Used by `npm run enrich:local` (Infisical `dev`) and any Backend enrich path tha
 | `GROQ_API_KEY`                 | **yes** | `@ai-sdk/groq` default. Primary free model.                                                                                                                                                                   |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | **yes** | `@ai-sdk/google` default. Gemini fallback.                                                                                                                                                                    |
 | `ENRICHMENT_MODEL_CHAIN`       | no      | Ordered `provider/model` list. Prefer Groq models that support structured outputs (`openai/gpt-oss-20b`). Default in code: `groq/openai/gpt-oss-20b,gemini/gemini-3.1-flash-lite`. Rule-based is always last. |
-| `MAX_ENRICHED`                 | no      | Config knob (capped at `500` in code); optional in Infisical                                                                                                                                                  |
+| `MAX_ENRICHED`                 | no      | Config knob (default **500**, hard-capped at **1500**); bounds `enrich:local`, `scrape:local`, and `scrape:sweep`                                                                                             |
+| `VERCEL_OIDC_TOKEN_SECONDARY`  | **yes** | Preferred **secondary** (backend/batch) OIDC from the ingest/partner Vercel project. Used by scrape / list / rotate / enrich / GHA via `skills-catalog`. Not used by app runtime `@vercel/oidc`.              |
+| `VERCEL_OIDC_TOKEN`            | **yes** | Optional batch fallback when `VERCEL_OIDC_TOKEN_SECONDARY` is unset. Do not put either token in Infisical `local`.                                                                                            |
 | Enrich-route protect secret    | **yes** | Only if a secret-protected Backend enrich route is added                                                                                                                                                      |
 
-Missing provider keys are skipped at runtime; at least one of Groq/Gemini should be set for LLM enrichment. See [enrichment-pipeline.md](./enrichment-pipeline.md).
+Missing provider keys are skipped at runtime; at least one of Groq/Gemini should be set for LLM enrichment. See [enrichment-pipeline.md](./enrichment-pipeline.md). Local HTML scrape/cache (`npm run scrape:local`), daily list snapshots (`npm run list-snapshots:local`), and rotation (`npm run rotate:local` / `ingest:daily`) need Supabase + **secondary** OIDC but not LLM keys — see [scrape-pipeline.md](./scrape-pipeline.md), [list-snapshots-pipeline.md](./list-snapshots-pipeline.md), and [rotation-pipeline.md](./rotation-pipeline.md). Primary (user-facing) OIDC stays on the app Vercel project; secondary is Infisical `VERCEL_OIDC_TOKEN_SECONDARY` — [ingest-oidc.md](./ingest-oidc.md).
 
 Hybrid search, enrichment UI, and seed (tasks 5–8) reuse the Backend set above; they do not add desktop secrets.
 
@@ -94,7 +102,7 @@ Default when unset: `https://skills-explorer-six.vercel.app`.
    - **Project URL** → `SUPABASE_URL` (form `https://<project-ref>.supabase.co`)
    - Create / copy a **secret** key (`sb_secret_...`) → `SUPABASE_SERVICE_ROLE_KEY`
 3. Prefer the new secret key format. The legacy JWT **`service_role`** key still works but is deprecated; both can coexist until you disable the JWT keys in the dashboard. See [Understanding API keys](https://supabase.com/docs/guides/api/api-keys).
-4. Apply `supabase/migrations/20260719000000_create_skill_repository.sql` to that project before the repository will work.
+4. Apply migrations under `supabase/migrations/` (skill repository + page-cache) to that project before the repository will work.
 5. Never put a **publishable** (`sb_publishable_...`) or legacy **`anon`** key here — the repository needs elevated access that bypasses RLS. Never put `SUPABASE_SERVICE_ROLE_KEY` in Tauri / Infisical `local`.
 
 See [supabase-repository.md](./supabase-repository.md).
@@ -109,13 +117,21 @@ See [supabase-repository.md](./supabase-repository.md).
 
 See [qdrant.md](./qdrant.md).
 
-### skills.sh on Vercel (not Infisical)
+### skills.sh OIDC — primary vs secondary
+
+**Primary (user-facing):** minted at runtime by the **app** Vercel project via
+`@vercel/oidc`. Do not store a long-lived skills.sh password in Infisical for
+the proxy.
 
 1. Deploy `api/` to Vercel and link the Infisical → Vercel sync for `dev` / `prod`.
 2. Vercel project → **Settings → OIDC Federation → On**.
 3. Smoke-test `/api/skills` and `/api/skills/search` (see [external-apis.md](./external-apis.md)).
 
-OIDC tokens are minted at runtime by Vercel; do not store a long-lived skills.sh password in Infisical for the proxy.
+**Secondary (backend/batch):** mint an OIDC token from a **separate** ingest
+Vercel project (often a partner account) and store it as
+`VERCEL_OIDC_TOKEN_SECONDARY` in Infisical **`dev`**. Batch scripts prefer that
+value and fall back to `VERCEL_OIDC_TOKEN` only if secondary is unset. See
+[ingest-oidc.md](./ingest-oidc.md) and [page-cache-ops.md](./page-cache-ops.md).
 
 ### `SKILLS_SH_TOKEN` — skip for daily work
 
@@ -145,7 +161,7 @@ ENRICHMENT_MODEL_CHAIN=groq/openai/gpt-oss-20b,gemini/gemini-3.1-flash-lite
 2. Map Infisical `prod` → Vercel Production; Infisical `dev` → Vercel Preview / Development.
 3. After changing secrets in Infisical, confirm the sync ran (or redeploy) so `process.env` on the Backend API sees the new values.
 
-Local scripts already call `infisical run` (see `package.json`: `dev:local`, `proxy:dev`, `tauri:dev`, `enrich:local`). Prefer those over writing `.env.local` files. If you must export for a one-off, keep the file gitignored and delete it after.
+Local scripts already call `infisical run` (see `package.json`: `dev:local`, `proxy:dev`, `tauri:dev`, `enrich:local`, `scrape:local`). Prefer those over writing `.env.local` files. If you must export for a one-off, keep the file gitignored and delete it after.
 
 ## Anti-patterns
 

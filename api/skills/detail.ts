@@ -1,3 +1,4 @@
+import { resolveInstallSeries } from '../_lib/page-snapshot.js';
 import { enforceRateLimit, methodNotAllowed } from '../_lib/proxy.js';
 import { searchNearestSkills } from '../_lib/qdrant.js';
 import { parseSkillDetailQuery } from '../_lib/query.js';
@@ -13,9 +14,37 @@ export async function GET(request: Request): Promise<Response> {
   const skillId = parsed.query.get('skill_id');
   if (!skillId) return Response.json({ error: 'invalid_query' }, { status: 400 });
   const repository = createSupabaseRepositoryFromEnv();
+
+  const pageCache = await repository.getSkillPageCache(skillId);
+  let installSeries: number[] = [];
+  if (pageCache) {
+    const snapshots = pageCache.pageSnapshot?.weeklyInstalls?.length
+      ? []
+      : await repository.listInstallSnapshots(skillId, 8);
+    installSeries = resolveInstallSeries(pageCache.pageSnapshot?.weeklyInstalls, snapshots);
+  }
+
   const enrichment = await repository.getSkillEnrichment(skillId);
+  const base = {
+    skillId,
+    pageSnapshot: pageCache?.pageSnapshot ?? null,
+    pageScrapedAt: pageCache?.pageScrapedAt ?? null,
+    repository: pageCache?.pageSnapshot?.repository ?? pageCache?.repository ?? null,
+    installCount: pageCache?.installCount ?? null,
+    sourceUrl: pageCache?.sourceUrl ?? null,
+    installSeries,
+    enrichment: enrichment ?? null,
+    related: [] as Array<{
+      skillId: string;
+      score: number;
+      repository: string | null;
+      sourceUrl: string | null;
+      installCount: number | null;
+    }>,
+  };
+
   if (!enrichment) {
-    return Response.json({ data: { skillId, enrichment: null, related: [] } });
+    return Response.json({ data: base });
   }
 
   let related: Awaited<ReturnType<typeof searchNearestSkills>> = [];
@@ -35,8 +64,7 @@ export async function GET(request: Request): Promise<Response> {
 
   return Response.json({
     data: {
-      skillId,
-      enrichment,
+      ...base,
       related: related.flatMap((item) => {
         const itemMetadata = metadataById.get(item.skillId);
         return itemMetadata

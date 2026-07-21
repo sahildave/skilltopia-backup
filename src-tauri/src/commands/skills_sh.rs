@@ -80,9 +80,43 @@ pub struct RelatedSkill {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SkillPageSnapshot {
+    #[serde(default)]
+    pub summary: Option<String>,
+    #[serde(default)]
+    pub topics: Option<Vec<String>>,
+    #[serde(default)]
+    pub repository: Option<String>,
+    #[serde(default)]
+    pub stars: Option<i32>,
+    #[serde(rename = "firstSeen", default)]
+    pub first_seen: Option<String>,
+    #[serde(rename = "installCommand", default)]
+    pub install_command: Option<String>,
+    #[serde(default)]
+    pub related: Option<serde_json::Value>,
+    #[serde(rename = "weeklyInstalls", default)]
+    pub weekly_installs: Option<Vec<i32>>,
+    #[serde(rename = "skillMdPreview", default)]
+    pub skill_md_preview: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct SkillDetailData {
     #[serde(rename = "skillId")]
     pub skill_id: String,
+    #[serde(rename = "pageSnapshot", default)]
+    pub page_snapshot: Option<SkillPageSnapshot>,
+    #[serde(rename = "pageScrapedAt", default)]
+    pub page_scraped_at: Option<String>,
+    #[serde(default)]
+    pub repository: Option<String>,
+    #[serde(rename = "installCount", default)]
+    pub install_count: Option<i32>,
+    #[serde(rename = "sourceUrl", default)]
+    pub source_url: Option<String>,
+    #[serde(rename = "installSeries", default)]
+    pub install_series: Vec<i32>,
     pub enrichment: Option<SkillEnrichment>,
     pub related: Vec<RelatedSkill>,
 }

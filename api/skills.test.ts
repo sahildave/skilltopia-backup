@@ -14,6 +14,7 @@ vi.mock('./_lib/supabase-repository.js', () => ({ createSupabaseRepositoryFromEn
 
 import { GET as getSkills, POST as postSkills } from './skills.js';
 import { GET as getSkillAudits } from './skills/audit.js';
+import { GET as getSkillDetail } from './skills/detail.js';
 import { GET as searchSkills } from './skills/search.js';
 
 describe('skills proxy routes', () => {
@@ -114,5 +115,75 @@ describe('skills proxy routes', () => {
     });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(getVercelOidcToken).not.toHaveBeenCalled();
+  });
+
+  it('serves page cache and install series from Supabase without live scrape', async () => {
+    const pageSnapshot = {
+      summary: 'A skill',
+      topics: ['design'],
+      repository: 'owner/repo',
+      weeklyInstalls: [1, 2, 3, 4, 5, 6, 7, 8],
+    };
+    createSupabaseRepositoryFromEnv.mockReturnValue({
+      getSkillPageCache: async () => ({
+        skillId: 'owner/repo/skill',
+        pageSnapshot,
+        pageScrapedAt: '2026-07-20T00:00:00.000Z',
+        repository: 'owner/repo',
+        installCount: 99,
+        sourceUrl: 'https://github.com/owner/repo',
+      }),
+      listInstallSnapshots: vi.fn(),
+      getSkillEnrichment: async () => null,
+    });
+
+    const response = await getSkillDetail(
+      new Request('https://proxy.test/api/skills/detail?skill_id=owner/repo/skill'),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      data: {
+        skillId: 'owner/repo/skill',
+        pageSnapshot,
+        pageScrapedAt: '2026-07-20T00:00:00.000Z',
+        repository: 'owner/repo',
+        installCount: 99,
+        sourceUrl: 'https://github.com/owner/repo',
+        installSeries: [1, 2, 3, 4, 5, 6, 7, 8],
+        enrichment: null,
+        related: [],
+      },
+    });
+  });
+
+  it('falls back to install snapshots when weekly series is absent', async () => {
+    createSupabaseRepositoryFromEnv.mockReturnValue({
+      getSkillPageCache: async () => ({
+        skillId: 'owner/repo/skill',
+        pageSnapshot: { summary: 'Cached without chart' },
+        pageScrapedAt: '2026-07-20T00:00:00.000Z',
+        repository: null,
+        installCount: 10,
+        sourceUrl: null,
+      }),
+      listInstallSnapshots: async () => [
+        { skillId: 'owner/repo/skill', date: '2026-07-14', installs: 1 },
+        { skillId: 'owner/repo/skill', date: '2026-07-15', installs: 2 },
+      ],
+      getSkillEnrichment: async () => null,
+    });
+
+    const response = await getSkillDetail(
+      new Request('https://proxy.test/api/skills/detail?skill_id=owner/repo/skill'),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      data: expect.objectContaining({
+        installSeries: [1, 2],
+        pageSnapshot: { summary: 'Cached without chart' },
+      }),
+    });
   });
 });

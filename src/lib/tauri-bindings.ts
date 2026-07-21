@@ -39,6 +39,7 @@ export type {
   SkillDetailData,
   SkillEnrichment,
   SkillEnrichmentRequired,
+  SkillPageSnapshot,
   SkillsShSkill,
   UniversalScanInfo,
 } from './bindings';

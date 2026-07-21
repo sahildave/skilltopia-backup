@@ -14,6 +14,7 @@ vi.mock('@catalog', () => ({
     fetchLeaderboard: vi.fn(),
     search: vi.fn(),
     fetchDetail: vi.fn(),
+    fetchAudits: vi.fn(),
   },
 }));
 
@@ -29,18 +30,27 @@ describe('SkillsDashboardView', () => {
     vi.mocked(catalog.search).mockResolvedValue([]);
     vi.mocked(catalog.fetchDetail).mockResolvedValue({
       skillId: '',
+      pageSnapshot: null,
+      pageScrapedAt: null,
+      repository: null,
+      installCount: null,
+      sourceUrl: null,
+      installSeries: [],
       enrichment: null,
       related: [],
+    });
+    vi.mocked(catalog.fetchAudits).mockResolvedValue({
+      skillId: '',
+      audits: null,
+      source: 'cache',
+      auditsFetchedAt: null,
     });
   });
 
   it('defaults to trending and requests that leaderboard', async () => {
     render(<SkillsDashboardView />);
 
-    expect(screen.getByRole('radio', { name: 'Trending' })).toHaveAttribute(
-      'data-state',
-      'on',
-    );
+    expect(screen.getByRole('radio', { name: 'Trending' })).toHaveAttribute('data-state', 'on');
     expect(
       screen.getByRole('button', {
         name: 'Skills with sustained install growth over the past week.',
@@ -112,10 +122,7 @@ describe('SkillsDashboardView', () => {
 
     await user.click(screen.getByRole('radio', { name: 'List' }));
 
-    expect(screen.getByTestId('discovery-skill-container')).toHaveAttribute(
-      'data-layout',
-      'list',
-    );
+    expect(screen.getByTestId('discovery-skill-container')).toHaveAttribute('data-layout', 'list');
   });
 
   it('opens skill detail in a morphing dialog when a card is clicked', async () => {
@@ -133,7 +140,7 @@ describe('SkillsDashboardView', () => {
       expect(trigger).toHaveAttribute('aria-expanded', 'true');
       expect(screen.getByRole('dialog')).toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Close dialog' })).toBeInTheDocument();
-      expect(screen.getByText('Loading enrichment...')).toBeInTheDocument();
+      expect(screen.getByText('Loading skill details...')).toBeInTheDocument();
     } finally {
       MotionGlobalConfig.skipAnimations = false;
     }

@@ -1,30 +1,14 @@
-import { useEffect, useState } from 'react';
 import { AlertCircle, ExternalLink, LoaderCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { platform } from '@platform';
+import { Sparkline } from '@/components/dither-kit';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { MorphingDialogSubtitle, MorphingDialogTitle } from '@/components/ui/morphing-dialog';
 import { Separator } from '@/components/ui/separator';
-import { useSkillDetail } from '@/services/skills-sh';
-import type { SkillsShSkill } from '@/catalog/types';
-
-function titleForSkill(skillId: string): string {
-  return skillId.split('/').at(-1)?.replaceAll('-', ' ') ?? skillId;
-}
-
-function skillStubFromId(skillId: string): SkillsShSkill {
-  return {
-    id: skillId,
-    slug: skillId.split('/').at(-1) ?? skillId,
-    name: skillId.split('/').at(-1) ?? skillId,
-    source: skillId.split('/')[0] ?? '',
-    installs: 0,
-    sourceType: 'github',
-    url: `https://skills.sh/skills/${skillId}`,
-  };
-}
+import { useSkillAudits, useSkillDetail } from '@/services/skills-sh';
+import type { SkillAuditEntry, SkillsShSkill } from '@/catalog/types';
 
 function DetailList({ values }: { values: string[] }) {
   const { t } = useTranslation();
@@ -41,16 +25,83 @@ function DetailList({ values }: { values: string[] }) {
   );
 }
 
-/** Detail panel body for MorphingDialog — keeps related-skill navigation local. */
-export function SkillDetailBody({ skill: initialSkill }: { skill: SkillsShSkill }) {
-  const { t } = useTranslation();
-  const [skill, setSkill] = useState(initialSkill);
-  const query = useSkillDetail(skill.id);
-  const enrichment = query.data?.enrichment;
+function AuditStatusBadge({ status }: { status: string }) {
+  const variant = status === 'pass' || status === 'passed' ? 'secondary' : 'outline';
+  return (
+    <Badge variant={variant} className="capitalize">
+      {status}
+    </Badge>
+  );
+}
 
-  useEffect(() => {
-    setSkill(initialSkill);
-  }, [initialSkill]);
+function AuditsSection({
+  audits,
+  isLoading,
+  error,
+}: {
+  audits: SkillAuditEntry[] | undefined;
+  isLoading: boolean;
+  error: Error | null;
+}) {
+  const { t } = useTranslation();
+
+  if (isLoading) {
+    return (
+      <div className="text-muted-foreground flex items-center gap-2 text-sm">
+        <LoaderCircle className="size-4 animate-spin" />
+        {t('skills.detail.auditsLoading')}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle />
+        <AlertTitle>{t('skills.detail.auditsFailed')}</AlertTitle>
+        <AlertDescription>{error.message}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!audits || audits.length === 0) {
+    return <p className="text-muted-foreground text-sm">{t('skills.detail.noAudits')}</p>;
+  }
+
+  return (
+    <ul className="flex flex-col gap-2">
+      {audits.map((audit) => (
+        <li
+          key={`${audit.provider}-${audit.slug}-${audit.auditedAt}`}
+          className="rounded-lg border bg-muted/30 px-3 py-2"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-medium">{audit.provider}</span>
+            <AuditStatusBadge status={audit.status} />
+          </div>
+          <p className="text-muted-foreground mt-1 text-sm text-pretty">{audit.summary}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Detail panel body for MorphingDialog — page cache + on-demand audits. */
+export function SkillDetailBody({ skill }: { skill: SkillsShSkill }) {
+  const { t } = useTranslation();
+  const detailQuery = useSkillDetail(skill.id);
+  const auditsQuery = useSkillAudits(skill.id);
+
+  const detail = detailQuery.data;
+  const pageSnapshot = detail?.pageSnapshot ?? null;
+  const isCached = Boolean(pageSnapshot) || Boolean(detail?.pageScrapedAt);
+  const installCount = detail?.installCount ?? skill.installs;
+  const repository = detail?.repository ?? pageSnapshot?.repository ?? null;
+  const sourceUrl = detail?.sourceUrl ?? null;
+  const installSeries = detail?.installSeries ?? [];
+  const topics = pageSnapshot?.topics ?? [];
+  const summary = pageSnapshot?.summary;
+  const auditEntries = auditsQuery.data?.audits?.audits;
 
   return (
     <div className="flex flex-col gap-5">
@@ -63,106 +114,102 @@ export function SkillDetailBody({ skill: initialSkill }: { skill: SkillsShSkill 
         </MorphingDialogSubtitle>
       </div>
 
-      {query.isLoading ? (
+      {detailQuery.isLoading ? (
         <div className="text-muted-foreground flex items-center gap-2 py-8 text-sm">
           <LoaderCircle className="size-4 animate-spin" />
           {t('skills.detail.loading')}
         </div>
-      ) : query.error ? (
+      ) : detailQuery.error ? (
         <Alert variant="destructive">
           <AlertCircle />
           <AlertTitle>{t('skills.detail.loadFailed')}</AlertTitle>
           <AlertDescription>
-            {query.error instanceof Error ? query.error.message : String(query.error)}
+            {detailQuery.error instanceof Error
+              ? detailQuery.error.message
+              : String(detailQuery.error)}
           </AlertDescription>
         </Alert>
-      ) : enrichment ? (
+      ) : (
         <div className="flex flex-col gap-5">
-          <section className="rounded-lg border bg-muted/30 p-4">
-            <h3 className="text-sm font-semibold">{t('skills.detail.primaryGoal')}</h3>
-            <p className="text-muted-foreground mt-2 text-sm text-pretty">
-              {enrichment.required.primaryGoal}
-            </p>
-          </section>
+          {!isCached ? (
+            <Alert>
+              <AlertCircle />
+              <AlertTitle>{t('skills.detail.notCachedTitle')}</AlertTitle>
+              <AlertDescription>{t('skills.detail.notCached')}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          {summary ? (
+            <section className="rounded-lg border bg-muted/30 p-4">
+              <h3 className="text-sm font-semibold">{t('skills.detail.summary')}</h3>
+              <p className="text-muted-foreground mt-2 text-sm text-pretty">{summary}</p>
+            </section>
+          ) : null}
+
+          {topics.length > 0 ? (
+            <section className="flex flex-col gap-2">
+              <h3 className="text-sm font-semibold">{t('skills.detail.topics')}</h3>
+              <DetailList values={topics} />
+            </section>
+          ) : null}
+
           <div className="grid gap-4 sm:grid-cols-2">
             <section className="flex flex-col gap-2">
-              <h3 className="text-sm font-semibold">{t('skills.detail.difficulty')}</h3>
-              <Badge variant="secondary" className="w-fit capitalize">
-                {enrichment.required.estimatedComplexity}
-              </Badge>
+              <h3 className="text-sm font-semibold">{t('skills.detail.installs')}</h3>
+              <p className="text-muted-foreground text-sm tabular-nums">
+                {installCount.toLocaleString()}
+              </p>
+              {installSeries.length > 0 ? (
+                <div className="h-12 w-full">
+                  <Sparkline data={installSeries} color="blue" className="h-12 w-full" />
+                </div>
+              ) : null}
             </section>
             <section className="flex flex-col gap-2">
-              <h3 className="text-sm font-semibold">{t('skills.detail.readTime')}</h3>
-              <p className="text-muted-foreground text-sm tabular-nums">
-                {t('skills.detail.minutes', {
-                  count: enrichment.estimatedReadTimeMinutes,
-                })}
-              </p>
+              <h3 className="text-sm font-semibold">{t('skills.detail.repository')}</h3>
+              {repository ? (
+                sourceUrl || repository.includes('/') ? (
+                  <button
+                    type="button"
+                    className="text-muted-foreground hover:text-foreground text-start text-sm break-all underline-offset-2 hover:underline"
+                    onClick={() =>
+                      void platform.openExternal(sourceUrl ?? `https://github.com/${repository}`)
+                    }
+                  >
+                    {repository}
+                  </button>
+                ) : (
+                  <p className="text-muted-foreground text-sm break-all">{repository}</p>
+                )
+              ) : (
+                <p className="text-muted-foreground text-sm">{t('skills.detail.notSpecified')}</p>
+              )}
             </section>
           </div>
-          <section className="flex flex-col gap-2">
-            <h3 className="text-sm font-semibold">{t('skills.detail.requires')}</h3>
-            <DetailList values={enrichment.required.requires} />
-          </section>
-          <section className="flex flex-col gap-2">
-            <h3 className="text-sm font-semibold">{t('skills.detail.bestFor')}</h3>
-            <DetailList values={enrichment.required.bestFor} />
-          </section>
+
           <Separator />
+
           <section className="flex flex-col gap-3">
-            <div>
-              <h3 className="text-sm font-semibold">{t('skills.detail.related')}</h3>
-              <p className="text-muted-foreground text-xs">
-                {t('skills.detail.relatedDescription')}
-              </p>
-            </div>
-            {(query.data?.related ?? []).length > 0 ? (
-              <div className="flex flex-col gap-2">
-                {(query.data?.related ?? []).map((related) => (
-                  <Button
-                    key={related.skillId}
-                    variant="outline"
-                    className="h-auto justify-between gap-3 px-3 py-2 text-start"
-                    onClick={() => setSkill(skillStubFromId(related.skillId))}
-                  >
-                    <span className="min-w-0">
-                      <span className="block truncate font-medium capitalize">
-                        {titleForSkill(related.skillId)}
-                      </span>
-                      <span className="text-muted-foreground block truncate text-xs">
-                        {related.skillId}
-                      </span>
-                    </span>
-                    <Badge variant="secondary" className="shrink-0 tabular-nums">
-                      {Math.round(related.score * 100)}%
-                    </Badge>
-                  </Button>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground text-sm">{t('skills.detail.noRelated')}</p>
-            )}
+            <h3 className="text-sm font-semibold">{t('skills.detail.audits')}</h3>
+            <AuditsSection
+              audits={auditEntries}
+              isLoading={auditsQuery.isLoading}
+              error={
+                auditsQuery.error instanceof Error
+                  ? auditsQuery.error
+                  : auditsQuery.error
+                    ? new Error(String(auditsQuery.error))
+                    : null
+              }
+            />
           </section>
+
           <div className="flex justify-end border-t pt-4">
             <Button variant="outline" onClick={() => void platform.openExternal(skill.url)}>
               <ExternalLink data-icon="inline-start" />
               {t('skills.detail.openExternal')}
             </Button>
           </div>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3 py-4">
-          <p className="text-muted-foreground text-sm text-pretty">
-            {t('skills.detail.noEnrichment')}
-          </p>
-          <Button
-            variant="outline"
-            className="w-fit"
-            onClick={() => void platform.openExternal(skill.url)}
-          >
-            <ExternalLink data-icon="inline-start" />
-            {t('skills.detail.openExternal')}
-          </Button>
         </div>
       )}
     </div>

@@ -156,3 +156,18 @@ export function mapWeeklyInstallsToDates(
     return { skillId, date: iso, installs };
   });
 }
+
+/** Prefer scraped weekly series; else last 8 `skill_install_snapshots` by date. */
+export function resolveInstallSeries(
+  weeklyInstalls: number[] | undefined,
+  snapshots: SkillInstallSnapshotRecord[],
+): number[] {
+  if (weeklyInstalls && weeklyInstalls.length > 0) {
+    return weeklyInstalls.slice(0, 8);
+  }
+  if (snapshots.length === 0) return [];
+  return [...snapshots]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-8)
+    .map((row) => row.installs);
+}

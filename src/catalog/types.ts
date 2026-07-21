@@ -33,8 +33,28 @@ export interface RelatedSkill {
   installCount: number | null;
 }
 
+/** Sparse skills.sh HTML page snapshot; all fields optional. */
+export interface SkillPageSnapshot {
+  summary?: string;
+  topics?: string[];
+  repository?: string;
+  stars?: number;
+  firstSeen?: string;
+  installCommand?: string;
+  related?: unknown[];
+  weeklyInstalls?: number[];
+  skillMdPreview?: string;
+}
+
 export interface SkillDetailData {
   skillId: string;
+  pageSnapshot: SkillPageSnapshot | null;
+  pageScrapedAt: string | null;
+  repository: string | null;
+  installCount: number | null;
+  sourceUrl: string | null;
+  /** Up to 8 install counts for the sparkline (scraped weekly, else local snapshots). */
+  installSeries: number[];
   enrichment: SkillEnrichment | null;
   related: RelatedSkill[];
 }

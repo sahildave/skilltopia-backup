@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { mapWeeklyInstallsToDates, parseCompactCount, parsePageSnapshot } from './page-snapshot.js';
+import {
+  mapWeeklyInstallsToDates,
+  parseCompactCount,
+  parsePageSnapshot,
+  resolveInstallSeries,
+} from './page-snapshot.js';
 
 const FIXTURE_HTML = `
 <main>
@@ -100,5 +105,33 @@ describe('mapWeeklyInstallsToDates', () => {
     );
     expect(rows).toHaveLength(8);
     expect(rows[7]).toEqual({ skillId: 'owner/skill', date: '2026-07-21', installs: 8 });
+  });
+});
+
+describe('resolveInstallSeries', () => {
+  it('prefers scraped weekly installs when present', () => {
+    expect(
+      resolveInstallSeries(
+        [10, 20, 30, 40, 50, 60, 70, 80],
+        [
+          { skillId: 'a', date: '2026-07-14', installs: 1 },
+          { skillId: 'a', date: '2026-07-15', installs: 2 },
+        ],
+      ),
+    ).toEqual([10, 20, 30, 40, 50, 60, 70, 80]);
+  });
+
+  it('falls back to last 8 install snapshots by date', () => {
+    const snapshots = Array.from({ length: 10 }, (_, i) => ({
+      skillId: 'a',
+      date: `2026-07-${String(i + 1).padStart(2, '0')}`,
+      installs: i + 1,
+    }));
+    expect(resolveInstallSeries(undefined, snapshots)).toEqual([3, 4, 5, 6, 7, 8, 9, 10]);
+  });
+
+  it('returns empty when neither source has data', () => {
+    expect(resolveInstallSeries(undefined, [])).toEqual([]);
+    expect(resolveInstallSeries([], [])).toEqual([]);
   });
 });

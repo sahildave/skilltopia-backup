@@ -42,6 +42,7 @@ Technical documentation for building and extending this app. These docs describe
 | [External APIs](./external-apis.md)                     | HTTP API calls, authentication, caching                          |
 | [Infisical Secrets](./infisical.md)                     | Infisical envs, Backend vs desktop keys, how to obtain secrets   |
 | [Supabase Repository](./supabase-repository.md)         | Server-only skill metadata and raw-file storage                  |
+| [Page-cache ops](./page-cache-ops.md)                   | Manual setup + which scripts/GHA to run for scrape/cache         |
 | [Scrape Pipeline](./scrape-pipeline.md)                 | Local `scrape:local` HTML page cache + install backfill          |
 | [Rotation Pipeline](./rotation-pipeline.md)             | Daily 200-skill rotation + `ingest:daily` / GHA sweep            |
 | [Ingest OIDC](./ingest-oidc.md)                         | Dual Vercel projects: app Backend vs ingest batch OIDC           |

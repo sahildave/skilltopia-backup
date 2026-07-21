@@ -1,0 +1,155 @@
+# Page-cache ops (manual setup + scripts)
+
+One place for **human setup** and **which npm scripts to run** after the
+scrape/cache MVP (schema, scrape, list snapshots, audit cache, rotation/GHA).
+Pipeline internals live in the linked docs; this page is the operator path.
+
+## Manual work (one-time)
+
+Do these before local scrape or GHA will succeed.
+
+### 1. Supabase migration
+
+Apply all files under `supabase/migrations/` to the **dev** (and later **prod**)
+project, including `20260720160027_skill_page_cache.sql`:
+
+- `skill_metadata`: `page_snapshot`, `audits`, `audits_fetched_at`, `page_scraped_at`
+- table `skill_install_snapshots` (`skill_id`, `date`, `installs`)
+
+```bash
+# linked project / your usual flow
+npx supabase db push
+# or apply the SQL in the Supabase SQL editor
+```
+
+Confirm Infisical **`dev`** (and Vercel app env) already have `SUPABASE_URL` +
+`SUPABASE_SERVICE_ROLE_KEY`. See [infisical.md](./infisical.md) and
+[supabase-repository.md](./supabase-repository.md).
+
+### 2. App Backend Vercel (user traffic + on-demand `/audit`)
+
+1. Deploy this repo’s web + `api/` to the **app** Vercel project.
+2. **Settings → OIDC Federation → On** (runtime uses `@vercel/oidc`; no
+   `VERCEL_OIDC_TOKEN` secret on the app deploy).
+3. Sync Infisical `dev` / `prod` → that project’s env.
+
+On-demand audits use **app** OIDC. See [audit-cache.md](./audit-cache.md).
+
+### 3. Ingest Vercel project (batch OIDC)
+
+Batch list/scrape/rotation must **not** share the app’s 600/min skills.sh
+budget.
+
+1. Create a **separate** Vercel project; enable **OIDC Federation**.
+2. Mint a short-lived OIDC token for **that** project and export it locally as
+   `VERCEL_OIDC_TOKEN` when running ingest scripts (CLI / dashboard — same
+   pattern as enrichment: linked project + token in the shell env).
+3. Do **not** store long-lived skills.sh passwords; refresh the token when it
+   expires.
+
+Details: [ingest-oidc.md](./ingest-oidc.md).
+
+### 4. GitHub Actions secrets (for scheduled ingest)
+
+On the GitHub repo, set secrets used by `.github/workflows/ingest.yml`
+(**ingest** project values, not app):
+
+| Secret                       | Source                                      |
+| ---------------------------- | ------------------------------------------- |
+| `SUPABASE_URL`               | Same Supabase project the app Backend uses  |
+| `SUPABASE_SERVICE_ROLE_KEY`  | Service role / secret key                   |
+| `VERCEL_OIDC_TOKEN`          | Token minted for the **ingest** Vercel project |
+
+Until these are set, the daily cron and `workflow_dispatch` sweep will fail.
+Local scripts still work with Infisical + a local `VERCEL_OIDC_TOKEN`.
+
+### 5. Optional: Infisical `MAX_ENRICHED`
+
+Default in code is **500** (hard cap **1500**). For the ramp, either set
+`MAX_ENRICHED` in Infisical `dev` or override on the command line (below).
+
+LLM keys are **not** required for scrape / list / rotate.
+
+---
+
+## Scripts to run
+
+All `*:local` / `ingest:daily` / `scrape:sweep` entries use
+`infisical run --env=dev`. Export **`VERCEL_OIDC_TOKEN`** (ingest project) in
+the same shell (or a gitignored env file Infisical/shell can see).
+
+Progress logs → stderr; JSON summary → stdout.
+
+### Ramp (local, before relying on GHA)
+
+```bash
+# 1) Seed daily install history + queue new list members (cheap list OIDC)
+npm run list-snapshots:local
+
+# 2) First page-cache fill — start small
+MAX_ENRICHED=20 npm run scrape:local
+
+# 3) Bump after sanity-checking dialogs / Supabase rows
+MAX_ENRICHED=100 npm run scrape:local
+
+# Optional: LLM enrichment is separate (needs Groq/Gemini keys)
+# MAX_ENRICHED=20 npm run enrich:local
+```
+
+### Daily ops (local stand-in for GHA)
+
+```bash
+# List pass then ~200-skill rotation (hash-gated scrape + audit refresh)
+npm run ingest:daily
+
+# Or separately:
+npm run list-snapshots:local
+npm run rotate:local
+```
+
+### Full corpus sweep (after ~100 looks good)
+
+```bash
+# Prefer 1500; fall back to 1000 if wall clock / load is too high
+MAX_ENRICHED=1500 npm run scrape:sweep
+# MAX_ENRICHED=1000 npm run scrape:sweep
+```
+
+Same effect via GitHub Actions → **Ingest** workflow → `workflow_dispatch` →
+`mode=sweep`, `max_enriched=1500` (or `1000`).
+
+### Script map
+
+| npm script               | What it runs                         | OIDC shape                                      |
+| ------------------------ | ------------------------------------ | ----------------------------------------------- |
+| `list-snapshots:local`   | Leaderboard list → installs + snapshots | List pages only                              |
+| `scrape:local`           | Cap via `MAX_ENRICHED` — detail + HTML + audit refresh | Detail (+ audit when stale) per skill |
+| `rotate:local`           | 200-slot rotation + empty-hash queue | Same as scrape on selected ids                  |
+| `ingest:daily`           | List then rotation                   | List + rotation                                 |
+| `scrape:sweep`           | One-shot scrape to `MAX_ENRICHED`    | Same as scrape; long run                        |
+| `enrich:local`           | LLM enrichment (optional)            | Detail + provider APIs; not required for UI cache |
+
+Pipeline docs: [list-snapshots-pipeline.md](./list-snapshots-pipeline.md),
+[scrape-pipeline.md](./scrape-pipeline.md),
+[rotation-pipeline.md](./rotation-pipeline.md),
+[audit-cache.md](./audit-cache.md).
+
+---
+
+## Ongoing (after ramp)
+
+1. Keep GHA **Ingest** enabled (`cron: 15 6 * * *` UTC = list + rotation).
+2. Refresh **`VERCEL_OIDC_TOKEN`** in GitHub secrets when the ingest token
+   expires (app deploy does not need this secret).
+3. Re-run a sweep only when growing the corpus or after a large schema/parser
+   change.
+4. App users never run these scripts — they read Supabase via
+   `GET /api/skills/detail` and on-demand `GET /api/skills/audit`.
+
+## Verify
+
+- Supabase: rows with non-null `page_snapshot` / `audits`; growing
+  `skill_install_snapshots`.
+- App: open a cached skill in the detail dialog (page fields + audits +
+  sparkline when series exist).
+- Uncached skill: still gets on-demand audits from the app Backend.

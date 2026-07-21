@@ -29,6 +29,7 @@ npm run dev:local       # alias of tauri:dev — desktop → deployed Backend (I
 npm run enrich:local    # Backend secrets from Infisical dev
 npm run scrape:local    # Same Infisical dev + OIDC; HTML page cache (no LLM)
 npm run list-snapshots:local  # List OIDC only; daily install_count + snapshots
+# Full operator path: docs/developer/page-cache-ops.md
 npm run rotate:local    # Daily 200-skill rotation (+ queued)
 npm run ingest:daily    # list-snapshots then rotation
 npm run scrape:sweep    # One-shot leaderboard scrape (default MAX_ENRICHED=1500)

@@ -1,5 +1,7 @@
 # Dual OIDC: app Backend vs ingest
 
+Operator checklist (migration, secrets, scripts, GHA): [page-cache-ops.md](./page-cache-ops.md).
+
 skills.sh rate-limits OIDC at **600 requests/minute per (team, project)**. This
 repo uses **two** Vercel projects so user-facing traffic and batch ingest do not
 share one budget.

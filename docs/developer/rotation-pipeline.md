@@ -1,5 +1,7 @@
 # Scrape rotation (daily 200 + queued)
 
+Operator checklist: [page-cache-ops.md](./page-cache-ops.md).
+
 Daily detail/scrape rotation after the list pass. Slot mix (deduped by
 `skill_id`): **20 top + 10 hot + 10 trending + 160 oldest** `page_scraped_at`
 (nulls first), then **always append** new list members (empty `content_hash`)

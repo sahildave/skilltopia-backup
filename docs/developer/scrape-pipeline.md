@@ -1,5 +1,8 @@
 # Scrape pipeline (local)
 
+For the full operator path (manual setup + script order), see
+[page-cache-ops.md](./page-cache-ops.md).
+
 Run the bounded HTML scrape/cache pipeline with `npm run scrape:local`
 (Infisical **`dev`**). It is separate from `npm run enrich:local` (LLM
 enrichment + Qdrant). This path detail-fetches skills.sh (hash-gated), scrapes

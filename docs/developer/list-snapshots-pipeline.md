@@ -1,5 +1,7 @@
 # List install snapshots (local)
 
+Operator checklist: [page-cache-ops.md](./page-cache-ops.md).
+
 Daily list pass for skills.sh leaderboards. Cheap **list OIDC only** — no
 detail, audit, or HTML scrape. Updates latest `install_count` and appends one
 `skill_install_snapshots` row per seen skill for the UTC calendar day.

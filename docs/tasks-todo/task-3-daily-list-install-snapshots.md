@@ -15,12 +15,12 @@ OIDC cost for lists is small (paginated, `per_page` max 500). This pass does **n
 
 ## Scope
 
-- [ ] Daily (or scripted) list pass for **all-time**, **trending**, and **hot**
-- [ ] Upsert latest `install_count` on `skill_metadata` for every skill seen
-- [ ] Append/upsert `skill_install_snapshots` for every skill seen that day
-- [ ] New list members → insert/ensure metadata + today’s snapshot → **queue** for detail/scrape
-- [ ] Null hash → keep on queue; do not scrape until hash exists
-- [ ] Document how to run locally before GHA (task-6)
+- [x] Daily (or scripted) list pass for **all-time**, **trending**, and **hot**
+- [x] Upsert latest `install_count` on `skill_metadata` for every skill seen
+- [x] Append/upsert `skill_install_snapshots` for every skill seen that day
+- [x] New list members → insert/ensure metadata + today’s snapshot → **queue** for detail/scrape
+- [x] Null hash → keep on queue; do not scrape until hash exists
+- [x] Document how to run locally before GHA (task-6)
 
 ## Out of scope
 

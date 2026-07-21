@@ -206,6 +206,45 @@ describe('Supabase skill repository', () => {
     });
   });
 
+  it('syncs list sightings without clobbering existing content hashes', async () => {
+    const client = createClient();
+    client.metadata.select.mockReturnValue({
+      in: async () => ({
+        data: [{ skill_id: 'existing/skill', content_hash: 'sha256:keep' }],
+        error: null,
+      }),
+    });
+    client.metadata.upsert.mockResolvedValue({ data: null, error: null });
+
+    const repository = createSupabaseRepository(client as never);
+    await expect(
+      repository.syncListSkills([
+        { skillId: 'existing/skill', installCount: 42, repository: 'existing/repo' },
+        { skillId: 'new/skill', installCount: 7, repository: 'new/repo' },
+      ]),
+    ).resolves.toEqual({ queued: ['new/skill'] });
+
+    expect(client.metadata.upsert).toHaveBeenCalledWith(
+      [
+        {
+          skill_id: 'existing/skill',
+          content_hash: 'sha256:keep',
+          install_count: 42,
+          repository: 'existing/repo',
+          raw_storage_prefix: 'existing/skill',
+        },
+        {
+          skill_id: 'new/skill',
+          content_hash: '',
+          install_count: 7,
+          repository: 'new/repo',
+          raw_storage_prefix: 'new/skill',
+        },
+      ],
+      { onConflict: 'skill_id' },
+    );
+  });
+
   it('counts and upserts install snapshots', async () => {
     const client = createClient();
     client.installSnapshots.select.mockReturnValue({

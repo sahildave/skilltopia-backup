@@ -1,5 +1,7 @@
 const SKILLS_API_BASE = 'https://skills.sh/api/v1';
 
+export type LeaderboardView = 'all-time' | 'trending' | 'hot';
+
 export type CatalogSkill = {
   id: string;
   source: string;
@@ -31,14 +33,42 @@ async function fetchJson(url: string): Promise<unknown> {
   return response.json();
 }
 
+export async function fetchLeaderboardPage(
+  view: LeaderboardView,
+  page = 0,
+  perPage = 500,
+  fetcher: FetchCatalog = fetchJson,
+): Promise<CatalogSkill[]> {
+  const body = (await fetcher(
+    `${SKILLS_API_BASE}/skills?view=${view}&page=${page}&per_page=${perPage}`,
+  )) as {
+    data?: CatalogSkill[];
+  };
+  return body.data ?? [];
+}
+
+/** Walk pages until a short page (per_page max 500). */
+export async function fetchAllLeaderboard(
+  view: LeaderboardView,
+  perPage = 500,
+  fetcher: FetchCatalog = fetchJson,
+): Promise<CatalogSkill[]> {
+  const skills: CatalogSkill[] = [];
+  let page = 0;
+  while (true) {
+    const batch = await fetchLeaderboardPage(view, page, perPage, fetcher);
+    skills.push(...batch);
+    if (batch.length < perPage) break;
+    page += 1;
+  }
+  return skills;
+}
+
 export async function fetchLeaderboard(
   perPage = 500,
   fetcher: FetchCatalog = fetchJson,
 ): Promise<CatalogSkill[]> {
-  const body = (await fetcher(`${SKILLS_API_BASE}/skills?view=all-time&per_page=${perPage}`)) as {
-    data?: CatalogSkill[];
-  };
-  return body.data ?? [];
+  return fetchLeaderboardPage('all-time', 0, perPage, fetcher);
 }
 
 export async function fetchSkillDetail(

@@ -56,6 +56,16 @@ export type SkillInstallSnapshotRecord = {
   installs: number;
 };
 
+/** List-endpoint sighting: update installs; insert new skills with empty hash (detail queue). */
+export type SkillListSighting = {
+  skillId: string;
+  installCount: number;
+  repository?: string;
+  sourceUrl?: string;
+};
+
+const LIST_SYNC_CHUNK = 200;
+
 export type RawSkillFile = {
   path: string;
   content: string | Uint8Array;
@@ -319,6 +329,54 @@ export function createSupabaseRepository(client: RepositoryClient) {
         { onConflict: 'skill_id,date' },
       );
       throwOnError(result.error);
+    },
+
+    /**
+     * Upsert list sightings: preserve existing content_hash; new skills get ''
+     * so scrape/detail can pick them up later (null-hash = stay queued).
+     */
+    async syncListSkills(records: SkillListSighting[]): Promise<{ queued: string[] }> {
+      if (records.length === 0) return { queued: [] };
+
+      const hashById = new Map<string, string>();
+      for (let offset = 0; offset < records.length; offset += LIST_SYNC_CHUNK) {
+        const chunk = records.slice(offset, offset + LIST_SYNC_CHUNK);
+        const result = await client
+          .from('skill_metadata')
+          .select('skill_id, content_hash')
+          .in(
+            'skill_id',
+            chunk.map((record) => record.skillId),
+          );
+        throwOnError(result.error);
+        for (const row of result.data ?? []) {
+          hashById.set(String(row.skill_id), String(row.content_hash));
+        }
+      }
+
+      const queued: string[] = [];
+      const rows = records.map((record) => {
+        const existingHash = hashById.get(record.skillId);
+        if (existingHash === undefined) queued.push(record.skillId);
+        const row: Record<string, unknown> = {
+          skill_id: record.skillId,
+          content_hash: existingHash ?? '',
+          install_count: record.installCount,
+          raw_storage_prefix: record.skillId,
+        };
+        if (record.repository !== undefined) row.repository = record.repository;
+        if (record.sourceUrl !== undefined) row.source_url = record.sourceUrl;
+        return row;
+      });
+
+      for (let offset = 0; offset < rows.length; offset += LIST_SYNC_CHUNK) {
+        const result = await client
+          .from('skill_metadata')
+          .upsert(rows.slice(offset, offset + LIST_SYNC_CHUNK), { onConflict: 'skill_id' });
+        throwOnError(result.error);
+      }
+
+      return { queued };
     },
   };
 }

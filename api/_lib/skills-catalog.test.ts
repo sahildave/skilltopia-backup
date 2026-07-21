@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { fetchLeaderboard, fetchSkillDetail } from './skills-catalog.js';
+import {
+  fetchAllLeaderboard,
+  fetchLeaderboard,
+  fetchLeaderboardPage,
+  fetchSkillDetail,
+} from './skills-catalog.js';
 
 describe('skills catalog client', () => {
   it('loads leaderboard and detail response shapes', async () => {
@@ -40,5 +45,44 @@ describe('skills catalog client', () => {
       hash: null,
       files: null,
     });
+  });
+
+  it('fetches a leaderboard page for a named view', async () => {
+    const urls: string[] = [];
+    const fetcher = async (url: string) => {
+      urls.push(url);
+      return {
+        data: [{ id: 'a/b', source: 'a/b', slug: 'b', installs: 1 }],
+      };
+    };
+
+    await expect(fetchLeaderboardPage('trending', 2, 50, fetcher)).resolves.toHaveLength(1);
+    expect(urls[0]).toContain('view=trending');
+    expect(urls[0]).toContain('page=2');
+    expect(urls[0]).toContain('per_page=50');
+  });
+
+  it('paginates until a short page', async () => {
+    const urls: string[] = [];
+    const pages: Record<string, unknown> = {
+      'page=0': {
+        data: [
+          { id: 'a/1', source: 'a/1', slug: '1', installs: 2 },
+          { id: 'a/2', source: 'a/2', slug: '2', installs: 1 },
+        ],
+      },
+      'page=1': {
+        data: [{ id: 'a/3', source: 'a/3', slug: '3', installs: 1 }],
+      },
+    };
+    const fetcher = async (url: string) => {
+      urls.push(url);
+      const key = [...Object.keys(pages)].find((part) => url.includes(part));
+      return pages[key ?? 'page=0'];
+    };
+
+    await expect(fetchAllLeaderboard('hot', 2, fetcher)).resolves.toHaveLength(3);
+    expect(urls).toHaveLength(2);
+    expect(urls[0]).toContain('view=hot');
   });
 });

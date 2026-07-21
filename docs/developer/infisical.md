@@ -28,6 +28,7 @@ Package scripts already wrap Infisical. Daily workflow:
 npm run dev:local       # alias of tauri:dev — desktop → deployed Backend (Infisical local)
 npm run enrich:local    # Backend secrets from Infisical dev
 npm run scrape:local    # Same Infisical dev + OIDC; HTML page cache (no LLM)
+npm run list-snapshots:local  # List OIDC only; daily install_count + snapshots
 npm run dev:local:proxy # optional: vercel dev :3000 + tauri:dev:local (broken on some macOS; see external-apis.md)
 ```
 
@@ -72,7 +73,7 @@ Used by `npm run enrich:local` (Infisical `dev`) and any Backend enrich path tha
 | `MAX_ENRICHED`                 | no      | Config knob (capped at `500` in code); bounds `enrich:local` and `scrape:local`                                                                                                                               |
 | Enrich-route protect secret    | **yes** | Only if a secret-protected Backend enrich route is added                                                                                                                                                      |
 
-Missing provider keys are skipped at runtime; at least one of Groq/Gemini should be set for LLM enrichment. See [enrichment-pipeline.md](./enrichment-pipeline.md). Local HTML scrape/cache (`npm run scrape:local`) needs Supabase + OIDC but not LLM keys — see [scrape-pipeline.md](./scrape-pipeline.md). Prefer a dedicated **ingest** Vercel project’s OIDC for batch scrape/enrich so the app Backend keeps its own 600/min budget.
+Missing provider keys are skipped at runtime; at least one of Groq/Gemini should be set for LLM enrichment. See [enrichment-pipeline.md](./enrichment-pipeline.md). Local HTML scrape/cache (`npm run scrape:local`) and daily list snapshots (`npm run list-snapshots:local`) need Supabase + OIDC but not LLM keys — see [scrape-pipeline.md](./scrape-pipeline.md) and [list-snapshots-pipeline.md](./list-snapshots-pipeline.md). Prefer a dedicated **ingest** Vercel project’s OIDC for batch scrape/enrich/list so the app Backend keeps its own 600/min budget.
 
 Hybrid search, enrichment UI, and seed (tasks 5–8) reuse the Backend set above; they do not add desktop secrets.
 

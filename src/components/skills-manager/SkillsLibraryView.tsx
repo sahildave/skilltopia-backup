@@ -1,11 +1,17 @@
 import { platform } from '@platform';
+import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getSeedForView } from '@/data/skills-seed';
+import { collectCachedLeaderboardSkillsFromClient } from '@/services/local-skills-search';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
 import { UNIVERSAL_PROVIDER_ID } from '@/platform/types';
+import { catalogSourcesByInstalledKey } from './catalog-installed-match';
 import {
   ALL_AGENTS_FILTER_ID,
   contentWarningsForSelection,
+  filterSkillSectionsByQuery,
   filterSkillsForSelection,
 } from './installed-skills-model';
 import { isPermissionError } from './library-errors';
@@ -24,6 +30,7 @@ export function SkillsLibraryView() {
 
 function LocalInstalledSkillsView() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const snapshot = useInstalledScanStore((state) => state.snapshot);
   const error = useInstalledScanStore((state) => state.error);
   const refreshing = useInstalledScanStore((state) => state.refreshing);
@@ -33,10 +40,17 @@ function LocalInstalledSkillsView() {
   const setShowAllUniversal = useInstalledSkillsUiStore((state) => state.setShowAllUniversal);
   const layoutMode = useInstalledSkillsUiStore((state) => state.layoutMode);
   const setLayoutMode = useInstalledSkillsUiStore((state) => state.setLayoutMode);
+  const [skillQuery, setSkillQuery] = useState('');
 
   const showPermissionCard = error !== null && isPermissionError(error);
-  const sections = snapshot
+  const catalogSourcesByKey = catalogSourcesByInstalledKey(
+    collectCachedLeaderboardSkillsFromClient(queryClient, getSeedForView('all-time')),
+  );
+  const providerSections = snapshot
     ? filterSkillsForSelection(snapshot, providerFilter, showAllUniversal)
+    : null;
+  const sections = providerSections
+    ? filterSkillSectionsByQuery(providerSections, skillQuery, catalogSourcesByKey)
     : null;
   const warnings = snapshot ? contentWarningsForSelection(snapshot, providerFilter) : [];
   const pathInfo = snapshot ? resolveSelectedPath(snapshot, providerFilter) : null;
@@ -45,6 +59,7 @@ function LocalInstalledSkillsView() {
   const skillCount = sections
     ? sections.primary.length + (sections.universalSection?.length ?? 0)
     : null;
+  const hasActiveSkillQuery = skillQuery.trim().length > 0;
 
   return (
     <div className="relative flex h-full flex-col">
@@ -57,9 +72,11 @@ function LocalInstalledSkillsView() {
         showUniversalToggle={showUniversalToggle}
         showAllUniversal={showAllUniversal}
         layoutMode={layoutMode}
+        skillQuery={skillQuery}
         onRescan={() => void rescan()}
         onShowAllUniversalChange={setShowAllUniversal}
         onLayoutModeChange={setLayoutMode}
+        onSkillQueryChange={setSkillQuery}
       />
       <LibraryContent
         snapshot={snapshot}
@@ -70,6 +87,7 @@ function LocalInstalledSkillsView() {
         sections={sections}
         providerFilter={providerFilter}
         layoutMode={layoutMode}
+        hasActiveSkillQuery={hasActiveSkillQuery}
         onRescan={() => void rescan()}
       />
     </div>

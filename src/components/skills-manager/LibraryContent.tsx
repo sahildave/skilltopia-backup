@@ -26,6 +26,7 @@ export function LibraryContent({
   sections,
   providerFilter,
   layoutMode,
+  hasActiveSkillQuery = false,
   onRescan,
 }: {
   snapshot: InstalledScanSnapshot | null;
@@ -36,9 +37,12 @@ export function LibraryContent({
   sections: FilteredSkillSections | null;
   providerFilter: ProviderFilterId;
   layoutMode: LibraryLayoutMode;
+  hasActiveSkillQuery?: boolean;
   onRescan: () => void;
 }) {
   const { t } = useTranslation();
+  const isEmpty =
+    sections !== null && sections.primary.length === 0 && !sections.universalSection?.length;
 
   return (
     <div className="relative min-h-0 flex-1">
@@ -102,9 +106,11 @@ export function LibraryContent({
             </p>
           ) : null}
 
-          {sections && sections.primary.length === 0 && !sections.universalSection?.length ? (
+          {isEmpty ? (
             <p className="text-muted-foreground text-sm text-pretty">
-              {emptyMessage(providerFilter, t)}
+              {hasActiveSkillQuery
+                ? t('skills.installed.noMatchingSkills')
+                : emptyMessage(providerFilter, t)}
             </p>
           ) : null}
 

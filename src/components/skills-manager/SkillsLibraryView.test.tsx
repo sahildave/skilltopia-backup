@@ -94,6 +94,36 @@ describe('SkillsLibraryView (local / mock)', () => {
     expect(screen.queryByText(/Original at/i)).not.toBeInTheDocument();
   });
 
+  it('filters the skill list from the local search field', async () => {
+    const user = userEvent.setup();
+    render(<SkillsLibraryView />);
+
+    expect(screen.getByText('find-skills')).toBeInTheDocument();
+    expect(screen.getByText('code-review')).toBeInTheDocument();
+    expect(screen.getByText('frontend-design')).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText(/search installed skills/i), 'code');
+
+    expect(screen.getByText('code-review')).toBeInTheDocument();
+    expect(screen.queryByText('find-skills')).not.toBeInTheDocument();
+    expect(screen.queryByText('frontend-design')).not.toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText(/search installed skills/i));
+    await user.type(screen.getByLabelText(/search installed skills/i), 'anthropics');
+    expect(screen.getByText('frontend-design')).toBeInTheDocument();
+    expect(screen.queryByText('find-skills')).not.toBeInTheDocument();
+    expect(screen.queryByText('code-review')).not.toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText(/search installed skills/i));
+    await user.type(screen.getByLabelText(/search installed skills/i), 'zzzz-no-match');
+    expect(screen.getByText(/no skills match/i)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /clear skill search/i }));
+    expect(screen.getByText('find-skills')).toBeInTheDocument();
+    expect(screen.getByText('code-review')).toBeInTheDocument();
+    expect(screen.getByText('frontend-design')).toBeInTheDocument();
+  });
+
   it('switches installed skills from grid cards to compact list rows', async () => {
     const user = userEvent.setup();
     render(<SkillsLibraryView />);

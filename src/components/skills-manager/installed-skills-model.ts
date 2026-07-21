@@ -238,6 +238,32 @@ export function filterSkillsForSelection(
   return { primary, universalSection };
 }
 
+/** Case-insensitive local filter over name and catalog repo (`source`) when known. */
+export function filterSkillSectionsByQuery(
+  sections: FilteredSkillSections,
+  query: string,
+  catalogSourcesByKey: ReadonlyMap<string, string> = new Map(),
+): FilteredSkillSections {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) {
+    return sections;
+  }
+
+  const matches = (skill: ScannedSkill) => {
+    if (skill.name.toLowerCase().includes(normalized)) {
+      return true;
+    }
+    const source =
+      catalogSourcesByKey.get(skill.uninstallName) ?? catalogSourcesByKey.get(skill.name);
+    return source?.toLowerCase().includes(normalized) ?? false;
+  };
+
+  return {
+    primary: sections.primary.filter(matches),
+    universalSection: sections.universalSection ? sections.universalSection.filter(matches) : null,
+  };
+}
+
 function warningsFor(
   snapshot: InstalledScanSnapshot,
   providerId: string | undefined,

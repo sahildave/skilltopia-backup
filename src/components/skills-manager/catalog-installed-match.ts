@@ -24,3 +24,36 @@ export function isCatalogSkillInstalled(skill: SkillsShSkill, keys: Set<string>)
   const idTail = skill.id.split('/').filter(Boolean).at(-1);
   return idTail !== undefined && keys.has(idTail);
 }
+
+/**
+ * Map local uninstallName / name keys → catalog `source` (owner/repo).
+ * First catalog hit wins when multiple skills share a slug.
+ */
+export function catalogSourcesByInstalledKey(
+  catalogSkills: SkillsShSkill[],
+): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const skill of catalogSkills) {
+    const source = skill.source.trim();
+    if (!source) continue;
+
+    const keys = new Set<string>();
+    if (skill.slug) keys.add(skill.slug);
+    const idTail = skill.id.split('/').filter(Boolean).at(-1);
+    if (idTail) keys.add(idTail);
+
+    for (const key of keys) {
+      if (!map.has(key)) {
+        map.set(key, source);
+      }
+    }
+  }
+  return map;
+}
+
+export function catalogSourceForScannedSkill(
+  skill: ScannedSkill,
+  sourcesByKey: ReadonlyMap<string, string>,
+): string | undefined {
+  return sourcesByKey.get(skill.uninstallName) ?? sourcesByKey.get(skill.name);
+}

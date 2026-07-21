@@ -4,6 +4,7 @@ import {
   buildCopyProviderDialogModel,
   buildProviderSidebarModel,
   contentWarningsForSelection,
+  filterSkillSectionsByQuery,
   filterSkillsForSelection,
   providerBadgesForSkill,
   warningRevealProviderId,
@@ -60,6 +61,43 @@ describe('filterSkillsForSelection', () => {
     );
     expect(primary.map((s) => s.name)).toEqual(['code-review', 'find-skills']);
     expect(universalSection?.map((s) => s.name)).toEqual(['frontend-design']);
+  });
+});
+
+describe('filterSkillSectionsByQuery', () => {
+  it('returns sections unchanged when query is blank', () => {
+    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID, false);
+    expect(filterSkillSectionsByQuery(sections, '   ')).toEqual(sections);
+  });
+
+  it('matches skill name case-insensitively', () => {
+    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID, false);
+    const filtered = filterSkillSectionsByQuery(sections, 'FIND');
+    expect(filtered.primary.map((s) => s.name)).toEqual(['find-skills']);
+    expect(filtered.universalSection).toBeNull();
+  });
+
+  it('matches catalog repo source when provided', () => {
+    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID, false);
+    const sources = new Map([
+      ['find-skills', 'vercel-labs/agent-skills'],
+      ['frontend-design', 'anthropics/skills'],
+    ]);
+    const filtered = filterSkillSectionsByQuery(sections, 'anthropics', sources);
+    expect(filtered.primary.map((s) => s.name)).toEqual(['frontend-design']);
+  });
+
+  it('does not match description text', () => {
+    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, ALL_AGENTS_FILTER_ID, false);
+    const filtered = filterSkillSectionsByQuery(sections, 'frontend interfaces');
+    expect(filtered.primary).toEqual([]);
+  });
+
+  it('filters both primary and universal sections', () => {
+    const sections = filterSkillsForSelection(MOCK_INSTALLED_SCAN, 'claude-code', true);
+    const filtered = filterSkillSectionsByQuery(sections, 'design');
+    expect(filtered.primary.map((s) => s.name)).toEqual([]);
+    expect(filtered.universalSection?.map((s) => s.name)).toEqual(['frontend-design']);
   });
 });
 

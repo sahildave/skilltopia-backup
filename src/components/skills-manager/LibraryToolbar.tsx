@@ -1,10 +1,16 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ContinuousTabs } from '@/components/ui/continuous-tabs';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '@/components/ui/input-group';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { LibraryLayoutMode } from '@/store/installed-skills-ui-store';
-import { ArrowLeft, FolderOpen, LayoutGrid, LayoutList, LoaderCircle } from 'lucide-react';
+import { ArrowLeft, FolderOpen, LayoutGrid, LayoutList, LoaderCircle, Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { platform } from '@platform';
 
@@ -17,10 +23,12 @@ export function LibraryToolbar({
   showUniversalToggle = false,
   showAllUniversal = false,
   layoutMode,
+  skillQuery,
   onBack,
   onRescan,
   onShowAllUniversalChange,
   onLayoutModeChange,
+  onSkillQueryChange,
 }: {
   title: string;
   skillCount: number | null;
@@ -34,10 +42,12 @@ export function LibraryToolbar({
   showUniversalToggle?: boolean;
   showAllUniversal?: boolean;
   layoutMode: LibraryLayoutMode;
+  skillQuery: string;
   onBack?: () => void;
   onRescan?: () => void;
   onShowAllUniversalChange?: (value: boolean) => void;
   onLayoutModeChange: (mode: LibraryLayoutMode) => void;
+  onSkillQueryChange: (value: string) => void;
 }) {
   const { t } = useTranslation();
 
@@ -71,7 +81,31 @@ export function LibraryToolbar({
             ) : null}
           </div>
         </div>
-        <div className="flex flex-row items-center gap-2">
+        <div className="flex flex-row flex-wrap items-center justify-end gap-2">
+          <InputGroup className="h-8 w-full max-w-xs">
+            <InputGroupAddon>
+              <Search className="size-3.5" />
+            </InputGroupAddon>
+            <InputGroupInput
+              value={skillQuery}
+              onChange={(event) => onSkillQueryChange(event.target.value)}
+              placeholder={t('skills.installed.searchSkills')}
+              aria-label={t('skills.installed.searchSkills')}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            {skillQuery ? (
+              <InputGroupAddon align="inline-end">
+                <InputGroupButton
+                  size="icon-xs"
+                  aria-label={t('skills.installed.clearSkillSearch')}
+                  onClick={() => onSkillQueryChange('')}
+                >
+                  <X />
+                </InputGroupButton>
+              </InputGroupAddon>
+            ) : null}
+          </InputGroup>
           <ContinuousTabs
             value={layoutMode}
             tabs={[

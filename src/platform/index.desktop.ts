@@ -14,7 +14,7 @@ import {
   InstallCancelledError,
 } from './install-command';
 import { skillEntriesFromScan, providersFromScan } from './scan-utils';
-import { UNIVERSAL_PROVIDER_ID } from './types';
+import { PROJECT_AGENTS_PROVIDER_ID, UNIVERSAL_PROVIDER_ID } from './types';
 import type {
   CopyProviderResult,
   CopySkillToProvidersResult,
@@ -113,7 +113,8 @@ async function installSkillToDisk(skill: InstallableSkill, scope: InstallScope):
 async function uninstallSkillFromDisk(skillName: string, options: UninstallOptions): Promise<void> {
   if (options.agentScope === 'all' && options.providerIds && options.providerIds.length > 0) {
     const providerIds = options.providerIds.filter(
-      (providerId) => providerId !== UNIVERSAL_PROVIDER_ID,
+      (providerId) =>
+        providerId !== UNIVERSAL_PROVIDER_ID && providerId !== PROJECT_AGENTS_PROVIDER_ID,
     );
     for (const providerId of providerIds) {
       const args = buildSkillsRemoveArgs(skillName, {

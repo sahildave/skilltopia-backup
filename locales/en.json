@@ -300,5 +300,6 @@
   "skills.projects.skillsTitle": "Project skills",
   "skills.projects.skillsFound": "skills found",
   "skills.projects.catalogMatch": "Catalog match",
-  "skills.projects.otherProjects": "Other projects"
+  "skills.projects.otherProjects": "Other projects",
+  "skills.projects.agentsBadge": "Project"
 }

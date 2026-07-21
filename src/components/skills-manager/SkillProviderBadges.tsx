@@ -25,6 +25,14 @@ export function SkillProviderBadges({
           );
         }
 
+        if (badge.kind === 'project') {
+          return (
+            <Badge key="project" variant="outline" size="sm">
+              {t('skills.projects.agentsBadge')}
+            </Badge>
+          );
+        }
+
         const label = t('skills.installed.providersBadge', { count: badge.count });
         const tooltipText = badge.names.join('\n');
 

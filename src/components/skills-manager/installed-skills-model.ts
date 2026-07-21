@@ -6,7 +6,7 @@ import type {
   ScanWarningCode,
   UninstallAgentScope,
 } from '@/platform/types';
-import { UNIVERSAL_PROVIDER_ID } from '@/platform/types';
+import { PROJECT_AGENTS_PROVIDER_ID, UNIVERSAL_PROVIDER_ID } from '@/platform/types';
 import { getProviderById, providerRegistry } from '@/providers';
 
 /** Session selection for the Installed Skills provider filter. */
@@ -42,6 +42,7 @@ export interface FilteredSkillSections {
 function providerNameMap(snapshot: InstalledScanSnapshot): Map<string, string> {
   const map = new Map<string, string>();
   map.set(UNIVERSAL_PROVIDER_ID, 'Universal');
+  map.set(PROJECT_AGENTS_PROVIDER_ID, 'Project');
   for (const provider of snapshot.providers) {
     map.set(provider.id, provider.name);
   }
@@ -55,6 +56,7 @@ function providerNameMap(snapshot: InstalledScanSnapshot): Map<string, string> {
 
 export type SkillProviderBadge =
   | { kind: 'universal' }
+  | { kind: 'project' }
   | { kind: 'providers'; count: number; names: string[] };
 
 export interface CopyProviderOption {
@@ -79,7 +81,11 @@ function providerSharesUniversalDir(
   );
 }
 
-/** Counted non-Universal provider names for badge display (distinct skills dirs only). */
+function isSyntheticSkillsDirId(id: string): boolean {
+  return id === UNIVERSAL_PROVIDER_ID || id === PROJECT_AGENTS_PROVIDER_ID;
+}
+
+/** Counted non-synthetic provider names for badge display (distinct skills dirs only). */
 function countedProviderNames(skill: ScannedSkill, snapshot: InstalledScanSnapshot): string[] {
   const names = providerNameMap(snapshot);
   const universalSkillsDir = snapshot.universal.skillsDir;
@@ -88,7 +94,7 @@ function countedProviderNames(skill: ScannedSkill, snapshot: InstalledScanSnapsh
   const seen = new Set<string>();
 
   const orderedIds = skill.providerIds
-    .filter((id) => id !== UNIVERSAL_PROVIDER_ID)
+    .filter((id) => !isSyntheticSkillsDirId(id))
     .sort((a, b) => (names.get(a) ?? a).localeCompare(names.get(b) ?? b));
 
   for (const id of orderedIds) {
@@ -105,15 +111,18 @@ function countedProviderNames(skill: ScannedSkill, snapshot: InstalledScanSnapsh
 }
 
 /**
- * Card/list badges: optional `Universal`, plus aggregated `n Providers`.
- * Providers that share the Universal skills directory are excluded from the count.
+ * Card/list badges: optional `Universal` (home) or `Project` (project `.agents`),
+ * plus aggregated `n Providers`. Providers that share the shared `.agents/skills`
+ * directory are excluded from the count.
  */
 export function providerBadgesForSkill(
   skill: ScannedSkill,
   snapshot: InstalledScanSnapshot,
 ): SkillProviderBadge[] {
   const badges: SkillProviderBadge[] = [];
-  if (skill.providerIds.includes(UNIVERSAL_PROVIDER_ID)) {
+  if (skill.providerIds.includes(PROJECT_AGENTS_PROVIDER_ID)) {
+    badges.push({ kind: 'project' });
+  } else if (skill.providerIds.includes(UNIVERSAL_PROVIDER_ID)) {
     badges.push({ kind: 'universal' });
   }
   const names = countedProviderNames(skill, snapshot);
@@ -165,7 +174,9 @@ export function buildCopyProviderDialogModel(
   snapshot: InstalledScanSnapshot,
 ): CopyProviderDialogModel {
   const sidebar = buildProviderSidebarModel(snapshot);
-  const installedIds = new Set(skill.providerIds.filter((id) => id !== UNIVERSAL_PROVIDER_ID));
+  const installedIds = new Set(
+    skill.providerIds.filter((id) => id !== UNIVERSAL_PROVIDER_ID && id !== PROJECT_AGENTS_PROVIDER_ID),
+  );
   const names = providerNameMap(snapshot);
 
   const available = sidebar.activeProviders

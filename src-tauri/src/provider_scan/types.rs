@@ -6,6 +6,10 @@ use specta::Type;
 /// Synthetic id for skills found under `~/.agents/skills`.
 pub const UNIVERSAL_PROVIDER_ID: &str = "universal";
 
+/// Synthetic id for skills found under `<project>/.agents/skills`.
+/// Not Universal — that label is reserved for `$HOME/.agents/skills`.
+pub const PROJECT_AGENTS_PROVIDER_ID: &str = "project-agents";
+
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProviderRegistrySourceMeta {

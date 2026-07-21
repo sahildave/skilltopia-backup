@@ -13,7 +13,8 @@ use super::paths::{
 };
 use super::types::{
     InstalledScanSnapshot, ProjectInfo, ProviderRegistrySourceMeta, ScanWarning, ScanWarningCode,
-    ScannedProvider, ScannedSkill, ScannedSkillPath, UniversalScanInfo, UNIVERSAL_PROVIDER_ID,
+    ScannedProvider, ScannedSkill, ScannedSkillPath, UniversalScanInfo, PROJECT_AGENTS_PROVIDER_ID,
+    UNIVERSAL_PROVIDER_ID,
 };
 
 #[derive(Debug, Clone)]
@@ -548,7 +549,7 @@ pub fn scan_project(
         let outcome = scan_skills_dir(
             &universal_dir,
             ctx.include_internal,
-            Some(UNIVERSAL_PROVIDER_ID),
+            Some(PROJECT_AGENTS_PROVIDER_ID),
         );
         warnings.extend(outcome.warnings);
         for (name, description, path) in outcome.skills {
@@ -557,7 +558,7 @@ pub fn scan_project(
                 &mut skills_map,
                 name,
                 description,
-                UNIVERSAL_PROVIDER_ID,
+                PROJECT_AGENTS_PROVIDER_ID,
                 path,
             );
         }
@@ -570,10 +571,10 @@ pub fn scan_project(
                 ScanWarningCode::SkillsDirMissing
             },
             message: format!(
-                "Project Universal skills directory missing or empty: {}",
+                "Project .agents/skills directory missing or empty: {}",
                 normalize_path_for_serialization(&universal_dir)
             ),
-            provider_id: Some(UNIVERSAL_PROVIDER_ID.into()),
+            provider_id: Some(PROJECT_AGENTS_PROVIDER_ID.into()),
             path: Some(normalize_path_for_serialization(&universal_dir)),
         });
     }
@@ -586,14 +587,18 @@ pub fn scan_project(
         let mut count = 0;
         if shares_universal {
             count = universal_count;
-            for skill in skills_map.values_mut() {
-                if skill
-                    .provider_ids
-                    .iter()
-                    .any(|id| id == UNIVERSAL_PROVIDER_ID)
-                    && !skill.provider_ids.iter().any(|id| id == &provider.id)
-                {
-                    skill.provider_ids.push(provider.id.clone());
+            // Registry includes a sentinel provider id `universal` for .agents/skills.
+            // That id is reserved for $HOME/.agents/skills — never tag project skills with it.
+            if provider.id != UNIVERSAL_PROVIDER_ID {
+                for skill in skills_map.values_mut() {
+                    if skill
+                        .provider_ids
+                        .iter()
+                        .any(|id| id == PROJECT_AGENTS_PROVIDER_ID)
+                        && !skill.provider_ids.iter().any(|id| id == &provider.id)
+                    {
+                        skill.provider_ids.push(provider.id.clone());
+                    }
                 }
             }
         } else if exists {
@@ -849,7 +854,7 @@ mod tests {
     }
 
     #[test]
-    fn scans_project_universal_skills_with_project_scope() {
+    fn scans_project_agents_skills_with_project_scope() {
         let root = temp_home("project-scan");
         let project = root.join("project");
         write_skill(
@@ -864,7 +869,10 @@ mod tests {
         assert_eq!(snapshot.skills[0].scope, "project");
         assert!(snapshot.skills[0]
             .provider_ids
-            .contains(&"universal".to_string()));
+            .contains(&PROJECT_AGENTS_PROVIDER_ID.to_string()));
+        assert!(!snapshot.skills[0]
+            .provider_ids
+            .contains(&UNIVERSAL_PROVIDER_ID.to_string()));
     }
 
     #[test]

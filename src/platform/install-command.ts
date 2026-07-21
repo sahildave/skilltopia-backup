@@ -4,7 +4,7 @@ import type {
   InstallScope,
   UninstallOptions,
 } from './types';
-import { UNIVERSAL_PROVIDER_ID } from './types';
+import { PROJECT_AGENTS_PROVIDER_ID, UNIVERSAL_PROVIDER_ID } from './types';
 
 /** Non-universal detected providers to pass as `-a` flags to `skills add`. */
 export interface InstallAgentTargets {
@@ -131,5 +131,7 @@ function buildUniversalCleanupCommand(skillName: string): string {
 }
 
 function uninstallProviderIds(options: UninstallOptions): string[] {
-  return (options.providerIds ?? []).filter((id) => id !== UNIVERSAL_PROVIDER_ID);
+  return (options.providerIds ?? []).filter(
+    (id) => id !== UNIVERSAL_PROVIDER_ID && id !== PROJECT_AGENTS_PROVIDER_ID,
+  );
 }

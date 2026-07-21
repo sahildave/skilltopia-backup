@@ -21,6 +21,9 @@ export interface InstallableSkill {
 /** Synthetic id for skills found under `~/.agents/skills`. */
 export const UNIVERSAL_PROVIDER_ID = 'universal' as const;
 
+/** Synthetic id for skills found under `<project>/.agents/skills` (not Universal). */
+export const PROJECT_AGENTS_PROVIDER_ID = 'project-agents' as const;
+
 export interface ProviderRegistrySourceMeta {
   repositoryUrl: string;
   commit: string;
@@ -65,7 +68,7 @@ export interface ScannedSkill {
   uninstallName: string;
   description: string;
   scope: InstallScope;
-  /** Provider ids plus {@link UNIVERSAL_PROVIDER_ID} when found in Universal. */
+  /** Provider ids plus {@link UNIVERSAL_PROVIDER_ID} or {@link PROJECT_AGENTS_PROVIDER_ID}. */
   providerIds: string[];
   /** Source paths (all copies after dedupe). */
   paths: ScannedSkillPath[];

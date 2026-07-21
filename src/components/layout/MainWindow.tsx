@@ -17,7 +17,7 @@ import { MainWindowContent } from './MainWindowContent';
  * Sidebar defaults + main default must equal 100.
  */
 const LAYOUT = {
-  leftSidebar: { default: 16, min: 16, max: 18 },
+  leftSidebar: { default: 20, min: 18, max: 24 },
   main: { min: 60 },
 } as const;
 

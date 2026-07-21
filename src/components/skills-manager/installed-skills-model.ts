@@ -225,7 +225,9 @@ export function buildCopyProviderDialogModel(
 ): CopyProviderDialogModel {
   const sidebar = buildProviderSidebarModel(snapshot);
   const installedIds = new Set(
-    skill.providerIds.filter((id) => id !== UNIVERSAL_PROVIDER_ID && id !== PROJECT_AGENTS_PROVIDER_ID),
+    skill.providerIds.filter(
+      (id) => id !== UNIVERSAL_PROVIDER_ID && id !== PROJECT_AGENTS_PROVIDER_ID,
+    ),
   );
   const names = providerNameMap(snapshot);
 
@@ -264,10 +266,7 @@ function skillsForProvider(snapshot: InstalledScanSnapshot, providerId: string):
   return sortSkills(snapshot.skills.filter((skill) => skill.providerIds.includes(providerId)));
 }
 
-function isUniversalRegistryProvider(
-  snapshot: InstalledScanSnapshot,
-  providerId: string,
-): boolean {
+function isUniversalRegistryProvider(snapshot: InstalledScanSnapshot, providerId: string): boolean {
   return snapshot.providers.some((provider) => provider.id === providerId && provider.universal);
 }
 

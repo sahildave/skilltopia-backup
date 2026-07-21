@@ -89,18 +89,14 @@ describe('filterSkillsForSelection', () => {
     const { primary } = filterSkillsForSelection(snapshot, 'codex');
     expect(primary.map((s) => s.name)).toEqual(['apple-design', 'baseline-ui', 'hatch-pet']);
 
-    const available = filterSkillSectionsByView(
-      { primary },
-      snapshot,
-      'available',
-    ).primary.map((s) => s.name);
+    const available = filterSkillSectionsByView({ primary }, snapshot, 'available').primary.map(
+      (s) => s.name,
+    );
     expect(available).toEqual(['apple-design', 'baseline-ui']);
 
-    const providerOnly = filterSkillSectionsByView(
-      { primary },
-      snapshot,
-      'provider',
-    ).primary.map((s) => s.name);
+    const providerOnly = filterSkillSectionsByView({ primary }, snapshot, 'provider').primary.map(
+      (s) => s.name,
+    );
     expect(providerOnly).toEqual(['hatch-pet']);
   });
 

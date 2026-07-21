@@ -6,7 +6,6 @@ Skilltopia is a desktop and web app for discovering, reviewing, and installing a
 
 <img width="1200" height="630" alt="appview" src="https://github.com/user-attachments/assets/52e32794-fdae-4e09-942c-87db54ecdcf8" />
 
-
 Skilltopia is created by Coduo Studio, LLC. The main creators are [Sahil Dave](https://github.com/sahildave) and [Indhuja](https://github.com/indhuja).
 
 ## Downloads

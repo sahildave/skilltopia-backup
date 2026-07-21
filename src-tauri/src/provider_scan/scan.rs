@@ -861,7 +861,10 @@ mod tests {
         assert!(!snapshot.skills[0]
             .provider_ids
             .contains(&UNIVERSAL_PROVIDER_ID.to_string()));
-        assert_eq!(snapshot.skills[0].provider_ids, vec![PROJECT_AGENTS_PROVIDER_ID.to_string()]);
+        assert_eq!(
+            snapshot.skills[0].provider_ids,
+            vec![PROJECT_AGENTS_PROVIDER_ID.to_string()]
+        );
     }
 
     #[test]

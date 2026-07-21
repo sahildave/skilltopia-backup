@@ -1,24 +1,31 @@
 /**
- * Simple notification system supporting both in-app toasts and native system notifications
+ * Shared in-app toast notifications (sonner).
+ *
+ * Intentionally does not import `@/lib/tauri-bindings` — shared UI (including
+ * web) reaches this module via the command context. Native OS notifications
+ * belong behind a desktop-only path, not this shared helper.
  */
 
 import { toast } from 'sonner';
 import { logger } from './logger';
-import { commands } from './tauri-bindings';
 
 type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
 interface NotificationOptions {
   /** Type of notification (affects styling) */
   type?: NotificationType;
-  /** Send as native system notification instead of toast */
+  /**
+   * Legacy flag; ignored. Shared notify always uses in-app toasts so the web
+   * module graph never pulls Tauri. Desktop-native notify can be added via
+   * `@platform` later if needed.
+   */
   native?: boolean;
   /** Duration in milliseconds for toasts (0 = no auto-dismiss) */
   duration?: number;
 }
 
 /**
- * Send a notification - either as an in-app toast or native system notification
+ * Send an in-app toast notification.
  *
  * @param title - Main notification title
  * @param message - Optional message body
@@ -31,9 +38,6 @@ interface NotificationOptions {
  *
  * // Error toast
  * notify('Error', 'Failed to save file', { type: 'error' })
- *
- * // Native system notification
- * notify('Update Available', 'A new version is ready to install', { native: true })
  * ```
  */
 export async function notify(
@@ -41,45 +45,31 @@ export async function notify(
   message?: string,
   options: NotificationOptions = {},
 ): Promise<void> {
-  const { type = 'info', native = false, duration } = options;
+  const { type = 'info', duration } = options;
 
   try {
-    if (native) {
-      // Send native system notification via Tauri
-      logger.debug('Sending native notification', { title, message, type });
-      const result = await commands.sendNativeNotification(title, message ?? null);
-      if (result.status === 'error') {
-        throw new Error(result.error);
-      }
-    } else {
-      // Send in-app toast notification
-      logger.debug('Sending toast notification', { title, message, type });
+    logger.debug('Sending toast notification', { title, message, type });
 
-      const toastContent = message ? `${title}: ${message}` : title;
-      const toastOptions = duration !== undefined ? { duration } : {};
+    const toastContent = message ? `${title}: ${message}` : title;
+    const toastOptions = duration !== undefined ? { duration } : {};
 
-      switch (type) {
-        case 'success':
-          toast.success(toastContent, toastOptions);
-          break;
-        case 'error':
-          toast.error(toastContent, toastOptions);
-          break;
-        case 'warning':
-          toast.warning(toastContent, toastOptions);
-          break;
-        case 'info':
-        default:
-          toast.info(toastContent, toastOptions);
-          break;
-      }
+    switch (type) {
+      case 'success':
+        toast.success(toastContent, toastOptions);
+        break;
+      case 'error':
+        toast.error(toastContent, toastOptions);
+        break;
+      case 'warning':
+        toast.warning(toastContent, toastOptions);
+        break;
+      case 'info':
+      default:
+        toast.info(toastContent, toastOptions);
+        break;
     }
   } catch (error) {
     logger.error('Failed to send notification', { title, message, error });
-    // Fallback to toast if native notification fails
-    if (native) {
-      toast.error(`${title}${message ? `: ${message}` : ''}`);
-    }
   }
 }
 

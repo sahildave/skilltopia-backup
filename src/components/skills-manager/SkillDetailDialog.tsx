@@ -1,6 +1,4 @@
-import { AlertCircle, ExternalLink, LoaderCircle } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { platform } from '@platform';
+import type { SkillAuditEntry, SkillsShSkill } from '@/catalog/types';
 import { Sparkline } from '@/components/dither-kit';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { MorphingDialogSubtitle, MorphingDialogTitle } from '@/components/ui/morphing-dialog';
 import { Separator } from '@/components/ui/separator';
 import { useSkillAudits, useSkillDetail } from '@/services/skills-sh';
-import type { SkillAuditEntry, SkillsShSkill } from '@/catalog/types';
+import { platform } from '@platform';
+import { AlertCircle, ExternalLink, LoaderCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 function DetailList({ values }: { values: string[] }) {
   const { t } = useTranslation();
@@ -94,7 +94,6 @@ export function SkillDetailBody({ skill }: { skill: SkillsShSkill }) {
 
   const detail = detailQuery.data;
   const pageSnapshot = detail?.pageSnapshot ?? null;
-  const isCached = Boolean(pageSnapshot) || Boolean(detail?.pageScrapedAt);
   const installCount = detail?.installCount ?? skill.installs;
   const repository = detail?.repository ?? pageSnapshot?.repository ?? null;
   const sourceUrl = detail?.sourceUrl ?? null;
@@ -131,14 +130,6 @@ export function SkillDetailBody({ skill }: { skill: SkillsShSkill }) {
         </Alert>
       ) : (
         <div className="flex flex-col gap-5">
-          {!isCached ? (
-            <Alert>
-              <AlertCircle />
-              <AlertTitle>{t('skills.detail.notCachedTitle')}</AlertTitle>
-              <AlertDescription>{t('skills.detail.notCached')}</AlertDescription>
-            </Alert>
-          ) : null}
-
           {summary ? (
             <section className="rounded-lg border bg-muted/30 p-4">
               <h3 className="text-sm font-semibold">{t('skills.detail.summary')}</h3>

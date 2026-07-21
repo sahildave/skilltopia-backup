@@ -11,7 +11,7 @@ import {
 import { useTheme } from '@/hooks/use-theme';
 import { SettingsField, SettingsSection } from '../shared/SettingsComponents';
 import { usePreferences, useSavePreferences } from '@/services/preferences';
-import { availableLanguages } from '@/i18n';
+import { availableLanguages } from '@/i18n/config';
 import { logger } from '@/lib/logger';
 
 // Language display names (native names). Extend when adding locales.

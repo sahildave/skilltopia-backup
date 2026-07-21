@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Field, FieldGroup, FieldLabel, FieldSet, FieldLegend } from '@/components/ui/field';
 import { cn } from '@/lib/utils';
-import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
+import type { CopyProviderResult, InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
 import { platform } from '@platform';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { ChevronDown } from 'lucide-react';
@@ -139,6 +139,15 @@ export function CopyProvidersDialog({
     });
   };
 
+  const providerLabel = (providerId: string) =>
+    snapshot.providers.find((p) => p.id === providerId)?.name ?? providerId;
+
+  const issueProviderNames = (results: CopyProviderResult[]): string =>
+    results
+      .filter((r) => r.status === 'conflict' || r.status === 'failed')
+      .map((r) => providerLabel(r.providerId))
+      .join(', ');
+
   const handleSubmit = async () => {
     if (selectedCount === 0) return;
     setSubmitting(true);
@@ -147,6 +156,7 @@ export function CopyProvidersDialog({
       const copied = result.results.filter((r) => r.status === 'copied');
       const conflicts = result.results.filter((r) => r.status === 'conflict');
       const failed = result.results.filter((r) => r.status === 'failed');
+      const issues = issueProviderNames(result.results);
 
       if (copied.length > 0 && conflicts.length === 0 && failed.length === 0) {
         toast.success(
@@ -162,16 +172,22 @@ export function CopyProvidersDialog({
             copied: copied.length,
             failed: conflicts.length + failed.length,
           }),
+          issues
+            ? { description: t('skills.installed.copyIssuesDescription', { providers: issues }) }
+            : undefined,
         );
       } else {
-        const message = failed[0]?.message ?? conflicts[0]?.message;
         toast.error(t('skills.installed.copyFailed', { name: skill.name }), {
-          description: message,
+          description: issues
+            ? t('skills.installed.copyIssuesDescription', { providers: issues })
+            : (failed[0]?.message ?? conflicts[0]?.message),
         });
       }
 
       handleOpenChange(false);
-      await rescan();
+      if (copied.length > 0) {
+        await rescan();
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (isPermissionError(message)) {

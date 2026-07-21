@@ -52,40 +52,47 @@ The desktop command expects local desktop-safe environment variables to be injec
 
 ## Development
 
-Useful commands:
+Daily drivers:
 
 ```bash
-npm run dev                  # Web target on Vite
-npm run dev:mock             # Web target with mocked platform/catalog adapters
-npm run dev:all              # Web Vite + Tauri together; no local Backend proxy
-npm run dev:all:design       # Web Vite + Tauri + design token watcher
-npm run tauri:dev            # Desktop target with deployed Backend API
+npm run dev             # Web target on Vite
+npm run dev:mock        # Web target with mocked platform/catalog adapters
+npm run dev:all         # Web + Tauri
+npm run dev:all:design  # Web + Tauri + design watcher
+npm run tauri:dev       # Desktop target with deployed Backend API
+npm run dev:local:proxy # Local Backend API + Tauri pointed at :3000
+npm run ingest:daily    # Daily list + scrape rotation
+npm run scrape:sweep    # One-shot corpus scrape
+npm run check:all       # Full local quality gate
+```
+
+Helper scripts:
+
+```bash
 npm run dev:local            # Alias for tauri:dev
-npm run dev:local:proxy      # Local Backend API + Tauri pointed at :3000
-npm run proxy:dev            # Local Backend API only
-npm run scrape:local         # Bounded skills.sh HTML page-cache scrape
-npm run list-snapshots:local # Daily install-count snapshots from list endpoints
-npm run ingest:daily         # List snapshots + daily scrape rotation
-npm run scrape:sweep         # One-shot scrape sweep toward the corpus cap
-npm run check:all            # Full local quality gate
+npm run proxy:dev            # Backend API only
+npm run tauri:dev:local      # Tauri → :3000
+npm run scrape:local         # Bounded page-cache scrape
+npm run list-snapshots:local # List endpoint snapshots
+npm run rotate:local         # Daily rotation slice
 ```
 
 Shared UI code imports platform-specific behavior through `@platform` and catalog access through `@catalog`. Do not import `@tauri-apps/*` from shared React paths; keep desktop-only behavior behind the platform adapter.
 
-`dev:all` runs the browser web app and the Tauri desktop app at the same time. It intentionally does not run `proxy:dev`; both clients use the deployed Backend API unless you explicitly choose `dev:local:proxy` for a fully local Backend API.
+`dev:all` does not run `proxy:dev`; use `dev:local:proxy` for a local Backend API.
 
 ## Catalog Cache and Scraping
 
-Skilltopia uses the skills.sh APIs for live catalog data and also runs a bounded HTML scrape/cache pipeline for detail pages. We added scraping because the public page contains useful user-facing metadata that is not always available from the list endpoints alone, including richer summaries, topics, repository/source labels, SKILL.md previews, related skills, and weekly install series.
+Skilltopia uses the skills.sh APIs for live catalog data and a bounded HTML scrape/cache pipeline for richer detail pages: summaries, topics, repository/source labels, SKILL.md previews, related skills, and weekly install series.
 
-The scrape pipeline stores sparse page snapshots in Supabase so opening a skill detail page does not need to scrape live HTML. It also lets the app show install-history sparklines and richer detail pages while keeping the desktop and web clients free of skills.sh credentials.
+Scraped page snapshots are cached in Supabase so detail pages stay fast and clients never hold skills.sh credentials.
 
 Batch scraping is deliberately separated from user-facing traffic:
 
 - Primary Backend API OIDC serves web/desktop users and on-demand API proxy traffic.
 - Secondary ingest OIDC serves local scrape/list/rotation/enrichment jobs and GitHub Actions.
 
-That split protects the user-facing Backend API from batch jobs consuming the shared skills.sh OIDC budget. See [Ingest OIDC](docs/developer/ingest-oidc.md), [Scrape Pipeline](docs/developer/scrape-pipeline.md), and [Page-cache Ops](docs/developer/page-cache-ops.md).
+This protects the user-facing Backend API from batch jobs consuming the shared skills.sh OIDC budget. See [Ingest OIDC](docs/developer/ingest-oidc.md), [Scrape Pipeline](docs/developer/scrape-pipeline.md), and [Page-cache Ops](docs/developer/page-cache-ops.md).
 
 ## OpenAI Build Week
 

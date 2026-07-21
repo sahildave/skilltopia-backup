@@ -198,6 +198,7 @@
   "skills.installed.copySuccess": "Copied {{name}} to {{count}} providers",
   "skills.installed.copyPartial": "Copied {{name}} to {{copied}} providers; {{failed}} had issues",
   "skills.installed.copyFailed": "Couldn't copy {{name}}",
+  "skills.installed.copyIssuesDescription": "Issues: {{providers}}",
   "skills.installed.uninstall": "Uninstall",
   "skills.installed.uninstallConfirmTitle": "Uninstall {{name}}?",
   "skills.installed.uninstallConfirmAllAgents": "This removes the skill from all agents.",

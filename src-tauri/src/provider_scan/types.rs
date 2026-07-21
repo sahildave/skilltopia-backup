@@ -91,4 +91,5 @@ pub struct ProjectInfo {
     pub name: String,
     pub path: String,
     pub depth: u8,
+    pub skill_count: u32,
 }

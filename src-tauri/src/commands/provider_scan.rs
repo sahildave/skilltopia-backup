@@ -18,7 +18,10 @@ pub fn scan_installed_skills() -> Result<InstalledScanSnapshot, String> {
 #[tauri::command]
 #[specta::specta]
 pub fn list_projects(root: String) -> Result<Vec<ProjectInfo>, String> {
-    list_projects_impl(std::path::Path::new(&root))
+    list_projects_impl(
+        std::path::Path::new(&root),
+        &ScanContext::from_environment(),
+    )
 }
 
 /// Scan project-local Universal and provider skill folders.
@@ -41,6 +44,14 @@ pub fn reveal_provider_skills_dir(provider_id: String) -> Result<bool, String> {
         return Ok(false);
     };
     reveal_skills_dir(&path)
+}
+
+/// Reveal an arbitrary filesystem path in Finder/Explorer.
+/// Returns `false` when the path is missing. Does not rescan skills.
+#[tauri::command]
+#[specta::specta]
+pub fn reveal_path(path: String) -> Result<bool, String> {
+    reveal_skills_dir(std::path::Path::new(&path))
 }
 
 /// Delete one skill folder from the Universal `~/.agents/skills` cache.

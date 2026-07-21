@@ -149,7 +149,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     const listRow = screen.getByText('find-skills').closest('[data-slot="skill-list-row"]');
     expect(listRow).toBeTruthy();
     expect(listRow?.textContent).not.toMatch(/\/Users\/mock/);
-    expect(screen.getByText('find-skills').closest('[data-slot="card"]')).toBeNull();
+    expect(listRow?.querySelector('[data-slot="card"]')).toBeTruthy();
     expect(screen.queryByText(/Original at/i)).not.toBeInTheDocument();
   });
 

@@ -180,6 +180,10 @@ export const platform: PlatformPort = {
     return unwrapResult(await commands.revealProviderSkillsDir(providerId));
   },
 
+  async revealPath(path) {
+    return unwrapResult(await commands.revealPath(path));
+  },
+
   async listInstalled(): Promise<SkillEntry[]> {
     return skillEntriesFromScan(await ensureScan());
   },

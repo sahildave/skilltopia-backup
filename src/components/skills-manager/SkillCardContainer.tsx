@@ -20,7 +20,7 @@ export function SkillCardContainer({
     <div
       data-testid="skill-card-container"
       data-layout={layoutMode}
-      className={cn(layoutMode === 'grid' ? 'grid grid-cols-3 gap-4' : 'flex flex-col')}
+      className={cn(layoutMode === 'grid' ? 'grid grid-cols-3 gap-4' : 'flex flex-col gap-3')}
     >
       {skills.map((skill) =>
         layoutMode === 'grid' ? (

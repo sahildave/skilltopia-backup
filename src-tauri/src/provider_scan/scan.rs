@@ -1,7 +1,7 @@
 //! Scan global skill directories and build a normalized snapshot.
 
 use crate::utils::platform::normalize_path_for_serialization;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -440,10 +440,37 @@ fn project_marker(path: &Path) -> bool {
     .any(|marker| path.join(marker).exists())
 }
 
+/// Count unique project-local skills without building a full scan snapshot.
+fn count_project_skills(
+    project_path: &Path,
+    registry: &RegistryFile,
+    include_internal: bool,
+) -> u32 {
+    let mut names = BTreeSet::new();
+    let universal_dir = project_path.join(".agents/skills");
+    if universal_dir.is_dir() {
+        let outcome = scan_skills_dir(&universal_dir, include_internal, None);
+        for (name, _, _) in outcome.skills {
+            names.insert(name);
+        }
+    }
+    for provider in &registry.providers {
+        let skills_dir = project_path.join(&provider.skills_dir);
+        if skills_dir == universal_dir || !skills_dir.is_dir() {
+            continue;
+        }
+        let outcome = scan_skills_dir(&skills_dir, include_internal, None);
+        for (name, _, _) in outcome.skills {
+            names.insert(name);
+        }
+    }
+    names.len() as u32
+}
+
 /// Discover project directories one or two levels below the selected root.
 /// A marked project stops traversal, preventing nested package directories from
 /// being reported as separate projects.
-pub fn list_projects(root: &Path) -> Result<Vec<ProjectInfo>, String> {
+pub fn list_projects(root: &Path, ctx: &ScanContext) -> Result<Vec<ProjectInfo>, String> {
     if !root.is_dir() {
         return Err(format!(
             "Coding folder is not a directory: {}",
@@ -451,6 +478,7 @@ pub fn list_projects(root: &Path) -> Result<Vec<ProjectInfo>, String> {
         ));
     }
 
+    let registry = load_registry()?;
     let mut marked = Vec::new();
     let mut unmarked = Vec::new();
     let first_level = fs::read_dir(root)
@@ -485,10 +513,12 @@ pub fn list_projects(root: &Path) -> Result<Vec<ProjectInfo>, String> {
         .into_iter()
         .filter_map(|(path, depth)| {
             let name = path.file_name()?.to_str()?.to_string();
+            let skill_count = count_project_skills(&path, &registry, ctx.include_internal);
             Some(ProjectInfo {
                 name,
                 path: normalize_path_for_serialization(&path),
                 depth,
+                skill_count,
             })
         })
         .collect::<Vec<_>>();
@@ -790,10 +820,32 @@ mod tests {
         fs::write(root.join("projects/nested/package.json"), "{}").unwrap();
         fs::create_dir_all(root.join("projects/not-a-project")).unwrap();
 
-        let projects = list_projects(&root).unwrap();
+        let projects = list_projects(&root, &scan_ctx(&root)).unwrap();
         assert_eq!(projects.len(), 2);
         assert_eq!(projects[0].depth, 1);
         assert_eq!(projects[1].depth, 2);
+        assert_eq!(projects[0].skill_count, 0);
+        assert_eq!(projects[1].skill_count, 0);
+    }
+
+    #[test]
+    fn list_projects_counts_project_local_skills() {
+        let root = temp_home("projects-skills");
+        fs::create_dir_all(root.join("with-skills/.git")).unwrap();
+        write_skill(
+            &root.join("with-skills/.agents/skills"),
+            "local-skill",
+            "local-skill",
+            "Project skill",
+        );
+        fs::create_dir_all(root.join("empty/.git")).unwrap();
+
+        let projects = list_projects(&root, &scan_ctx(&root)).unwrap();
+        assert_eq!(projects.len(), 2);
+        let with_skills = projects.iter().find(|p| p.name == "with-skills").unwrap();
+        let empty = projects.iter().find(|p| p.name == "empty").unwrap();
+        assert_eq!(with_skills.skill_count, 1);
+        assert_eq!(empty.skill_count, 0);
     }
 
     #[test]

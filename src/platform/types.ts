@@ -88,6 +88,7 @@ export interface ProjectInfo {
   name: string;
   path: string;
   depth: number;
+  skillCount: number;
 }
 
 /** Agent scope for `skills remove` (maps from Installed Skills sidebar filter). */
@@ -126,6 +127,11 @@ export interface PlatformPort {
    * Does not rescan. Returns false when the directory is missing.
    */
   revealProviderSkillsDir(providerId: string): Promise<boolean>;
+  /**
+   * Reveal an arbitrary path in Finder/Explorer.
+   * Does not rescan. Returns false when the path is missing.
+   */
+  revealPath(path: string): Promise<boolean>;
   listInstalled(): Promise<SkillEntry[]>;
   listProviders(): Promise<SkillProvider[]>;
   install(skill: InstallableSkill, scope: InstallScope): Promise<void>;

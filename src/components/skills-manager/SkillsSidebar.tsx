@@ -17,8 +17,8 @@ import type { LucideIcon } from 'lucide-react';
 import {
   AlertTriangle,
   BookOpen,
-  FolderGit2,
   ChevronDown,
+  FolderTree,
   LayoutDashboard,
   Moon,
   Search,
@@ -37,7 +37,6 @@ import {
 } from './installed-skills-model';
 import type { SkillsNavId } from './types';
 
-
 /** Lucide dropped brand icons; keep the GitHub mark as a local SVG. */
 function GithubIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -54,7 +53,7 @@ const PRIMARY_NAV: {
 }[] = [
   { id: 'explore', labelKey: 'skills.nav.explore', icon: LayoutDashboard },
   { id: 'installed', labelKey: 'skills.nav.installed', icon: BookOpen },
-  { id: 'projects', labelKey: 'skills.nav.projects', icon: FolderGit2 },
+  { id: 'projects', labelKey: 'skills.nav.projects', icon: FolderTree },
 ];
 
 interface SkillsSidebarProps {

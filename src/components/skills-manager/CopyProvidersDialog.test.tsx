@@ -140,7 +140,7 @@ describe('CopyProvidersDialog', () => {
     expect(screen.getByRole('checkbox', { name: /claude code/i })).toBeChecked();
   });
 
-  it('selects only Available providers with Copy all', async () => {
+  it('selects only Available providers with the group checkbox', async () => {
     const user = userEvent.setup();
     const { skill, snapshot } = snapshotWithAvailableProviders();
     const singleAvailable = {
@@ -153,7 +153,7 @@ describe('CopyProvidersDialog', () => {
       <CopyProvidersDialog skill={skill} snapshot={singleAvailable} open onOpenChange={vi.fn()} />,
     );
 
-    await user.click(screen.getByRole('checkbox', { name: /copy all/i }));
+    await user.click(screen.getByRole('checkbox', { name: /available providers/i }));
     expect(screen.getByRole('checkbox', { name: /^claude code$/i })).toBeChecked();
     expect(screen.getByRole('button', { name: /^copy$/i })).toBeEnabled();
     expect(screen.getByText(/copying to 1 provider/i)).toBeInTheDocument();
@@ -163,6 +163,31 @@ describe('CopyProvidersDialog', () => {
 
     await user.click(screen.getByRole('button', { name: /^copy$/i }));
     expect(copyMock.copySkillToProviders).toHaveBeenCalledWith('frontend-design', ['claude-code']);
+  });
+
+  it('shows indeterminate on Available providers when only some children are selected', async () => {
+    const user = userEvent.setup();
+    const { skill, snapshot } = snapshotWithAvailableProviders();
+
+    render(<CopyProvidersDialog skill={skill} snapshot={snapshot} open onOpenChange={vi.fn()} />);
+
+    const group = screen.getByRole('checkbox', { name: /available providers/i });
+    expect(group).not.toBeChecked();
+    expect(group).toHaveAttribute('aria-checked', 'false');
+
+    await user.click(screen.getByRole('checkbox', { name: /^claude code$/i }));
+    expect(group).toHaveAttribute('aria-checked', 'mixed');
+    expect(group).toHaveAttribute('data-state', 'indeterminate');
+
+    await user.click(group);
+    expect(screen.getByRole('checkbox', { name: /^claude code$/i })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /^codex$/i })).toBeChecked();
+    expect(group).toBeChecked();
+
+    await user.click(group);
+    expect(screen.getByRole('checkbox', { name: /^claude code$/i })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /^codex$/i })).not.toBeChecked();
+    expect(group).toHaveAttribute('aria-checked', 'false');
   });
 
   it('closes, toasts success, and rescans after a full copy', async () => {
@@ -182,7 +207,7 @@ describe('CopyProvidersDialog', () => {
       <CopyProvidersDialog skill={skill} snapshot={snapshot} open onOpenChange={onOpenChange} />,
     );
 
-    await user.click(screen.getByRole('checkbox', { name: /copy all/i }));
+    await user.click(screen.getByRole('checkbox', { name: /available providers/i }));
     await user.click(screen.getByRole('button', { name: /^copy$/i }));
 
     await waitFor(() => {
@@ -215,7 +240,7 @@ describe('CopyProvidersDialog', () => {
       <CopyProvidersDialog skill={skill} snapshot={snapshot} open onOpenChange={onOpenChange} />,
     );
 
-    await user.click(screen.getByRole('checkbox', { name: /copy all/i }));
+    await user.click(screen.getByRole('checkbox', { name: /available providers/i }));
     await user.click(screen.getByRole('button', { name: /^copy$/i }));
 
     await waitFor(() => {
@@ -248,7 +273,7 @@ describe('CopyProvidersDialog', () => {
       <CopyProvidersDialog skill={skill} snapshot={snapshot} open onOpenChange={onOpenChange} />,
     );
 
-    await user.click(screen.getByRole('checkbox', { name: /copy all/i }));
+    await user.click(screen.getByRole('checkbox', { name: /available providers/i }));
     await user.click(screen.getByRole('button', { name: /^copy$/i }));
 
     await waitFor(() => {

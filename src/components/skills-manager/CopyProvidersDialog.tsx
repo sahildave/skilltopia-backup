@@ -102,8 +102,15 @@ export function CopyProvidersDialog({
 
   const selectedCount = selectedIds.size;
   const availableIds = model.available.map((p) => p.id);
+  const availableSelectedCount = availableIds.filter((id) => selectedIds.has(id)).length;
   const allAvailableSelected =
-    availableIds.length > 0 && availableIds.every((id) => selectedIds.has(id));
+    availableIds.length > 0 && availableSelectedCount === availableIds.length;
+  const someAvailableSelected = availableSelectedCount > 0 && !allAvailableSelected;
+  const availableGroupChecked: boolean | 'indeterminate' = allAvailableSelected
+    ? true
+    : someAvailableSelected
+      ? 'indeterminate'
+      : false;
 
   const resetState = () => {
     setSelectedIds(new Set());
@@ -210,19 +217,18 @@ export function CopyProvidersDialog({
           <DialogDescription>{t('skills.installed.copyDescription')}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex max-h-[min(60vh,24rem)] flex-col gap-4 overflow-y-auto">
+        <div className="flex h-[min(60vh,24rem)] flex-col gap-4 overflow-y-auto">
           <FieldSet>
-            <FieldLegend variant="label">{t('skills.installed.copyAvailable')}</FieldLegend>
             {model.available.length > 0 ? (
               <FieldGroup data-slot="checkbox-group" className="gap-3">
                 <Field orientation="horizontal">
                   <Checkbox
                     id="copy-all-available"
-                    checked={allAvailableSelected}
+                    checked={availableGroupChecked}
                     onCheckedChange={(value) => handleCopyAll(value === true)}
                   />
-                  <FieldLabel htmlFor="copy-all-available" className="font-normal">
-                    {t('skills.installed.copyAll')}
+                  <FieldLabel htmlFor="copy-all-available">
+                    {t('skills.installed.copyAvailable')}
                   </FieldLabel>
                 </Field>
                 {model.available.map((option) => (
@@ -235,9 +241,12 @@ export function CopyProvidersDialog({
                 ))}
               </FieldGroup>
             ) : (
-              <p className="text-muted-foreground text-sm text-pretty">
-                {t('skills.installed.copyAvailableEmpty')}
-              </p>
+              <>
+                <FieldLegend variant="label">{t('skills.installed.copyAvailable')}</FieldLegend>
+                <p className="text-muted-foreground text-sm text-pretty">
+                  {t('skills.installed.copyAvailableEmpty')}
+                </p>
+              </>
             )}
           </FieldSet>
 

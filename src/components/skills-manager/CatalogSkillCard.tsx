@@ -1,7 +1,7 @@
 import type { SkillsShSkill } from '@/catalog/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardFooter, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,7 +33,7 @@ const MORPH_TRANSITION = { type: 'spring', stiffness: 200, damping: 24 } as cons
 const DETAIL_CONTENT_CLASS =
   'app-material-strong bg-background relative max-h-[85vh] w-full max-w-[calc(100%-2rem)] overflow-y-auto rounded-lg border p-6 shadow-lg sm:max-w-2xl';
 
-export function formatInstalls(count: number): string {
+function formatInstalls(count: number): string {
   return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(count);
 }
 
@@ -136,7 +136,7 @@ export function CatalogSkillCard({
 
   return (
     <MorphingDialog transition={MORPH_TRANSITION}>
-      <MorphingDialogTrigger asChild className={compact ? 'w-75 p-2 max-w-75 shrink-0' : undefined}>
+      <MorphingDialogTrigger asChild className={compact ? 'w-75 max-w-75 shrink-0' : undefined}>
         <div>
           <Card className="gap-4 overflow-hidden ring-1 ring-foreground/5 dark:ring-foreground/10 hover:scale-102 hover:bg-linear-to-t hover:from-secondary hover:via-background hover:to-background dark:hover:bg-linear-to-t dark:hover:from-primary/10 dark:hover:via-secondary/30 dark:hover:to-transparent transition-all">
             <CardHeader className="px-4 gap-1.5">

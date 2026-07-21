@@ -239,8 +239,7 @@ export function useChartController({
   const unregisterSeries = useCallback((dataKey: string) => {
     setSeriesSpecs((prev) => {
       if (!(dataKey in prev)) return prev;
-      const next = { ...prev };
-      delete next[dataKey];
+      const { [dataKey]: _removed, ...next } = prev;
       return next;
     });
   }, []);

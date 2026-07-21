@@ -154,8 +154,7 @@ export function usePolarController({
   const unregisterVariant = useCallback((key: string) => {
     setVariants((prev) => {
       if (!(key in prev)) return prev;
-      const next = { ...prev };
-      delete next[key];
+      const { [key]: _removed, ...next } = prev;
       return next;
     });
   }, []);

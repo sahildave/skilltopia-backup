@@ -2,15 +2,15 @@
 /**
  * Field coverage report for cached skill page snapshots.
  *
- * Reads the public Backend (no Infisical): leaderboard top N, then detail cache.
+ * Reads the public Backend (no Infisical): leaderboard top N, then batch page-cache.
  *
  *   MAX_ENRICHED=20 npm run page-cache:coverage
  *   MAX_ENRICHED=50 npm run page-cache:coverage
- *   MAX_ENRICHED=50 npm run page-cache:coverage -- --canvas
+ *   MAX_ENRICHED=1500 npm run page-cache:coverage -- --canvas
  *   SKILL_IDS=a/b/c,d/e/f npm run page-cache:coverage
  *
  * Env:
- *   MAX_ENRICHED          Cap (default 20; max 500 for this script's list page)
+ *   MAX_ENRICHED          Same as scrape (`api/_lib/max-enriched.ts`: default 500, hard cap 1500)
  *   SKILLS_PROXY_BASE_URL Backend origin (default https://skills-explorer-six.vercel.app)
  *   SKILL_IDS             Comma-separated ids (skips leaderboard)
  *   COVERAGE_CANVAS_PATH  Override canvas output path when using --canvas
@@ -27,6 +27,7 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { maxEnrichedFromEnv } from '../api/_lib/max-enriched.ts';
 
 const PRIMARY_KEYS = ['sourceOrRepo', 'summary', 'weeklyInstalls'];
 const SECONDARY_KEYS = ['skillMdPreview', 'installCommand'];
@@ -40,6 +41,8 @@ const TIER_BY_KEY = Object.fromEntries([
 ]);
 
 const DEFAULT_BASE = 'https://skills-explorer-six.vercel.app';
+/** Keep in sync with api/_lib/query.ts PAGE_CACHE_BATCH_MAX. */
+const PAGE_CACHE_BATCH_MAX = 100;
 const DEFAULT_CANVAS = resolve(
   process.env.HOME ?? '',
   '.cursor/projects/Users-sahildave-code-projects-skills-explorer/canvases/scrape-field-coverage.canvas.tsx',
@@ -51,10 +54,11 @@ function skillPageUrl(skillId, knownUrl) {
   const trimmed = typeof knownUrl === 'string' ? knownUrl.trim() : '';
   if (trimmed) return trimmed;
   const segments = skillId.split('/').filter(Boolean);
+  const encodedPath = segments.map((segment) => encodeURIComponent(segment)).join('/');
   if (segments.length === 2) {
-    return `https://www.skills.sh/site/${skillId}`;
+    return `https://www.skills.sh/site/${encodedPath}`;
   }
-  return `https://www.skills.sh/${skillId}`;
+  return `https://www.skills.sh/${encodedPath}`;
 }
 
 function parseArgs(argv) {
@@ -62,14 +66,6 @@ function parseArgs(argv) {
     json: argv.includes('--json'),
     canvas: argv.includes('--canvas'),
   };
-}
-
-function maxEnriched() {
-  const raw = process.env.MAX_ENRICHED?.trim();
-  if (!raw) return 20;
-  const n = Number.parseInt(raw, 10);
-  if (!Number.isFinite(n) || n < 1) return 20;
-  return Math.min(n, 500);
 }
 
 function baseUrl() {
@@ -182,8 +178,8 @@ function rowToneFor(row) {
   return 'success';
 }
 
-function buildRow(skillId, detailBody) {
-  const data = detailBody?.data ?? {};
+function buildRow(skillId, cacheRow) {
+  const data = cacheRow ?? {};
   const snapshot = data.pageSnapshot ?? null;
   const missing = missingCoverageKeys(snapshot);
   const days = weeklyDays(snapshot);
@@ -192,7 +188,7 @@ function buildRow(skillId, detailBody) {
   const tertiaryGap = !snapshot || tierGap(missing, TERTIARY_KEYS);
   return {
     skillId,
-    pageUrl: skillPageUrl(skillId, detailBody?.data?.sourceUrl),
+    pageUrl: skillPageUrl(skillId, data.sourceUrl),
     hasPage: snapshot ? 'yes' : 'NO',
     pageScrapedAt: data.pageScrapedAt ?? MISSING,
     sourceOrRepo: sourceOrRepoCell(snapshot),
@@ -218,6 +214,28 @@ function buildRow(skillId, detailBody) {
     missingCount: missing.length,
     missingFields: missing.join(',') || '—',
   };
+}
+
+async function loadPageCaches(skillIds) {
+  const rows = [];
+  for (let offset = 0; offset < skillIds.length; offset += PAGE_CACHE_BATCH_MAX) {
+    const chunk = skillIds.slice(offset, offset + PAGE_CACHE_BATCH_MAX);
+    const batchNum = Math.floor(offset / PAGE_CACHE_BATCH_MAX) + 1;
+    const batchTotal = Math.ceil(skillIds.length / PAGE_CACHE_BATCH_MAX);
+    process.stderr.write(
+      `[coverage] page-cache batch ${batchNum}/${batchTotal} (${chunk.length} id(s))\n`,
+    );
+    const params = new URLSearchParams({ skill_ids: chunk.join(',') });
+    const body = await fetchJson(`${baseUrl()}/api/skills/page-cache?${params}`);
+    const batch = body.data ?? [];
+    if (!Array.isArray(batch) || batch.length !== chunk.length) {
+      throw new Error(
+        `page-cache batch size mismatch: expected ${chunk.length}, got ${Array.isArray(batch) ? batch.length : typeof batch}`,
+      );
+    }
+    rows.push(...batch);
+  }
+  return rows;
 }
 
 const HEADERS = [
@@ -304,7 +322,8 @@ function tierStats(rows) {
   return {
     primaryComplete: withPage.filter((r) => !r.primaryGap).length,
     secondaryComplete: withPage.filter((r) => !r.primaryGap && !r.secondaryGap).length,
-    tertiaryComplete: withPage.filter((r) => !r.primaryGap && !r.secondaryGap && !r.tertiaryGap).length,
+    tertiaryComplete: withPage.filter((r) => !r.primaryGap && !r.secondaryGap && !r.tertiaryGap)
+      .length,
   };
 }
 
@@ -320,7 +339,9 @@ function sortRows(rows) {
       if (row.secondaryGap) return 1;
       return 0;
     };
-    return rank(b) - rank(a) || b.missingCount - a.missingCount || a.skillId.localeCompare(b.skillId);
+    return (
+      rank(b) - rank(a) || b.missingCount - a.missingCount || a.skillId.localeCompare(b.skillId)
+    );
   });
 }
 
@@ -333,7 +354,9 @@ function writeCanvas(rows, limit) {
   const tableHeaders = HEADERS.map((h) => escapeTsx(h)).join(', ');
   const tableRows = sorted
     .map((row) => {
-      const cells = rowToCells(row).map((c) => escapeTsx(c)).join(', ');
+      const cells = rowToCells(row)
+        .map((c) => escapeTsx(c))
+        .join(', ');
       return `    [${cells}]`;
     })
     .join(',\n');
@@ -433,20 +456,14 @@ function printTsv(rows) {
 
 async function main() {
   const flags = parseArgs(process.argv.slice(2));
-  const limit = maxEnriched();
+  const limit = maxEnrichedFromEnv();
   console.error(`[coverage] base=${baseUrl()} limit=${limit}`);
 
   const ids = await loadSkillIds(limit);
   console.error(`[coverage] loaded ${ids.length} skill id(s)`);
 
-  const rows = [];
-  for (const [index, skillId] of ids.entries()) {
-    const enc = encodeURIComponent(skillId);
-    const url = `${baseUrl()}/api/skills/detail?skill_id=${enc}`;
-    process.stderr.write(`[coverage] [${index + 1}/${ids.length}] ${skillId}\n`);
-    const body = await fetchJson(url);
-    rows.push(buildRow(skillId, body));
-  }
+  const caches = await loadPageCaches(ids);
+  const rows = ids.map((skillId, index) => buildRow(skillId, caches[index]));
 
   const { counts, noPage } = fieldMissingCounts(rows);
   const tiers = tierStats(rows);

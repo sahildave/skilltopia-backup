@@ -59,6 +59,26 @@ jobs:
       - name: Check bundled seed size
         run: npm run seed:check
 
+      - name: Validate updater release config
+        run: |
+          node --input-type=module -e "import fs from 'node:fs'; import { validateUpdaterReleaseConfig } from './scripts/release-config.mjs'; const config = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8')); const errors = validateUpdaterReleaseConfig(config); if (errors.length > 0) { console.error('Updater release configuration is not ready:'); for (const error of errors) console.error(`- ${error}`); process.exit(1); }"
+
+      - name: Validate updater signing secrets
+        shell: bash
+        env:
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if [ -z "$TAURI_PRIVATE_KEY" ]; then
+            echo "TAURI_PRIVATE_KEY is required for updater signatures."
+            exit 1
+          fi
+
+          if [ -z "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" ]; then
+            echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD is required for updater signatures."
+            exit 1
+          fi
+
       - name: Build and release
         uses: tauri-apps/tauri-action@dev
         env:

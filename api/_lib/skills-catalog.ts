@@ -29,15 +29,17 @@ type FetchCatalog = (url: string) => Promise<unknown>;
  * List responses include `url`; detail omits it — reconstruct from id shape.
  * GitHub: `owner/repo/skill` → `https://www.skills.sh/{id}`
  * Well-known: `domain.com/skill` → `https://www.skills.sh/site/{id}`
+ * Path segments are percent-encoded (e.g. `react:components` → `react%3Acomponents`).
  */
 export function skillPageUrl(skillId: string, knownUrl?: string | null): string {
   const trimmed = knownUrl?.trim();
   if (trimmed) return trimmed;
   const segments = skillId.split('/').filter(Boolean);
+  const encodedPath = segments.map((segment) => encodeURIComponent(segment)).join('/');
   if (segments.length === 2) {
-    return `https://www.skills.sh/site/${skillId}`;
+    return `https://www.skills.sh/site/${encodedPath}`;
   }
-  return `https://www.skills.sh/${skillId}`;
+  return `https://www.skills.sh/${encodedPath}`;
 }
 
 export type ClassifiedOrigin = {
@@ -82,7 +84,17 @@ export function classifySkillOrigin(
   return { repository: trimmed };
 }
 
-/** Batch/backend OIDC: secondary (Infisical/GHA) preferred; else VERCEL_OIDC_TOKEN. */
+/**
+ * Batch/backend OIDC is intentionally separate from the app Backend OIDC.
+ *
+ * skills.sh rate-limits OIDC by Vercel team+project. User-facing web/desktop
+ * traffic uses the primary app Backend project via `@vercel/oidc`; batch jobs
+ * such as scrape, list snapshots, rotation, enrichment, and GHA ingest should
+ * use a secondary ingest project token so they cannot consume the app budget.
+ *
+ * `VERCEL_OIDC_TOKEN` remains as a fallback for older environments, but new
+ * batch setups should provide `VERCEL_OIDC_TOKEN_SECONDARY`.
+ */
 export function resolveBatchOidcToken(): string | undefined {
   const secondary = process.env.VERCEL_OIDC_TOKEN_SECONDARY?.trim();
   if (secondary) return secondary;
@@ -126,19 +138,32 @@ export async function fetchAllLeaderboard(
   const skills: CatalogSkill[] = [];
   let page = 0;
   while (true) {
-    const batch = await fetchLeaderboardPage(view, page, perPage, fetcher);
+    const batch = await fetchLeaderboardPage(view, page, Math.min(perPage, 500), fetcher);
     skills.push(...batch);
-    if (batch.length < perPage) break;
+    if (batch.length < Math.min(perPage, 500)) break;
     page += 1;
   }
   return skills;
 }
 
+/**
+ * Top `limit` all-time skills (paginates; skills.sh `per_page` max is 500).
+ * Callers that need >500 (e.g. scrape sweep toward 1500) rely on this.
+ */
 export async function fetchLeaderboard(
-  perPage = 500,
+  limit = 500,
   fetcher: FetchCatalog = fetchJson,
 ): Promise<CatalogSkill[]> {
-  return fetchLeaderboardPage('all-time', 0, perPage, fetcher);
+  const perPage = 500;
+  const skills: CatalogSkill[] = [];
+  let page = 0;
+  while (skills.length < limit) {
+    const batch = await fetchLeaderboardPage('all-time', page, perPage, fetcher);
+    skills.push(...batch);
+    if (batch.length < perPage) break;
+    page += 1;
+  }
+  return skills.slice(0, limit);
 }
 
 export async function fetchSkillDetail(

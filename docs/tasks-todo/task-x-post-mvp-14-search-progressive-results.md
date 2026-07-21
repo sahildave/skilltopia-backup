@@ -1,15 +1,17 @@
 # Search performance: progressive keyword-first results
 
-**Milestone:** mvp  
-**Depends on:** task-8-search-performance-backend
+**Milestone:** post-mvp  
+**Post-MVP #:** 14  
+**Depends on:** optional [post-mvp-13 backend micro-opts](./task-x-post-mvp-13-search-performance-backend.md)  
+**Related:** most valuable while query-time Qdrant inference remains; re-evaluate after [post-mvp-12 local embeddings](./task-x-post-mvp-12-query-embedding-local.md). Client cache-first Explore UX is [task-08](./task-08-layered-explore-search.md) (complementary, not a substitute).
 
 ## Goal
 
-Perceived search latency drops to ~0.7s by showing keyword results immediately, then enriching with semantic matches.
+Perceived search latency drops to ~0.7–1s by showing keyword results immediately, then enriching with semantic matches.
 
 ## Context
 
-Even after task-8, full hybrid search remains ~3–3.5s because Qdrant Cloud Inference runs at query time. Users wait for the entire waterfall before seeing any results.
+Full hybrid search stays slow while Qdrant Cloud Inference runs at query time. Users wait for the entire waterfall before seeing any results. Progressive keyword-first is a UX bandage until post-mvp-12 removes inference from the hot path (after which this may be unnecessary).
 
 ## Approach
 
@@ -25,7 +27,7 @@ Alternative (out of scope unless Option A feels too chatty): SSE streaming from 
 
 - [ ] Add `semantic` query param to `/api/skills/search` (default `true` for backward compat):
   - `semantic=false` → keyword-only, ~700ms
-  - `semantic=true` → current hybrid (faster after task-8)
+  - `semantic=true` → current hybrid
 - [ ] Update `useSkillsSearch` in `src/services/skills-sh.ts`:
   - Phase 1: fetch keyword results, render immediately
   - Phase 2: fetch semantic enrichment, merge into list
@@ -42,10 +44,10 @@ Alternative (out of scope unless Option A feels too chatty): SSE streaming from 
 ## Done when
 
 - User sees first results within **~1s** of stopping typing (debounce + keyword)
-- Full hybrid list appears within **~3–4s** without replacing keyword results
+- Full hybrid list appears without replacing keyword results
 - Works on web and desktop
 - Degrades gracefully if semantic phase fails
 
 ## Expected gain
 
-Perceived latency: **~0.7–1s** first paint vs **~4–5s** today.
+Perceived latency: **~0.7–1s** first paint vs full hybrid wait.

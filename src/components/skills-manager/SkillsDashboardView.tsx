@@ -21,6 +21,12 @@ import { Spinner } from '@/components/ui/spinner';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { cn } from '@/lib/utils';
 import {
+  collectCachedLeaderboardSkillsFromClient,
+  filterSkillsLocally,
+  mergeLocalAndApiSkills,
+  shouldMergeApiResults,
+} from '@/services/local-skills-search';
+import {
   DISCOVERY_VIEWS,
   type DiscoveryViewId,
   useSkillsLeaderboard,
@@ -28,6 +34,7 @@ import {
 } from '@/services/skills-sh';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
+import { useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, LayoutGrid, LayoutList, Search, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -152,24 +159,49 @@ function SkillsResults({
   );
 }
 
+const API_SEARCH_DEBOUNCE_MS = 450;
+
 export function SkillsDashboardView() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [viewId, setViewId] = useState<DiscoveryViewId>('trending');
   const layoutMode = useInstalledSkillsUiStore((state) => state.layoutMode);
   const setLayoutMode = useInstalledSkillsUiStore((state) => state.setLayoutMode);
   const [searchInput, setSearchInput] = useState('');
-  const debouncedQuery = useDebouncedValue(searchInput, 300);
-  const isSearching = debouncedQuery.trim().length >= 2;
-  const search = useSkillsSearch(debouncedQuery, { enabled: isSearching });
+  const isSearchView = searchInput.trim().length >= 2;
+  const debouncedApiQuery = useDebouncedValue(searchInput, API_SEARCH_DEBOUNCE_MS);
+  const apiInSync = shouldMergeApiResults(searchInput, debouncedApiQuery);
+  const search = useSkillsSearch(debouncedApiQuery, {
+    enabled: isSearchView && apiInSync,
+  });
   const leaderboard = useSkillsLeaderboard({
     view: viewId,
     perPage: LIST_PER_PAGE,
-    enabled: !isSearching,
+    enabled: true,
   });
-  const activeQuery = isSearching ? search : leaderboard;
-  const skills = activeQuery.data ?? [];
-  const isRefreshing = activeQuery.isFetching && skills.length > 0;
-  const hasSearchError = isSearching && Boolean(search.error);
+
+  const cachedCorpus = collectCachedLeaderboardSkillsFromClient(queryClient, leaderboard.data);
+  const localSkills = isSearchView ? filterSkillsLocally(cachedCorpus, searchInput) : [];
+  const canMergeApi = apiInSync && Boolean(search.data) && !search.isPlaceholderData;
+  const skills = isSearchView
+    ? canMergeApi && search.data
+      ? mergeLocalAndApiSkills(localSkills, search.data)
+      : localSkills
+    : (leaderboard.data ?? []);
+
+  const isApiSearching =
+    isSearchView &&
+    (!apiInSync || search.isFetching || search.isPending || search.isPlaceholderData);
+  const isRefreshing = !isSearchView && leaderboard.isFetching && skills.length > 0;
+  const hasSearchError = isSearchView && apiInSync && Boolean(search.error);
+  const resultsLoading = isSearchView
+    ? localSkills.length === 0 && (!apiInSync || search.isLoading)
+    : leaderboard.isLoading;
+  const resultsError = isSearchView
+    ? apiInSync
+      ? errorMessage(search.error)
+      : null
+    : errorMessage(leaderboard.error);
 
   return (
     <div className="relative flex h-full min-w-0 flex-col overflow-hidden">
@@ -265,13 +297,25 @@ export function SkillsDashboardView() {
           <SkillsResults
             skills={skills}
             layoutMode={layoutMode}
-            isLoading={activeQuery.isLoading}
-            error={errorMessage(activeQuery.error)}
+            isLoading={resultsLoading}
+            error={resultsError}
             emptyTitle={t('skills.dashboard.noResultsTitle')}
             emptyDescription={t('skills.dashboard.noResultsDescription')}
           />
         </div>
       </ScrollArea>
+      {isApiSearching ? (
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-6 z-20 flex justify-center"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="bg-background/95 text-muted-foreground flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm shadow-sm">
+            <Spinner className="size-3.5" aria-hidden />
+            {t('skills.dashboard.searching')}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

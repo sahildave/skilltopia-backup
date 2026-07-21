@@ -24,6 +24,9 @@
 export { commands, type Result } from './bindings';
 export type {
   AppPreferences,
+  CopyProviderResult,
+  CopyProviderStatus,
+  CopySkillToProvidersResult,
   InstalledScanSnapshot,
   JsonValue,
   ProviderRegistrySourceMeta,

@@ -8,6 +8,7 @@ import {
   useId,
   useRef,
   useState,
+  useSyncExternalStore,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
@@ -15,6 +16,9 @@ import {
   type RefObject,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { AnimatePresence, MotionConfig, motion, type Transition, type Variant } from 'motion/react';
+import { XIcon } from 'lucide-react';
+import { Slot } from '@radix-ui/react-slot';
 
 import { useClickOutside } from '@/hooks/use-click-outside';
 import { cn } from '@/lib/utils';
@@ -162,11 +166,11 @@ interface MorphingDialogContainerProps {
 
 function MorphingDialogContainer({ children }: MorphingDialogContainerProps) {
   const { isOpen, uniqueId } = useMorphingDialog();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
 
   if (!mounted) return null;
 
@@ -176,7 +180,7 @@ function MorphingDialogContainer({ children }: MorphingDialogContainerProps) {
         {isOpen ? (
           <motion.div
             key={`backdrop-${uniqueId}`}
-            className="fixed inset-0 z-50 rounded-[var(--app-corner-radius)] bg-black/50"
+            className="fixed inset-0 z-50 rounded-(--app-corner-radius) bg-black/50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

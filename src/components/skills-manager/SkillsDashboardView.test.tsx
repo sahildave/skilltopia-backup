@@ -136,7 +136,10 @@ describe('SkillsDashboardView', () => {
       const trigger = title.closest('[aria-haspopup="dialog"]');
       expect(trigger).toBeTruthy();
       // jsdom flex/scroll layout makes userEvent pointer-events checks fail; fireEvent is reliable here.
-      fireEvent.click(trigger!);
+      if (!(trigger instanceof HTMLElement)) {
+        throw new Error('expected dialog trigger');
+      }
+      fireEvent.click(trigger);
 
       expect(trigger).toHaveAttribute('aria-expanded', 'true');
       expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -145,5 +148,65 @@ describe('SkillsDashboardView', () => {
     } finally {
       MotionGlobalConfig.skipAnimations = false;
     }
+  });
+
+  it('shows local cache hits immediately and Searching while the API is outstanding', async () => {
+    let resolveSearch!: (value: typeof MOCK_LEADERBOARD) => void;
+    vi.mocked(catalog.search).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveSearch = resolve;
+        }),
+    );
+
+    const user = userEvent.setup();
+    render(<SkillsDashboardView />);
+
+    expect(await screen.findByText('Find Skills')).toBeInTheDocument();
+    expect(screen.getByText('Frontend Design')).toBeInTheDocument();
+
+    await user.type(screen.getByRole('textbox', { name: 'Search skills' }), 'find');
+
+    expect(screen.getByText('Find Skills')).toBeInTheDocument();
+    expect(screen.queryByText('Frontend Design')).not.toBeInTheDocument();
+    expect(screen.getByText('Searching…')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(catalog.search).toHaveBeenCalledWith('find', 50);
+    });
+    expect(screen.getByText('Searching…')).toBeInTheDocument();
+
+    resolveSearch([
+      {
+        id: 'api-only/skills/extra',
+        slug: 'extra',
+        name: 'Extra API Skill',
+        source: 'api-only/skills',
+        installs: 9,
+        sourceType: 'github',
+        url: 'https://skills.sh/api-only/skills/extra',
+      },
+    ]);
+
+    expect(await screen.findByText('Extra API Skill')).toBeInTheDocument();
+    expect(screen.getByText('Find Skills')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText('Searching…')).not.toBeInTheDocument();
+    });
+  });
+
+  it('clears search and restores the unfiltered active leaderboard', async () => {
+    const user = userEvent.setup();
+    render(<SkillsDashboardView />);
+
+    expect(await screen.findByText('Find Skills')).toBeInTheDocument();
+    await user.type(screen.getByRole('textbox', { name: 'Search skills' }), 'find');
+    expect(screen.queryByText('Frontend Design')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Clear search' }));
+
+    expect(screen.getByText('Find Skills')).toBeInTheDocument();
+    expect(screen.getByText('Frontend Design')).toBeInTheDocument();
+    expect(screen.queryByText('Searching…')).not.toBeInTheDocument();
   });
 });

@@ -1,32 +1,45 @@
-# Contributing Guidelines
+# Contributing
 
-Thank you for your interest in contributing!
+Thanks for helping improve Skilltopia. Keep contributions focused, easy to review, and aligned with the existing architecture.
 
 ## Quick Start
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18+)
+- [Node.js](https://nodejs.org/) (v20+)
 - [Rust](https://rustup.rs/) (latest stable)
-- Familiarity with React, TypeScript, and Rust
+- Tauri prerequisites for your OS
+- npm
 
 ### Setup
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
-cd YOUR_REPO
+git clone https://github.com/sahildave/skills-explorer.git
+cd skills-explorer
 npm install
 npm run dev
 npm run check:all
 ```
 
+Use npm only. This repository does not use pnpm or yarn.
+
+## Running the App
+
+```bash
+npm run dev        # Web target for day-to-day React work
+npm run dev:mock   # Web target with mocked platform/catalog adapters
+npm run tauri:dev  # Desktop target with Tauri
+```
+
+Desktop development may require Infisical for desktop-safe local environment variables. Backend API secrets must stay server-side and must not be added to the Tauri app or committed to the repo.
+
 ## How to Contribute
 
 ### Issues
 
-- **Bug Reports**: Use the bug report template
-- **Feature Requests**: Use the feature request template
-- **Security Issues**: See [SECURITY.md](SECURITY.md)
+- Bug reports should include reproduction steps and expected behavior.
+- Feature requests should explain the user workflow they support.
+- Security issues must follow [SECURITY.md](../SECURITY.md).
 
 ### Pull Requests
 
@@ -34,8 +47,7 @@ npm run check:all
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
 3. Make changes following the guidelines below
 4. Ensure checks pass: `npm run check:all`
-5. Commit using conventional commits
-6. Push and open a Pull Request
+5. Push and open a Pull Request
 
 ## Code Guidelines
 
@@ -61,20 +73,6 @@ All PRs must pass:
 - Tests
 
 Run locally: `npm run check:all`
-
-## Commit Messages
-
-Use [Conventional Commits](https://www.conventionalcommits.org/):
-
-```bash
-feat: add user authentication
-fix(ui): resolve sidebar toggle issue
-docs: update installation instructions
-refactor(store): simplify state management
-test: add preferences tests
-```
-
-Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 
 ## Code Review
 

@@ -1,119 +1,118 @@
-# Tauri React Template
+# Skilltopia
 
-A "batteries-included" template for building production-ready desktop applications with **Tauri v2**, **React**, and **TypeScript**. Designed with opinionated patterns that help both human developers and AI coding agents build well-architected apps from the start.
+Skilltopia is a desktop and web app for discovering, reviewing, and installing agent skills. It helps developers browse the public skills catalog, inspect skill details and audit metadata, and manage locally installed global skills from one interface.
 
-## Why This Template?
+Skilltopia is created by Coduo Studio, LLC. The main creators are [Sahil Dave](https://github.com/sahildave) and [Indhuja](https://github.com/indhuja).
 
-Most Tauri starters give you a blank canvas. This template gives you a **working application** with patterns already established:
+The app has two runtime targets:
 
-- **Type-safe Rust-TypeScript bridge** via tauri-specta.
-- **Performance patterns enforced by tooling** - all the usual linting plus ast-grep for common anti-patterns
-- **Multi-window architecture** already working (quick pane with global shortcut as a demo)
-- **Cross-platform ready** with platform-specific title bars, window controls, and native menu integration
-- **i18n built-in** with RTL support
+- **Web**: browse and search the live catalog in Chrome during development.
+- **Desktop**: run the Tauri app to scan local skill directories, install skills, and use native desktop integrations.
+
+Desktop downloads will be published from [GitHub Releases](https://github.com/sahildave/skills-explorer/releases) once the first signed build is available. Until then, clone the repo and run locally.
+
+Public site: [skilltopia.coduo.co](https://skilltopia.coduo.co)
+
+TODO: rename the GitHub repository from `sahildave/skills-explorer` to `sahildave/skilltopia` and update links to `https://github.com/sahildave/skilltopia`.
 
 ## Stack
 
-| Layer    | Technologies                                    |
-| -------- | ----------------------------------------------- |
-| Frontend | React 19, TypeScript, Vite 7                    |
-| UI       | shadcn/ui v4, Tailwind CSS v4, Lucide React     |
-| State    | Zustand v5, TanStack Query v5                   |
-| Backend  | Tauri v2, Rust                                  |
-| Testing  | Vitest v4, Testing Library                      |
-| Quality  | ESLint, Prettier, ast-grep, knip, jscpd, clippy |
+| Layer    | Technologies                               |
+| -------- | ------------------------------------------ |
+| Frontend | React 19, TypeScript, Vite                 |
+| UI       | Tailwind CSS, shadcn/ui, Lucide React      |
+| Desktop  | Tauri v2, Rust                             |
+| Data     | Backend API, Supabase, Qdrant              |
+| Quality  | Vitest, ESLint, Prettier, ast-grep, clippy |
 
-## What's Already Built
+## Quick Start
 
-The template includes a working application with these features implemented:
+Prerequisites:
 
-### Core Features
+- Node.js 20 or newer
+- Rust stable and the Tauri platform prerequisites for your OS
+- npm
 
-- **Command Palette** (`Cmd+K`) - Searchable command launcher with keyboard navigation
-- **Quick Pane** - Global shortcut (`Cmd+Shift+.`) opens a floating window from any app, even fullscreen. Uses native NSPanel on macOS for proper fullscreen overlay behavior.
-- **Keyboard Shortcuts** - Platform-aware shortcuts with automatic menu integration
-- **Native Menus** - File, Edit, View menus built from JavaScript with full i18n support
-- **Preferences System** - Settings dialog with Rust-side persistence, React hooks, and type-safe access throughout
-- **Collapsible Sidebars** - Empty left and right sidebars with state persistence via resizable panels
-- **Theme System** - Light/dark mode with system preference detection, synced across windows
-- **Notifications** - Toast notifications for in-app feedback, plus native system notifications
-- **Auto-updates** - Tauri updater plugin configured with GitHub Releases integration and update checking on launch
-- **Logging** - Structured logging utilities for both Rust and TypeScript with consistent formatting
-- **Crash Recovery** - Emergency data persistence for recovering unsaved work after unexpected exits
-
-### Architecture Patterns
-
-- **Three-layer state management** - Clear decision tree: `useState` (component) → `Zustand` (global UI) → `TanStack Query` (persistent data "not owned by the app)
-- **Event-driven Rust-React bridge** - Menus, shortcuts, and command palette all route through the same command system
-- **React Compiler** - Automatic memoization means no manual `useMemo`/`useCallback` needed
-
-### Cross-Platform
-
-| Platform | Title Bar            | Window Controls | Bundle Format |
-| -------- | -------------------- | --------------- | ------------- |
-| macOS    | Custom with vibrancy | Traffic lights  | `.dmg`        |
-| Windows  | Custom               | Right side      | `.msi`        |
-| Linux    | Native + toolbar     | Native          | `.AppImage`   |
-
-Platform detection utilities, platform-specific UI strings ("Reveal in Finder" vs "Show in Explorer"), and separate Tauri configs per platform are all set up.
-
-### Developer Experience
-
-- **Type-safe Tauri commands** - tauri-specta generates TypeScript bindings from Rust, with full autocomplete and compile-time checking
-- **Static analysis** - ESLint, Prettier, ast-grep (architecture enforcement), knip (unused code), jscpd (duplication)
-- **Single quality gate** - `npm run check:all` runs TypeScript, ESLint, Prettier, ast-grep, clippy, and all tests
-- **Testing patterns** - Vitest setup with Tauri command mocking
-
-## Tauri Plugins Included
-
-| Plugin            | Purpose                          |
-| ----------------- | -------------------------------- |
-| single-instance   | Prevent multiple app instances   |
-| window-state      | Remember window position/size    |
-| fs                | File system access               |
-| dialog            | Native open/save dialogs         |
-| notification      | System notifications             |
-| clipboard-manager | Clipboard access                 |
-| global-shortcut   | System-wide keyboard shortcuts   |
-| updater           | In-app auto-updates              |
-| opener            | Open URLs/files with default app |
-| tauri-nspanel     | macOS floating panel behavior    |
-
-## AI-Ready Development
-
-This template is designed to work well with AI coding agents like Claude Code:
-
-- **Comprehensive documentation** in `docs/developer/` covering all patterns. Human readable but really designed to explain the "why" of certain patterns to AI agents. Not slop.
-- **Claude Code integration** - Custom commands (`/check`, `/cleanup`) and a couple of specialized agents
-- **Sensible file organization** - React code in `src/` with clear separation (components, hooks, stores, services), Rust in `src-tauri/src/` with modular command organization. Predictable structure for both humans and AI.
-
-## Getting Started
-
-See **[Using This Template](docs/USING_THIS_TEMPLATE.md)** for setup instructions and workflow guidance.
-
-### Quick Start
+Run the web app:
 
 ```bash
-# Prerequisites: Node.js 18+, Rust (latest stable)
-# See https://tauri.app/start/prerequisites/ for platform-specific deps
-
-git clone <your-repo>
-cd your-app
+git clone https://github.com/sahildave/skills-explorer.git
+cd skills-explorer
 npm install
 npm run dev
 ```
 
+Run the desktop app:
+
+```bash
+npm run tauri:dev
+```
+
+The desktop command expects local desktop-safe environment variables to be injected through Infisical. See [docs/developer/infisical.md](docs/developer/infisical.md) before adding or changing secrets.
+
+## Development
+
+Daily drivers:
+
+```bash
+npm run dev             # Web target on Vite
+npm run dev:mock        # Web target with mocked platform/catalog adapters
+npm run dev:all         # Web + Tauri
+npm run dev:all:design  # Web + Tauri + design watcher
+npm run tauri:dev       # Desktop target with deployed Backend API
+npm run dev:local:proxy # Local Backend API + Tauri pointed at :3000
+npm run ingest:daily    # Daily list + scrape rotation
+npm run scrape:sweep    # One-shot corpus scrape
+npm run check:all       # Full local quality gate
+```
+
+Helper scripts:
+
+```bash
+npm run dev:local            # Alias for tauri:dev
+npm run proxy:dev            # Backend API only
+npm run tauri:dev:local      # Tauri → :3000
+npm run scrape:local         # Bounded page-cache scrape
+npm run list-snapshots:local # List endpoint snapshots
+npm run rotate:local         # Daily rotation slice
+```
+
+Shared UI code imports platform-specific behavior through `@platform` and catalog access through `@catalog`. Do not import `@tauri-apps/*` from shared React paths; keep desktop-only behavior behind the platform adapter.
+
+`dev:all` does not run `proxy:dev`; use `dev:local:proxy` for a local Backend API.
+
+## Catalog Cache and Scraping
+
+Skilltopia uses the skills.sh APIs for live catalog data and a bounded HTML scrape/cache pipeline for richer detail pages: summaries, topics, repository/source labels, SKILL.md previews, related skills, and weekly install series.
+
+Scraped page snapshots are cached in Supabase so detail pages stay fast and clients never hold skills.sh credentials.
+
+Batch scraping is deliberately separated from user-facing traffic:
+
+- Primary Backend API OIDC serves web/desktop users and on-demand API proxy traffic.
+- Secondary ingest OIDC serves local scrape/list/rotation/enrichment jobs and GitHub Actions.
+
+This protects the user-facing Backend API from batch jobs consuming the shared skills.sh OIDC budget. See [Ingest OIDC](docs/developer/ingest-oidc.md), [Scrape Pipeline](docs/developer/scrape-pipeline.md), and [Page-cache Ops](docs/developer/page-cache-ops.md).
+
+## OpenAI Build Week
+
+Skilltopia is being submitted to [OpenAI Build Week](https://openai.com/build-week/).
+
+Codex helped with implementation planning, codebase navigation, release-readiness tasks, documentation cleanup, security review follow-ups, and product polish. Key product and engineering decisions, including the MIT licensing posture, Coduo Studio ownership, upstream attribution, and Skilltopia trademark reservation, were made by the creators and then reflected in the repository with Codex assistance.
+
 ## Documentation
 
-- **[Developer Docs](docs/developer/)** - Architecture, patterns, and detailed guides
-- **[Design System](docs/design/DESIGN.md)** - Canonical UI guidance for human and AI agents
-- **[User Guide](docs/userguide/)** - End-user documentation template
-- **[Using This Template](docs/USING_THIS_TEMPLATE.md)** - Setup and workflow guide
+- [Contributing](CONTRIBUTING.md)
+- [Security Policy](SECURITY.md)
+- [Developer Docs](docs/developer/README.md)
+- [Architecture Guide](docs/developer/architecture-guide.md)
+- [Design System](docs/design/DESIGN.md)
+- [Release Notes and Process](docs/developer/releases.md)
+
+## Repository Status
+
+Skilltopia is preparing for its first public desktop release. The source is usable today, but public binaries, update signing, notarization, and Sponsors links are tracked in follow-up release tasks.
 
 ## License
 
-[MIT](LICENSE.md)
-
----
-
-Built with [Tauri](https://tauri.app) | [shadcn/ui](https://ui.shadcn.com) | [React](https://react.dev)
+[MIT](LICENSE.md). See [NOTICE.md](NOTICE.md) for attribution and trademark notes.

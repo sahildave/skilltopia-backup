@@ -8,7 +8,10 @@ export function useClickOutside<T extends HTMLElement>(
   handler: () => void,
 ) {
   const handlerRef = useRef(handler);
-  handlerRef.current = handler;
+
+  useEffect(() => {
+    handlerRef.current = handler;
+  });
 
   useEffect(() => {
     const onPointerDown = (event: PointerEvent) => {

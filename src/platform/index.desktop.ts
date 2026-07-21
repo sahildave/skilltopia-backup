@@ -16,6 +16,8 @@ import {
 import { skillEntriesFromScan, providersFromScan } from './scan-utils';
 import { UNIVERSAL_PROVIDER_ID } from './types';
 import type {
+  CopyProviderResult,
+  CopySkillToProvidersResult,
   InstallableSkill,
   InstalledScanSnapshot,
   InstallScope,
@@ -47,6 +49,22 @@ function normalizeSnapshot(snapshot: RustInstalledScanSnapshot): InstalledScanSn
       message: warning.message,
       providerId: warning.providerId ?? undefined,
       path: warning.path ?? undefined,
+    })),
+  };
+}
+
+function normalizeCopyResult(result: {
+  results: {
+    providerId: string;
+    status: CopyProviderResult['status'];
+    message?: string | null;
+  }[];
+}): CopySkillToProvidersResult {
+  return {
+    results: result.results.map((entry) => ({
+      providerId: entry.providerId,
+      status: entry.status,
+      message: entry.message ?? undefined,
     })),
   };
 }
@@ -154,6 +172,12 @@ export const platform: PlatformPort = {
   install: installSkillToDisk,
 
   uninstall: uninstallSkillFromDisk,
+
+  async copySkillToProviders(uninstallName, providerIds) {
+    return normalizeCopyResult(
+      unwrapResult(await commands.copySkillToProviders(uninstallName, providerIds)),
+    );
+  },
 
   async openExternal(url) {
     await openUrl(url);

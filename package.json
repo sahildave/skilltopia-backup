@@ -1,10 +1,10 @@
 {
-  "name": "tauri-app",
+  "name": "skilltopia",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "author": "Danny Smith",
-  "copyright": "Copyright © 2025 Danny Smith. All rights reserved.",
+  "author": "Coduo Studio, LLC",
+  "copyright": "Copyright © 2026 Coduo Studio, LLC. All rights reserved.",
   "license": "MIT",
   "overrides": {
     "typescript-eslint": {
@@ -50,7 +50,7 @@
     "list-snapshots:local": "infisical run --env=dev -- node --import tsx/esm scripts/list-snapshots.mjs",
     "ingest:daily": "infisical run --env=dev -- node --import tsx/esm scripts/ingest-daily.mjs",
     "scrape:sweep": "infisical run --env=dev -- node --import tsx/esm scripts/scrape-sweep.mjs",
-    "page-cache:coverage": "node scripts/page-cache-coverage.mjs",
+    "page-cache:coverage": "node --import tsx/esm scripts/page-cache-coverage.mjs",
     "seed:generate": "node scripts/generate-seed.mjs",
     "seed:check": "node scripts/check-seed-size.mjs",
     "providers:generate": "node scripts/generate-provider-registry.mjs",

@@ -179,7 +179,7 @@ function startCartesianLoop({
     }
     for (const key of Object.keys(current)) {
       if (!tgt[key]) {
-        delete current[key];
+        Reflect.deleteProperty(current, key);
         needsFill = true;
       }
     }

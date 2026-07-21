@@ -189,6 +189,18 @@ function toSkillMetadataRecord(row: Record<string, unknown>): SkillMetadataRecor
   };
 }
 
+function toSkillPageCacheRecord(row: Record<string, unknown>): SkillPageCacheRecord {
+  return {
+    skillId: String(row.skill_id),
+    pageSnapshot: (row.page_snapshot as SkillPageSnapshot | null) ?? null,
+    pageScrapedAt: row.page_scraped_at ? String(row.page_scraped_at) : null,
+    repository: row.repository ? String(row.repository) : null,
+    source: row.source ? String(row.source) : null,
+    installCount: typeof row.install_count === 'number' ? row.install_count : null,
+    sourceUrl: row.source_url ? String(row.source_url) : null,
+  };
+}
+
 function throwOnError(error: { message: string } | null): void {
   if (error) throw new Error(`Supabase repository error: ${error.message}`);
 }
@@ -395,16 +407,22 @@ export function createSupabaseRepository(client: RepositoryClient) {
         .maybeSingle();
       throwOnError(result.error);
       const row = result.data as Record<string, unknown> | null;
-      if (!row) return null;
-      return {
-        skillId: String(row.skill_id),
-        pageSnapshot: (row.page_snapshot as SkillPageSnapshot | null) ?? null,
-        pageScrapedAt: row.page_scraped_at ? String(row.page_scraped_at) : null,
-        repository: row.repository ? String(row.repository) : null,
-        source: row.source ? String(row.source) : null,
-        installCount: typeof row.install_count === 'number' ? row.install_count : null,
-        sourceUrl: row.source_url ? String(row.source_url) : null,
-      };
+      return row ? toSkillPageCacheRecord(row) : null;
+    },
+
+    /** Batch page-cache rows for coverage / ops (missing ids omitted). */
+    async listSkillPageCaches(skillIds: string[]): Promise<SkillPageCacheRecord[]> {
+      if (skillIds.length === 0) return [];
+      const result = await client
+        .from('skill_metadata')
+        .select(
+          'skill_id, page_snapshot, page_scraped_at, repository, source, install_count, source_url',
+        )
+        .in('skill_id', skillIds);
+      throwOnError(result.error);
+      return (result.data ?? []).map((row) =>
+        toSkillPageCacheRecord(row as Record<string, unknown>),
+      );
     },
 
     async listInstallSnapshots(skillId: string, limit = 8): Promise<SkillInstallSnapshotRecord[]> {

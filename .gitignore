@@ -20,14 +20,25 @@ jscpd-report
 *.local
 *.local.*
 *.pem
+*.key
+*.p8
+*.p12
 credentials.json
 **/credentials.json
+infisical-export*
+secrets.json
+**/secrets.json
 
 # Vercel CLI (`vercel link`) — project auth / org metadata
 .vercel
 
 # Supabase CLI link metadata
 supabase/.temp
+
+# Local catalog probes / scratch output
+.tmp-probe/
+tmp-probe/
+probe-output/
 
 # Editor directories and files
 .vscode/*

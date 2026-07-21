@@ -1,8 +1,8 @@
-import { Badge } from '@/components/ui/badge';
 import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
 import { useReducedMotion } from 'motion/react';
-import { providerTagsForSkill, type ProviderFilterId } from './installed-skills-model';
+import type { ProviderFilterId } from './installed-skills-model';
 import { SkillCardOverflowMenu } from './SkillCardOverflowMenu';
+import { SkillProviderBadges } from './SkillProviderBadges';
 
 export function SkillListRow({
   skill,
@@ -27,16 +27,11 @@ export function SkillListRow({
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <div className="flex flex-wrap justify-end gap-1.5">
-          {providerTagsForSkill(skill, snapshot).map((tag) => (
-            <Badge key={tag} variant="outline">
-              {tag}
-            </Badge>
-          ))}
-        </div>
+        <SkillProviderBadges skill={skill} snapshot={snapshot} />
         <span className="text-muted-foreground text-xs">{skill.scope}</span>
         <SkillCardOverflowMenu
           skill={skill}
+          snapshot={snapshot}
           providerFilter={providerFilter}
           reduceMotion={reduceMotion}
         />

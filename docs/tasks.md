@@ -41,19 +41,26 @@ Usage: npm task:rename-done
 
 ## Release epic (from task-20)
 
-Open-source desktop distribution and launch. Numbered from **20** so they sit after current MVP todos (7–9) without renumbering. Work **20–21 today**; PH and App Store are later.
+Open-source desktop distribution and launch. Numbered from **20** so they sit after leftover MVP todos (8–11) without renumbering. Active priority is this epic; search latency work lives under unprioritized `task-x-post-mvp-*`. Work **20–21 today**; PH and App Store are later.
 
-| # | Task | When |
-|---|------|------|
-| 20 | [Open-source public repo launch](./tasks-todo/task-20-open-source-public-launch.md) | Today |
-| 21 | [GitHub Sponsors](./tasks-todo/task-21-github-sponsors.md) | Today |
-| 22 | [Product identity / rebrand](./tasks-todo/task-22-product-identity-rebrand.md) | Next |
-| 23 | [Tauri updater signing](./tasks-todo/task-23-tauri-updater-signing.md) | Next |
-| 24 | [macOS Developer ID + notarization](./tasks-todo/task-24-macos-developer-id-notarization.md) | Before PH (start Apple enrollment today) |
-| 25 | [Windows code signing](./tasks-todo/task-25-windows-code-signing.md) | Soft for v1 |
-| 26 | [First GitHub Release + smoke test](./tasks-todo/task-26-first-github-release.md) | After 22–24 |
-| 27 | [Public Backend API + privacy](./tasks-todo/task-27-public-backend-privacy.md) | Before public desktop downloads |
-| 28 | [ProductHunt launch](./tasks-todo/task-28-producthunt-launch.md) | Later |
-| 29 | [Mac App Store](./tasks-todo/task-29-mac-app-store.md) | Later |
+| #   | Task                                                                                         | When                                                                   |
+| --- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| 20  | [Open-source public repo launch](./tasks-todo/task-20-open-source-public-launch.md)          | Today                                                                  |
+| 21  | [GitHub Sponsors](./tasks-todo/task-21-github-sponsors.md)                                   | Today                                                                  |
+| 22  | [Product identity / rebrand](./tasks-todo/task-22-product-identity-rebrand.md)               | Next                                                                   |
+| 23  | [Tauri updater signing](./tasks-todo/task-23-tauri-updater-signing.md)                       | Next                                                                   |
+| 24  | [macOS Developer ID + notarization](./tasks-todo/task-24-macos-developer-id-notarization.md) | Before PH (start Apple enrollment today)                               |
+| 25  | [Windows code signing](./tasks-todo/task-25-windows-code-signing.md)                         | Soft for v1                                                            |
+| 26  | [First GitHub Release + smoke test](./tasks-todo/task-26-first-github-release.md)            | After 22–24; **blocked** by security review until 23 High + 27 Mediums |
+| 27  | [Public Backend API + privacy](./tasks-todo/task-27-public-backend-privacy.md)               | Before public desktop downloads                                        |
+| 28  | [ProductHunt launch](./tasks-todo/task-28-producthunt-launch.md)                             | Later                                                                  |
+| 29  | [Mac App Store](./tasks-todo/task-29-mac-app-store.md)                                       | Later                                                                  |
 
 Plan reference: open-source release checklist (Cursor plan).
+
+### Security review (2026-07-21)
+
+Full-project review on main: [docs/reports/2026-07-21-security-review-main.md](./reports/2026-07-21-security-review-main.md).
+
+- **task-26** is blocked until the High (updater placeholder pubkey) is fixed via **task-23**, and Backend Mediums via **task-27**, before public publish/downloads.
+- **task-23** / **task-27** are the remediations (acceptance criteria from the report), not blocked by it.

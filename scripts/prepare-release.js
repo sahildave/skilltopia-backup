@@ -3,6 +3,7 @@
 import fs from 'fs';
 import { execSync } from 'child_process';
 import readline from 'readline';
+import { validateUpdaterReleaseConfig } from './release-config.mjs';
 
 function exec(command, options = {}) {
   try {
@@ -101,8 +102,13 @@ async function prepareRelease() {
       console.log('✅ Updater artifacts enabled');
     }
 
-    if (!tauriConfig.plugins?.updater?.pubkey) {
-      console.warn('⚠️  Warning: Updater public key not configured');
+    const updaterConfigErrors = validateUpdaterReleaseConfig(tauriConfig);
+    if (updaterConfigErrors.length > 0) {
+      console.error('❌ Updater release configuration is not ready:');
+      for (const configError of updaterConfigErrors) {
+        console.error(`   • ${configError}`);
+      }
+      process.exit(1);
     } else {
       console.log('✅ Updater public key configured');
     }
@@ -146,9 +152,9 @@ async function prepareRelease() {
       exec('git push origin main --tags');
 
       console.log(`\n🎊 Release ${tagVersion} has been published!`);
-      console.log('📱 Check GitHub Actions: https://github.com/YOUR_USERNAME/YOUR_REPO/actions');
+      console.log('📱 Check GitHub Actions: https://github.com/sahildave/skills-explorer/actions');
       console.log(
-        '📦 Draft release will appear at: https://github.com/YOUR_USERNAME/YOUR_REPO/releases',
+        '📦 Draft release will appear at: https://github.com/sahildave/skills-explorer/releases',
       );
       console.log('\n⚠️  Remember: You need to manually publish the draft release on GitHub!');
     } else {

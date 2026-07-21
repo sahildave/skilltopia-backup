@@ -18,6 +18,41 @@ SUPABASE_SERVICE_ROLE_KEY=sb_secret_...
 
 The migrations create `skill_metadata`, `skill_raw_files`, and `skill_install_snapshots`, plus a private `raw-skills` Storage bucket. `skill_metadata` also holds sparse `page_snapshot` / `audits` JSON and scrape timestamps for the page-cache pipeline. GitHub origins live in `repository` (`owner/repo`); non-GitHub origins live in `source` (absolute URL). `source_url` is the skills.sh catalog page URL. Tables have RLS enabled without public policies, so public clients cannot read or write them. The repository uses an elevated **secret** key (`sb_secret_...`, env name `SUPABASE_SERVICE_ROLE_KEY`) in trusted server-side code; never expose it through `VITE_*` or the Tauri bundle. Do not use a publishable / `anon` key here — the repository must bypass RLS.
 
+## RLS and Storage verification
+
+Idempotent hardening lives in:
+
+- `supabase/migrations/20260721033300_ensure_skill_repository_rls.sql` — enable RLS on skill tables, drop any public policies, keep `raw-skills` private and strip object policies that mention it
+- `supabase/migrations/20260721034000_revoke_rls_auto_enable_execute.sql` — revoke `EXECUTE` on `public.rls_auto_enable()` from `PUBLIC` / `anon` / `authenticated` (event-trigger helper must not be callable via PostgREST)
+
+After `supabase db push --linked`:
+
+```bash
+supabase db advisors --linked --type security
+# expect: No issues found
+```
+
+SQL checks (linked project or SQL editor):
+
+```sql
+select c.relname, c.relrowsecurity
+from pg_class c
+join pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'public'
+  and c.relname in ('skill_metadata', 'skill_raw_files', 'skill_install_snapshots');
+-- all relrowsecurity = true
+
+select * from pg_policies
+where schemaname = 'public'
+  and tablename in ('skill_metadata', 'skill_raw_files', 'skill_install_snapshots');
+-- zero rows
+
+select id, public from storage.buckets where id = 'raw-skills';
+-- public = false
+```
+
+Anon / publishable key smoke test: `SELECT` returns `[]`, `INSERT`/`UPDATE`/`DELETE` fail with RLS (`42501`); listing `raw-skills` objects yields no readable files; `/storage/v1/object/public/raw-skills/...` does not serve the private bucket. Secret / service-role key continues to read and write as before.
+
 ## Repository contract
 
 ```ts

@@ -3,6 +3,7 @@ import {
   createModelsFromEnv,
   maxEnrichedFromEnv,
   MAX_ENRICHED,
+  MAX_ENRICHED_DEFAULT,
   runEnrichmentPipeline,
 } from './enrichment-pipeline.js';
 
@@ -77,9 +78,9 @@ describe('enrichment pipeline policy', () => {
   it('reads MAX_ENRICHED from env and caps at the hard limit', () => {
     expect(maxEnrichedFromEnv({ MAX_ENRICHED: '20' })).toBe(20);
     expect(maxEnrichedFromEnv({ MAX_ENRICHED: '9999' })).toBe(MAX_ENRICHED);
-    expect(maxEnrichedFromEnv({ MAX_ENRICHED: '0' })).toBe(MAX_ENRICHED);
-    expect(maxEnrichedFromEnv({ MAX_ENRICHED: 'nope' })).toBe(MAX_ENRICHED);
-    expect(maxEnrichedFromEnv({})).toBe(MAX_ENRICHED);
+    expect(maxEnrichedFromEnv({ MAX_ENRICHED: '0' })).toBe(MAX_ENRICHED_DEFAULT);
+    expect(maxEnrichedFromEnv({ MAX_ENRICHED: 'nope' })).toBe(MAX_ENRICHED_DEFAULT);
+    expect(maxEnrichedFromEnv({})).toBe(MAX_ENRICHED_DEFAULT);
   });
 
   it('skips existing seed records but re-enriches changed sync records', async () => {

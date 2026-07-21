@@ -15,8 +15,9 @@ even beyond 200.
 4. Reuse the scrape pipeline with `skillIds` (hash-gated, one scrape retry,
    `/audit` refresh when hash changed or audits older than 7 days).
 
-Default throttle is **1000ms** between skills. Worst case ~2 OIDC calls/skill
-(detail + audit) ≈ **120 req/min**, well under the skills.sh **600/min**
+Default throttle is **1000ms** between skills (daily). One-shot `scrape:sweep` /
+GHA `mode=sweep` default to **250ms** (`THROTTLE_MS`). Worst case ~2 OIDC calls/skill
+(detail + audit) at 250ms still stays under the skills.sh **600/min**
 per-project budget. Prefer the **ingest** Vercel project’s OIDC — see
 [ingest-oidc.md](./ingest-oidc.md).
 
@@ -25,7 +26,8 @@ per-project budget. Prefer the **ingest** Vercel project’s OIDC — see
 ```bash
 npm run rotate:local          # rotation only
 npm run ingest:daily          # list-snapshots then rotation
-MAX_ENRICHED=1000 npm run scrape:sweep   # one-shot sweep (default 1500; use 1000 if too heavy)
+npm run scrape:sweep          # one-shot fill (skip cached; default 1500 / 250ms)
+# SCRAPE_SWEEP_MAX=1000 npm run scrape:sweep
 ```
 
 Progress on stderr; JSON summary on stdout.

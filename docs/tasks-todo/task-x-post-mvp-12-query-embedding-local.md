@@ -2,7 +2,8 @@
 
 **Milestone:** post-mvp  
 **Post-MVP #:** 12  
-**Depends on:** task-8-search-performance-backend, qdrant-embeddings-setup (done)
+**Depends on:** qdrant-embeddings-setup (done)  
+**Related:** optional micro-opts in [post-mvp-13](./task-x-post-mvp-13-search-performance-backend.md); progressive UX in [post-mvp-14](./task-x-post-mvp-14-search-progressive-results.md) may become unnecessary after this lands
 
 ## Goal
 

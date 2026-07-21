@@ -41,6 +41,15 @@ export const platform: PlatformPort = {
     // Mock uninstall succeeds without touching disk.
   },
 
+  async copySkillToProviders(_uninstallName, providerIds) {
+    return {
+      results: providerIds.map((providerId) => ({
+        providerId,
+        status: 'copied' as const,
+      })),
+    };
+  },
+
   async openExternal(url) {
     window.open(url, '_blank', 'noopener,noreferrer');
   },

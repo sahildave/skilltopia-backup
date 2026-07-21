@@ -400,6 +400,41 @@ describe('Supabase skill repository', () => {
     await expect(repository.getSkillPageCache(enrichment.skillId)).resolves.toBeNull();
   });
 
+  it('lists page caches for multiple skill ids', async () => {
+    const client = createClient();
+    const snapshot = { summary: 'Batch skill' };
+    client.metadata.select.mockReturnValue({
+      in: async () => ({
+        data: [
+          {
+            skill_id: 'owner/a',
+            page_snapshot: snapshot,
+            page_scraped_at: '2026-07-21T00:00:00.000Z',
+            repository: 'owner/repo',
+            source: null,
+            install_count: 1,
+            source_url: 'https://example.com/a',
+          },
+        ],
+        error: null,
+      }),
+    });
+
+    const repository = createSupabaseRepository(client as never);
+    await expect(repository.listSkillPageCaches(['owner/a', 'owner/b'])).resolves.toEqual([
+      {
+        skillId: 'owner/a',
+        pageSnapshot: snapshot,
+        pageScrapedAt: '2026-07-21T00:00:00.000Z',
+        repository: 'owner/repo',
+        source: null,
+        installCount: 1,
+        sourceUrl: 'https://example.com/a',
+      },
+    ]);
+    await expect(repository.listSkillPageCaches([])).resolves.toEqual([]);
+  });
+
   it('lists oldest page scrapes and empty-hash detail queue', async () => {
     const client = createClient();
     const order = vi.fn().mockReturnValue({

@@ -9,6 +9,26 @@ enrichment + Qdrant). This path detail-fetches skills.sh (hash-gated), scrapes
 public skill pages into sparse `page_snapshot`, and optionally seeds early
 `skill_install_snapshots` rows.
 
+## Why it exists
+
+The skills.sh list endpoints are good for search, ranking, and current install
+counts, but they do not contain every field needed for a rich skill detail
+experience. The public HTML pages expose useful human-facing context such as
+summaries, topics, repository/source labels, SKILL.md previews, related skills,
+and weekly install series.
+
+We scrape those pages in a controlled batch pipeline and cache the result in
+Supabase so:
+
+- opening a skill detail page does not scrape live HTML;
+- web and desktop clients do not need skills.sh credentials;
+- install-history sparklines can use scraped weekly series when available;
+- the app can tolerate partial data because `page_snapshot` is sparse and every
+  parsed field is optional.
+
+Scrape jobs use the secondary ingest OIDC budget, not the primary app Backend
+budget. That keeps batch work from starving user-facing catalog traffic.
+
 ## What it does
 
 1. Load the leaderboard slice (cap via `MAX_ENRICHED`, same knob as enrichment).
@@ -28,16 +48,21 @@ public skill pages into sparse `page_snapshot`, and optionally seeds early
 
 ## Auth / secrets
 
-Uses Infisical **`dev`** (Supabase service role) plus a skills.sh OIDC token
-(`VERCEL_OIDC_TOKEN`), same local pattern as enrichment. Prefer an **ingest**
-Vercel project’s OIDC for scrape/enrich batch work so you do not share the app
-Backend’s 600/min budget. See [infisical.md](./infisical.md) and
-[external-apis.md](./external-apis.md).
+Uses Infisical **`dev`** (Supabase service role) plus a skills.sh OIDC token.
+Batch jobs prefer `VERCEL_OIDC_TOKEN_SECONDARY` from the ingest Vercel project
+and fall back to `VERCEL_OIDC_TOKEN` only for older environments. Do not use the
+app Backend’s primary OIDC for scrape/enrich batch work; that would share the
+user-facing 600/min budget. See [infisical.md](./infisical.md),
+[external-apis.md](./external-apis.md), and [ingest-oidc.md](./ingest-oidc.md).
 
 HTML page fetches are unauthenticated. GitHub skills use
 `https://www.skills.sh/{owner}/{repo}/{skill}`; well-known skills use
 `https://www.skills.sh/site/{domain}/{skill}` (detail API omits `url`, so the
-scrape reconstructs from id shape — see `skillPageUrl`). API `source` is
+scrape reconstructs from id shape — see `skillPageUrl`, with path segments
+percent-encoded). **Always write under the requested catalog `skillId`**, not
+`detail.id`: the skills.sh detail API sometimes strips characters (e.g.
+`react:components` → `reactcomponents`). On mismatch, keep list
+`install_count` when present and log a warning. API `source` is
 classified into `skill_metadata.repository` (GitHub `owner/repo`) or
 `skill_metadata.source` (external origin URL). `source_url` remains the
 skills.sh page URL. HTML parsing also stores `page_snapshot.repository` /
@@ -47,10 +72,17 @@ skills.sh page URL. HTML parsing also stores `page_snapshot.repository` /
 MAX_ENRICHED=20 npm run scrape:local
 # Re-scrape specific skills (skips leaderboard; does not use MAX_ENRICHED as the count)
 SKILL_IDS=open.feishu.cn/lark-approval,open.feishu.cn/lark-doc npm run scrape:local
-MAX_ENRICHED=1500 npm run scrape:sweep   # or 1000 fallback; see rotation-pipeline.md
+# Full sweep: SCRAPE_SKIP_CACHED=1, THROTTLE_MS=250, MAX_ENRICHED=1500
+npm run scrape:sweep
+# SCRAPE_SWEEP_MAX=1000 npm run scrape:sweep   # lighter fallback
+# SCRAPE_SKIP_CACHED=0 npm run scrape:sweep    # force re-scrape cached rows
 ```
 
-Invalid/missing `MAX_ENRICHED` defaults to **500**; hard-capped at **1500**. Progress
+Invalid/missing `MAX_ENRICHED` defaults to **500**; hard-capped at **1500**. Invalid/missing
+`THROTTLE_MS` defaults to **1000** ms (`scrape:local` / daily rotation);
+`scrape:sweep` defaults to **250** ms and **`SCRAPE_SKIP_CACHED=1`** (drop ids that
+already have `page_snapshot`). Daily `ingest:daily` / `rotate:local` never enable
+`skipCached` — they always re-scrape their selected ids. Progress
 logs go to stderr; a JSON summary goes to stdout. **Ctrl+C** aborts after the current
 skill (second Ctrl+C force-quits). Without `SKILL_IDS`, `scrape:local` always walks
 the leaderboard cap — that env is ignored unless this script reads it (it does now).

@@ -1,7 +1,8 @@
 //! Tauri commands for installed-skill scanning and reveal.
 
 use crate::provider_scan::{
-    delete_universal_skill_dir, resolve_provider_skills_dir, reveal_skills_dir, scan_installed,
+    copy_skill_to_providers as copy_skill_to_providers_impl, delete_universal_skill_dir,
+    resolve_provider_skills_dir, reveal_skills_dir, scan_installed, CopySkillToProvidersResult,
     InstalledScanSnapshot, ScanContext,
 };
 
@@ -30,4 +31,19 @@ pub fn reveal_provider_skills_dir(provider_id: String) -> Result<bool, String> {
 #[specta::specta]
 pub fn delete_universal_skill(uninstall_name: String) -> Result<bool, String> {
     delete_universal_skill_dir(&uninstall_name, &ScanContext::from_environment())
+}
+
+/// Copy one installed skill into selected provider folders as directory symlinks.
+/// Returns independent per-provider outcomes so partial success is preserved.
+#[tauri::command]
+#[specta::specta]
+pub fn copy_skill_to_providers(
+    uninstall_name: String,
+    provider_ids: Vec<String>,
+) -> Result<CopySkillToProvidersResult, String> {
+    copy_skill_to_providers_impl(
+        &uninstall_name,
+        &provider_ids,
+        &ScanContext::from_environment(),
+    )
 }

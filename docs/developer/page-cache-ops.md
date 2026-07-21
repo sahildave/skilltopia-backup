@@ -58,12 +58,12 @@ Details: [ingest-oidc.md](./ingest-oidc.md).
 On the GitHub repo, set secrets used by `.github/workflows/ingest.yml`
 (**secondary** ingest project values, not app primary):
 
-| Secret                         | Source                                                         |
-| ------------------------------ | -------------------------------------------------------------- |
-| `SUPABASE_URL`                 | Same Supabase project the app Backend uses                     |
-| `SUPABASE_SERVICE_ROLE_KEY`    | Service role / secret key                                      |
-| `VERCEL_OIDC_TOKEN_SECONDARY`  | Preferred: token minted for the **ingest** Vercel project      |
-| `VERCEL_OIDC_TOKEN`            | Optional fallback when secondary is unset                      |
+| Secret                        | Source                                                    |
+| ----------------------------- | --------------------------------------------------------- |
+| `SUPABASE_URL`                | Same Supabase project the app Backend uses                |
+| `SUPABASE_SERVICE_ROLE_KEY`   | Service role / secret key                                 |
+| `VERCEL_OIDC_TOKEN_SECONDARY` | Preferred: token minted for the **ingest** Vercel project |
+| `VERCEL_OIDC_TOKEN`           | Optional fallback when secondary is unset                 |
 
 Until secondary (or fallback) OIDC plus Supabase secrets are set, the daily cron
 and `workflow_dispatch` sweep will fail. Local scripts work with Infisical
@@ -118,8 +118,10 @@ npm run rotate:local
 
 ```bash
 # Prefer 1500; fall back to 1000 if wall clock / load is too high
-MAX_ENRICHED=1500 npm run scrape:sweep
-# MAX_ENRICHED=1000 npm run scrape:sweep
+# Sweep defaults: THROTTLE_MS=250, SCRAPE_SKIP_CACHED=1 (skip existing page_snapshot)
+npm run scrape:sweep
+# SCRAPE_SWEEP_MAX=1000 npm run scrape:sweep
+# THROTTLE_MS=500 npm run scrape:sweep  # if 429s
 ```
 
 Same effect via GitHub Actions → **Ingest** workflow → `workflow_dispatch` →
@@ -127,15 +129,15 @@ Same effect via GitHub Actions → **Ingest** workflow → `workflow_dispatch` �
 
 ### Script map
 
-| npm script               | What it runs                         | OIDC shape                                      |
-| ------------------------ | ------------------------------------ | ----------------------------------------------- |
-| `list-snapshots:local`   | Leaderboard list → installs + snapshots | List pages only                              |
-| `scrape:local`           | Cap via `MAX_ENRICHED`, or `SKILL_IDS=a,b` for an explicit list | Detail (+ audit when stale) per skill |
-| `rotate:local`           | 200-slot rotation + empty-hash queue | Same as scrape on selected ids                  |
-| `ingest:daily`           | List then rotation                   | List + rotation                                 |
-| `scrape:sweep`           | One-shot scrape to `MAX_ENRICHED`    | Same as scrape; long run                        |
-| `page-cache:coverage`    | TSV/canvas of cached snapshot fields | None (public Backend detail)                    |
-| `enrich:local`           | LLM enrichment (optional)            | Detail + provider APIs; not required for UI cache |
+| npm script             | What it runs                                                    | OIDC shape                                             |
+| ---------------------- | --------------------------------------------------------------- | ------------------------------------------------------ |
+| `list-snapshots:local` | Leaderboard list → installs + snapshots                         | List pages only                                        |
+| `scrape:local`         | Cap via `MAX_ENRICHED`, or `SKILL_IDS=a,b` for an explicit list | Detail (+ audit when stale) per skill                  |
+| `rotate:local`         | 200-slot rotation + empty-hash queue                            | Same as scrape on selected ids                         |
+| `ingest:daily`         | List then rotation                                              | List + rotation                                        |
+| `scrape:sweep`         | One-shot scrape to `MAX_ENRICHED`                               | Same as scrape; long run                               |
+| `page-cache:coverage`  | TSV/canvas of cached snapshot fields                            | None (public Backend `/api/skills/page-cache` batches) |
+| `enrich:local`         | LLM enrichment (optional)                                       | Detail + provider APIs; not required for UI cache      |
 
 Pipeline docs: [list-snapshots-pipeline.md](./list-snapshots-pipeline.md),
 [scrape-pipeline.md](./scrape-pipeline.md),
@@ -163,17 +165,23 @@ Pipeline docs: [list-snapshots-pipeline.md](./list-snapshots-pipeline.md),
   sparkline when series exist).
 - Uncached skill: still gets on-demand audits from the app Backend.
 - Field coverage (summary / weekly installs / etc.) against the Backend
-  detail cache — TSV on stdout; optional Cursor canvas:
+  page-cache batch API — TSV on stdout; optional Cursor canvas:
 
 ```bash
 MAX_ENRICHED=20 npm run page-cache:coverage -- --canvas
 MAX_ENRICHED=50 npm run page-cache:coverage -- --canvas
+MAX_ENRICHED=200 npm run page-cache:coverage -- --canvas
+MAX_ENRICHED=1500 npm run page-cache:coverage -- --canvas
 # SKILL_IDS=owner/repo/a,owner/repo/b npm run page-cache:coverage
 ```
 
-  Coverage is tiered: **primary** (`source`/`repository` as alternatives,
-  `summary`, installs), **secondary** (`skillMdPreview`, `installCommand`),
-  **tertiary** (`topics`, `related`, `stars`, `firstSeen`). Columns follow that
-  order plus `d1`–`d8` weekly values. `MISSING` cells are gaps to compare on the
-  skills.sh page URL (`/site/{id}` for well-known skills,
-  `/{owner}/{repo}/{skill}` for GitHub).
+`MAX_ENRICHED` uses the same helper as scrape (`maxEnrichedFromEnv`: default
+**500**, hard cap **1500**). Coverage loads ids from the leaderboard (or
+`SKILL_IDS`), then fetches snapshot fields in batches of 100 via
+`GET /api/skills/page-cache` (paginates leaderboard at `per_page` ≤ 500).
+Coverage is tiered: **primary** (`source`/`repository` as alternatives,
+`summary`, installs), **secondary** (`skillMdPreview`, `installCommand`),
+**tertiary** (`topics`, `related`, `stars`, `firstSeen`). Columns follow that
+order plus `d1`–`d8` weekly values. `MISSING` cells are gaps to compare on the
+skills.sh page URL (`/site/{id}` for well-known skills,
+`/{owner}/{repo}/{skill}` for GitHub).

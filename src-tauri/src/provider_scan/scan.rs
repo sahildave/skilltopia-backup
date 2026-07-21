@@ -99,13 +99,14 @@ fn unix_secs_to_rfc3339(secs: u64) -> String {
     format!("{y:04}-{m:02}-{d:02}T{hour:02}:{min:02}:{sec:02}Z")
 }
 
-struct SkillDirEntry {
+pub(crate) struct SkillDirEntry {
     /// Path as listed in the skills folder (may be a symlink).
-    entry_path: PathBuf,
+    #[allow(dead_code)]
+    pub(crate) entry_path: PathBuf,
     /// Directory containing `SKILL.md` (follows symlinks).
-    content_root: PathBuf,
+    pub(crate) content_root: PathBuf,
     /// Normalized resolved target when `entry_path` is a symlink.
-    original_path: Option<PathBuf>,
+    pub(crate) original_path: Option<PathBuf>,
 }
 
 fn resolve_symlink_target(link: &Path, target: &Path) -> Option<PathBuf> {
@@ -117,7 +118,7 @@ fn resolve_symlink_target(link: &Path, target: &Path) -> Option<PathBuf> {
 }
 
 /// Accept real directories and directory symlinks in a skills folder.
-fn classify_skill_entry(path: &Path) -> Option<SkillDirEntry> {
+pub(crate) fn classify_skill_entry(path: &Path) -> Option<SkillDirEntry> {
     match fs::symlink_metadata(path) {
         Ok(meta) if meta.file_type().is_symlink() => {
             let target = fs::read_link(path).ok()?;
@@ -327,9 +328,7 @@ pub fn scan_installed(ctx: &ScanContext) -> Result<InstalledScanSnapshot, String
 
         // Providers that resolve to the Universal dir (e.g. Cline) share that tree —
         // do not double-scan; tag Universal skills and reuse the Universal count.
-        let shares_universal_dir = skills_dir
-            .as_ref()
-            .is_some_and(|dir| dir == &universal_dir);
+        let shares_universal_dir = skills_dir.as_ref().is_some_and(|dir| dir == &universal_dir);
 
         if shares_universal_dir {
             skill_count = universal_count;
@@ -444,7 +443,7 @@ pub fn resolve_provider_skills_dir(
     ))
 }
 
-fn validate_skill_dir_name(uninstall_name: &str) -> Result<(), String> {
+pub(crate) fn validate_skill_dir_name(uninstall_name: &str) -> Result<(), String> {
     let path = Path::new(uninstall_name);
     let mut components = path.components();
     let Some(Component::Normal(name)) = components.next() else {

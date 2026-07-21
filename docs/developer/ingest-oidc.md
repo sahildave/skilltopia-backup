@@ -6,10 +6,16 @@ skills.sh rate-limits OIDC at **600 requests/minute per (team, project)**. This
 repo uses **two** Vercel projects so user-facing traffic and batch ingest do not
 share one budget.
 
-| Role | Project | Purpose | Who uses its OIDC |
-| ---- | ------- | ------- | ----------------- |
-| **Primary** | App Backend (your account) | Same-origin web + `api/` proxy (`/api/skills*`) | Browser / desktop via Backend; on-demand `/audit` |
-| **Secondary** | Ingest (often partner account) | Batch list / scrape / rotation / enrich / GHA | Local `*:local` scripts + `.github/workflows/ingest.yml` |
+The split exists because scrape/list/rotation jobs are predictable batch load,
+while the app Backend is interactive user load. If both used the same OIDC
+project, a sweep or daily rotation could burn quota and make the public app feel
+broken. The secondary token gives batch work its own budget and its own kill
+switch without shipping any credentials to the desktop or browser clients.
+
+| Role          | Project                        | Purpose                                         | Who uses its OIDC                                        |
+| ------------- | ------------------------------ | ----------------------------------------------- | -------------------------------------------------------- |
+| **Primary**   | App Backend (your account)     | Same-origin web + `api/` proxy (`/api/skills*`) | Browser / desktop via Backend; on-demand `/audit`        |
+| **Secondary** | Ingest (often partner account) | Batch list / scrape / rotation / enrich / GHA   | Local `*:local` scripts + `.github/workflows/ingest.yml` |
 
 Never put Backend secrets or long-lived skills.sh passwords in the Tauri binary
 or web bundle. OIDC tokens are minted per Vercel project (Federation setting).
@@ -46,11 +52,11 @@ All scrape, list-snapshots, rotate, enrich, and GHA ingest traffic uses the
 
 ## Pacing
 
-| Job                                | OIDC shape                                         | Notes                                        |
-| ---------------------------------- | -------------------------------------------------- | -------------------------------------------- |
-| List snapshots                     | Paginated list only                                | Cheap                                        |
-| Daily rotation (~200 + queued)     | Detail (+ audit when stale) per skill, 1s throttle | ≪ 600/min                                    |
-| Full sweep (`MAX_ENRICHED` ≤ 1500) | Same as scrape, longer wall clock                  | Prefer secondary OIDC; fallback `1000` if heavy |
+| Job                                | OIDC shape                                         | Notes                                                            |
+| ---------------------------------- | -------------------------------------------------- | ---------------------------------------------------------------- |
+| List snapshots                     | Paginated list only                                | Cheap                                                            |
+| Daily rotation (~200 + queued)     | Detail (+ audit when stale) per skill, 1s throttle | ≪ 600/min                                                        |
+| Full sweep (`MAX_ENRICHED` ≤ 1500) | Same as scrape, `THROTTLE_MS` default **250**      | Prefer secondary OIDC; raise throttle or use `1000` cap if heavy |
 
-If you see upstream `429`, increase `throttleMs` or lower `MAX_ENRICHED` — do
-not point batch jobs at the primary (app Backend) OIDC.
+If you see upstream `429`, increase `THROTTLE_MS` / `throttleMs` or lower
+`MAX_ENRICHED` — do not point batch jobs at the primary (app Backend) OIDC.

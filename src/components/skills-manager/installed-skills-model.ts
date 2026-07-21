@@ -1,4 +1,4 @@
-import { providerRegistry } from '@/providers';
+import { getProviderById, providerRegistry } from '@/providers';
 import type {
   InstalledScanSnapshot,
   ScannedProvider,
@@ -53,28 +53,146 @@ function providerNameMap(snapshot: InstalledScanSnapshot): Map<string, string> {
   return map;
 }
 
-/** Stable card tags such as `[Universal]` and `[Claude Code]`. */
-export function providerTagsForSkill(
-  skill: ScannedSkill,
-  snapshot: InstalledScanSnapshot,
-): string[] {
+export type SkillProviderBadge =
+  | { kind: 'universal' }
+  | { kind: 'providers'; count: number; names: string[] };
+
+export interface CopyProviderOption {
+  id: string;
+  name: string;
+}
+
+export interface CopyProviderDialogModel {
+  available: CopyProviderOption[];
+  installed: CopyProviderOption[];
+  other: CopyProviderOption[];
+}
+
+function providerSharesUniversalDir(
+  provider: ScannedProvider,
+  universalSkillsDir: string,
+): boolean {
+  return (
+    provider.skillsDir != null &&
+    provider.skillsDir !== '' &&
+    provider.skillsDir === universalSkillsDir
+  );
+}
+
+/** Counted non-Universal provider names for badge display (distinct skills dirs only). */
+function countedProviderNames(skill: ScannedSkill, snapshot: InstalledScanSnapshot): string[] {
   const names = providerNameMap(snapshot);
-  const tags: string[] = [];
+  const universalSkillsDir = snapshot.universal.skillsDir;
+  const scannedById = new Map(snapshot.providers.map((p) => [p.id, p]));
+  const labels: string[] = [];
   const seen = new Set<string>();
 
-  const orderedIds = [...skill.providerIds].sort((a, b) => {
-    if (a === UNIVERSAL_PROVIDER_ID) return -1;
-    if (b === UNIVERSAL_PROVIDER_ID) return 1;
-    return (names.get(a) ?? a).localeCompare(names.get(b) ?? b);
-  });
+  const orderedIds = skill.providerIds
+    .filter((id) => id !== UNIVERSAL_PROVIDER_ID)
+    .sort((a, b) => (names.get(a) ?? a).localeCompare(names.get(b) ?? b));
 
   for (const id of orderedIds) {
+    const scanned = scannedById.get(id);
+    if (scanned && providerSharesUniversalDir(scanned, universalSkillsDir)) {
+      continue;
+    }
     const label = names.get(id) ?? id;
     if (seen.has(label)) continue;
     seen.add(label);
-    tags.push(label);
+    labels.push(label);
   }
-  return tags;
+  return labels;
+}
+
+/**
+ * Card/list badges: optional `Universal`, plus aggregated `n Providers`.
+ * Providers that share the Universal skills directory are excluded from the count.
+ */
+export function providerBadgesForSkill(
+  skill: ScannedSkill,
+  snapshot: InstalledScanSnapshot,
+): SkillProviderBadge[] {
+  const badges: SkillProviderBadge[] = [];
+  if (skill.providerIds.includes(UNIVERSAL_PROVIDER_ID)) {
+    badges.push({ kind: 'universal' });
+  }
+  const names = countedProviderNames(skill, snapshot);
+  if (names.length > 0) {
+    badges.push({ kind: 'providers', count: names.length, names });
+  }
+  return badges;
+}
+
+function toCopyOption(item: ProviderSidebarItem): CopyProviderOption {
+  return { id: String(item.id), name: item.name };
+}
+
+function isEligibleCopyDestination(
+  item: ProviderSidebarItem,
+  snapshot: InstalledScanSnapshot,
+): boolean {
+  if (item.id === UNIVERSAL_PROVIDER_ID) return false;
+  const skillsDir = item.skillsDir;
+  if (skillsDir && skillsDir === snapshot.universal.skillsDir) return false;
+
+  // Unscanned inactive rows have a null skillsDir — exclude registry agents whose
+  // global skills path is the Universal ~/.agents/skills tree.
+  if (!skillsDir) {
+    const def = getProviderById(providerRegistry, String(item.id));
+    const globalPath = def?.globalSkillsDir;
+    if (globalPath?.type === 'path') {
+      const raw = globalPath.path.path;
+      if (raw) {
+        const normalized = raw.replaceAll('\\', '/');
+        if (normalized === '.agents/skills' || normalized === 'agents/skills') {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Provider-selection sections for the copy dialog.
+ * Universal is never listed. Universal-directory-sharing providers are not
+ * copy destinations (Available / Other) but still appear under Already installed
+ * when the skill is associated with them.
+ */
+export function buildCopyProviderDialogModel(
+  skill: ScannedSkill,
+  snapshot: InstalledScanSnapshot,
+): CopyProviderDialogModel {
+  const sidebar = buildProviderSidebarModel(snapshot);
+  const installedIds = new Set(skill.providerIds.filter((id) => id !== UNIVERSAL_PROVIDER_ID));
+  const names = providerNameMap(snapshot);
+
+  const available = sidebar.activeProviders
+    .filter((p) => isEligibleCopyDestination(p, snapshot) && !installedIds.has(p.id))
+    .map(toCopyOption);
+
+  const installedFromSidebar = [...sidebar.activeProviders, ...sidebar.inactiveProviders]
+    .filter((p) => p.id !== UNIVERSAL_PROVIDER_ID && installedIds.has(p.id))
+    .map(toCopyOption);
+
+  const listedInstalled = new Set(installedFromSidebar.map((p) => p.id));
+  const installedExtra = [...installedIds]
+    .filter((id) => !listedInstalled.has(id))
+    .map((id) => ({ id, name: names.get(id) ?? id }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const other = sidebar.inactiveProviders
+    .filter((p) => isEligibleCopyDestination(p, snapshot) && !installedIds.has(p.id))
+    .map(toCopyOption);
+
+  return {
+    available,
+    installed: [...installedFromSidebar, ...installedExtra].sort((a, b) =>
+      a.name.localeCompare(b.name),
+    ),
+    other,
+  };
 }
 
 function sortSkills(skills: ScannedSkill[]): ScannedSkill[] {
@@ -118,6 +236,32 @@ export function filterSkillsForSelection(
   );
 
   return { primary, universalSection };
+}
+
+/** Case-insensitive local filter over name and catalog repo (`source`) when known. */
+export function filterSkillSectionsByQuery(
+  sections: FilteredSkillSections,
+  query: string,
+  catalogSourcesByKey: ReadonlyMap<string, string> = new Map(),
+): FilteredSkillSections {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) {
+    return sections;
+  }
+
+  const matches = (skill: ScannedSkill) => {
+    if (skill.name.toLowerCase().includes(normalized)) {
+      return true;
+    }
+    const source =
+      catalogSourcesByKey.get(skill.uninstallName) ?? catalogSourcesByKey.get(skill.name);
+    return source?.toLowerCase().includes(normalized) ?? false;
+  };
+
+  return {
+    primary: sections.primary.filter(matches),
+    universalSection: sections.universalSection ? sections.universalSection.filter(matches) : null,
+  };
 }
 
 function warningsFor(
@@ -214,10 +358,7 @@ function providerHasDirectSkills(provider: ScannedProvider): boolean {
  * True when the provider owns a skills directory distinct from Universal.
  * Agents like Cline share `~/.agents/skills` and must not get a sidebar row.
  */
-function hasDistinctSkillsDir(
-  provider: ScannedProvider,
-  universalSkillsDir: string,
-): boolean {
+function hasDistinctSkillsDir(provider: ScannedProvider, universalSkillsDir: string): boolean {
   return (
     provider.skillsDir != null &&
     provider.skillsDir !== '' &&

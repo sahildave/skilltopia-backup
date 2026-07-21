@@ -59,6 +59,7 @@ Backend: /api/skills* (OIDC via @vercel/oidc)             → https://skills.sh/
 | Hybrid debounced search   | `GET /api/skills/search?q=…&limit=50`               | Keyword skills.sh + Qdrant semantic search                                    |
 | Skill audits (cached)     | `GET /api/skills/audit?skill_id=…`                  | `GET /api/v1/skills/audit/{id}` + Supabase                                    |
 | Skill detail (page cache) | `GET /api/skills/detail?skill_id=…`                 | Supabase `page_snapshot` + install series (+ enrichment/related when present) |
+| Page-cache batch          | `GET /api/skills/page-cache?skill_ids=a,b,…`        | Supabase `page_snapshot` rows only (max 100 ids; for coverage/ops)            |
 
 Upstream auth: `Authorization: Bearer <Vercel OIDC token>`. Upstream rate limit: 600 requests/minute per (team, project). Errors: `400`, `401`, `404`, `429`, `503` (see upstream docs).
 
@@ -72,7 +73,7 @@ The proxy is a **credential amplifier**: anyone who can hit your deployment URL 
 - **Do not** add browser CORS on `/api/*` (web is same-origin; Tauri/Rust bypasses CORS; wildcard CORS only helps browser abuse).
 - **Do** deploy static web + `api/` on **one** Vercel project (same-origin `/api/*`), enable **OIDC Federation**, and point desktop Rust at that deployment URL.
 - Proxy hardening (in `api/`):
-  - **Query allowlist** — `/api/skills` allows only `view` (`all-time` \| `trending` \| `hot`), `page` (≥ 0), `per_page` (1–500). `/api/skills/search` allows only `q` (min 2 chars), `limit` (1–200), optional `owner`. `/api/skills/detail` and `/api/skills/audit` allow only `skill_id`. Unknown keys → `400`.
+  - **Query allowlist** — `/api/skills` allows only `view` (`all-time` \| `trending` \| `hot`), `page` (≥ 0), `per_page` (1–500). `/api/skills/search` allows only `q` (min 2 chars), `limit` (1–200), optional `owner`. `/api/skills/detail` and `/api/skills/audit` allow only `skill_id`. `/api/skills/page-cache` allows only `skill_ids` (comma-separated, 1–100). Unknown keys → `400`.
   - **In-memory IP rate limit** — fixed window, 60 req/min per client IP (`x-forwarded-for` / `x-real-ip`). Best-effort across Fluid Compute instances; not a substitute for Vercel Firewall/WAF rules on `/api/*` if you need harder abuse protection.
 - Proxy base URL resolution (Rust):
   1. Runtime env `SKILLS_PROXY_BASE_URL` (highest priority)

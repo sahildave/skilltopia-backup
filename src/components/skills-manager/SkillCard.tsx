@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge';
 import {
   Card,
   CardContent,
@@ -10,8 +9,9 @@ import {
 import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
 import { useReducedMotion } from 'motion/react';
 import { useTranslation } from 'react-i18next';
-import { providerTagsForSkill, type ProviderFilterId } from './installed-skills-model';
+import type { ProviderFilterId } from './installed-skills-model';
 import { SkillCardOverflowMenu } from './SkillCardOverflowMenu';
+import { SkillProviderBadges } from './SkillProviderBadges';
 
 export function SkillCard({
   skill,
@@ -32,6 +32,7 @@ export function SkillCard({
           <CardTitle className="truncate text-sm">{skill.name}</CardTitle>
           <SkillCardOverflowMenu
             skill={skill}
+            snapshot={snapshot}
             providerFilter={providerFilter}
             reduceMotion={reduceMotion}
           />
@@ -39,13 +40,7 @@ export function SkillCard({
         <CardDescription className="line-clamp-2 text-pretty">{skill.description}</CardDescription>
       </CardHeader>
       <CardContent className="px-4">
-        <div className="flex flex-wrap gap-1.5">
-          {providerTagsForSkill(skill, snapshot).map((tag) => (
-            <Badge key={tag} variant="outline">
-              {tag}
-            </Badge>
-          ))}
-        </div>
+        <SkillProviderBadges skill={skill} snapshot={snapshot} />
       </CardContent>
       <CardFooter className="text-muted-foreground justify-between border-t px-4 pt-4 text-xs">
         <span>{skill.scope}</span>

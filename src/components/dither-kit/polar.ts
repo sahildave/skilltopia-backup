@@ -81,12 +81,7 @@ export function pointInPolygon(px: number, py: number, poly: number[]): boolean 
     const yi = poly[i * 2 + 1];
     const xj = poly[j * 2];
     const yj = poly[j * 2 + 1];
-    if (
-      xi === undefined ||
-      yi === undefined ||
-      xj === undefined ||
-      yj === undefined
-    ) {
+    if (xi === undefined || yi === undefined || xj === undefined || yj === undefined) {
       continue;
     }
     if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) {
@@ -106,12 +101,7 @@ export function distToPolygonEdge(px: number, py: number, poly: number[]): numbe
     const yi = poly[i * 2 + 1];
     const xj = poly[j * 2];
     const yj = poly[j * 2 + 1];
-    if (
-      xi === undefined ||
-      yi === undefined ||
-      xj === undefined ||
-      yj === undefined
-    ) {
+    if (xi === undefined || yi === undefined || xj === undefined || yj === undefined) {
       continue;
     }
     const dx = xj - xi;

@@ -41,7 +41,7 @@ Usage: npm task:rename-done
 
 ## Release epic (from task-20)
 
-Open-source desktop distribution and launch. Numbered from **20** so they sit after current MVP todos (7–9) without renumbering. Work **20–21 today**; PH and App Store are later.
+Open-source desktop distribution and launch. Numbered from **20** so they sit after leftover MVP todos (8–11) without renumbering. Active priority is this epic; search latency work lives under unprioritized `task-x-post-mvp-*`. Work **20–21 today**; PH and App Store are later.
 
 | # | Task | When |
 |---|------|------|

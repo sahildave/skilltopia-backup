@@ -22,8 +22,6 @@ Desktop downloads are published from [GitHub Releases](https://github.com/sahild
 
 Public site: [skilltopia.coduo.co](https://skilltopia.coduo.co)
 
-TODO: rename the GitHub repository from `sahildave/skilltopia` to `sahildave/skilltopia` and update links to `https://github.com/sahildave/skilltopia`.
-
 ## Stack
 
 | Layer    | Technologies                               |

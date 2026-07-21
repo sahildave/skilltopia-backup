@@ -23,7 +23,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { DitherGradient } from '../dither-kit';
 
-export function LibraryToolbar({
+export function InstalledToolbar({
   title,
   description,
   skillCount,
@@ -63,23 +63,25 @@ export function LibraryToolbar({
   const { t } = useTranslation();
 
   return (
-    <div className="app-material border-border relative sticky top-0 z-10 flex min-w-0 flex-col border-b bg-background gap-4">
+    <div className="app-material border-border relative sticky top-0 z-10 flex min-w-0 flex-col border-b bg-background gap-0">
       <DitherGradient from="grey" />
-      <div className="relative flex min-w-0 flex-row flex-wrap items-center justify-between gap-4 p-8 pb-0 pt-16">
-        <div className="flex flex-row items-center gap-3">
-          {onBack ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onBack}
-              aria-label={t('skills.dashboard.back')}
-            >
-              <ArrowLeft data-icon="inline-start" />
-              {t('skills.dashboard.back')}
-            </Button>
-          ) : null}
-          {/* title description */}
-          <div className="flex min-w-0 flex-col items-start gap-2.5">
+
+      <div className="flex flex-row items-center gap-3">
+        {onBack ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onBack}
+            aria-label={t('skills.dashboard.back')}
+          >
+            <ArrowLeft data-icon="inline-start" />
+            {t('skills.dashboard.back')}
+          </Button>
+        ) : null}
+        {/* title description */}
+
+        <div className="relative flex min-w-0 w-full flex-row flex-wrap items-center justify-between gap-4 p-8 pb-4 pt-16">
+          <div className="flex min-w-0 flex-col px-1 items-start gap-2.5">
             <div className="flex min-w-0 flex-row items-start gap-2.5">
               <h1 className="text-3xl leading-none text-balance">{title}</h1>
               {skillCount !== null ? (
@@ -96,22 +98,7 @@ export function LibraryToolbar({
             </div>
             <p className="text-muted-foreground max-w-2xl text-sm text-pretty">{description}</p>
           </div>
-        </div>
-      </div>
-      {/* tabs section */}
-      <div className="relative flex min-w-0 flex-wrap items-center gap-3 px-8 pt-0 pb-4">
-        <div className="flex flex-row flex-wrap items-center justify-between w-full gap-2">
-          {onRescan ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRescan}
-              disabled={refreshing && !hasSnapshot}
-            >
-              {t('skills.installed.rescan')}
-            </Button>
-          ) : null}
-          <InputGroup className="h-8 w-full max-w-xs">
+          <InputGroup className="h-10 w-full max-w-sm shrink-0 rounded-xl bg-background!">
             <InputGroupAddon>
               <Search className="size-3.5" />
             </InputGroupAddon>
@@ -135,6 +122,23 @@ export function LibraryToolbar({
               </InputGroupAddon>
             ) : null}
           </InputGroup>
+        </div>
+      </div>
+
+      {/* tabs section */}
+      <div className="relative flex min-w-0 flex-wrap items-center gap-3 px-8 pt-0 pb-4">
+        <div className="flex flex-row flex-wrap items-center justify-between w-full gap-2">
+          {onRescan ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRescan}
+              disabled={refreshing && !hasSnapshot}
+            >
+              {t('skills.installed.rescan')}
+            </Button>
+          ) : null}
+
           <ContinuousTabs
             value={layoutMode}
             tabs={[

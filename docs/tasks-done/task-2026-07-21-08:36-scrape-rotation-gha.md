@@ -17,13 +17,13 @@ After the local ramp to ~100 cached skills, run daily hash/scrape rotation at sc
 
 ## Scope
 
-- [ ] Implement daily 200-skill rotation with the locked slot mix + dedupe
-- [ ] Always include **new** list members in the detail/scrape queue
-- [ ] Skip scrape until `hash` non-null; reuse task-2 scrape failure retry rules
-- [ ] Wire `/audit` refresh into rotation (hash change or 7-day stale)
-- [ ] GitHub Action schedule: daily list + rotation; one-shot/full sweep toward **1500** (fallback 1000)
-- [ ] Document dual OIDC projects, secrets, and how app vs ingest credentials are separated
-- [ ] Confirm OIDC usage stays within 600/min (batch pacing as needed)
+- [x] Implement daily 200-skill rotation with the locked slot mix + dedupe
+- [x] Always include **new** list members in the detail/scrape queue
+- [x] Skip scrape until `hash` non-null; reuse task-2 scrape failure retry rules
+- [x] Wire `/audit` refresh into rotation (hash change or 7-day stale)
+- [x] GitHub Action schedule: daily list + rotation; one-shot/full sweep toward **1500** (fallback 1000)
+- [x] Document dual OIDC projects, secrets, and how app vs ingest credentials are separated
+- [x] Confirm OIDC usage stays within 600/min (batch pacing as needed)
 
 ## Out of scope
 

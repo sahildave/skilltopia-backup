@@ -98,7 +98,7 @@ export function ContinuousTabs({
         size="sm"
         onValueChange={handleChange}
         className={cn(
-          'relative gap-0.5 rounded-full border border-border bg-muted p-1 shadow-none',
+          'relative gap-0.5 rounded-full border border-border bg-background p-1 shadow-none',
           className,
         )}
       >

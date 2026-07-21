@@ -271,7 +271,7 @@
   "skills.install.success": "Installed {{name}}",
   "skills.install.failed": "Couldn't install {{name}}",
   "skills.install.permissionError": "Install blocked by permissions or shell scope. Check npx access and try again.",
-  "skills.install.copyAction": "Copy",
+  "skills.install.copyAction": "Install",
   "skills.install.copyGlobal": "Copy global install command",
   "skills.install.copyProject": "Copy project install command",
   "skills.install.copied": "Copied install command for {{name}}",

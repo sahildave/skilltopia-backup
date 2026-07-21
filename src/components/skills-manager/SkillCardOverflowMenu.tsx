@@ -107,16 +107,31 @@ export function SkillCardOverflowMenu({
               : 'flex min-w-56 flex-col py-0.5'
           }
         >
-          <AnimatePresence custom={confirming} mode="popLayout" initial={false}>
-            {!confirming ? (
-              <motion.div
-                key="actions"
-                custom={confirming}
-                variants={rowVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                className="flex flex-col"
+          <MoreHorizontal aria-hidden />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="relative flex h-12 min-w-56 flex-col py-0.5">
+        <AnimatePresence custom={confirming} mode="popLayout" initial={false}>
+          {!confirming ? (
+            <motion.div
+              key="delete"
+              custom={confirming}
+              variants={rowVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              className="absolute inset-1"
+            >
+              <DropdownMenuItem
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
+                variant="destructive"
+                disabled={uninstalling}
+                onSelect={(event) => {
+                  event.preventDefault();
+                  setConfirming(true);
+                  setOpen(true);
+                }}
               >
                 {canCopy ? (
                   <DropdownMenuItem

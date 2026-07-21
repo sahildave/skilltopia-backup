@@ -10,7 +10,7 @@ export function BadgeWithHelp({ tooltip, className }: { tooltip: string; classNa
           <span
             role="button"
             tabIndex={0}
-            className="inline-flex size-4 items-center justify-center rounded-lg leading-none"
+            className="inline-flex size-4 text-[10px] items-center justify-center rounded-lg leading-none"
             aria-label={tooltip}
             onClick={(event) => event.stopPropagation()}
             onPointerDown={(event) => event.stopPropagation()}

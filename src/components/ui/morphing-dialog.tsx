@@ -1,3 +1,6 @@
+import { Slot } from '@radix-ui/react-slot';
+import { XIcon } from 'lucide-react';
+import { AnimatePresence, MotionConfig, motion, type Transition, type Variant } from 'motion/react';
 import {
   createContext,
   useContext,
@@ -77,7 +80,7 @@ function MorphingDialogTrigger({
     <Comp
       ref={triggerRef as Ref<HTMLButtonElement>}
       layoutId={`dialog-${uniqueId}`}
-      className={cn('relative cursor-pointer', isOpen && 'pointer-events-none', className)}
+      className={cn('relative', isOpen && 'pointer-events-none', className)}
       onClick={() => setIsOpen(!isOpen)}
       onKeyDown={(event: ReactKeyboardEvent) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -210,7 +213,9 @@ function MorphingDialogTitle({ children, className, style }: MorphingDialogTitle
       layout
       id={`morphing-dialog-title-${uniqueId}`}
     >
-      {children}
+      <div className="truncate text-balance line-clamp-1 font-semibold leading-normal">
+        {children}
+      </div>
     </motion.div>
   );
 }
@@ -230,7 +235,7 @@ function MorphingDialogSubtitle({ children, className, style }: MorphingDialogSu
       className={className}
       style={style}
     >
-      {children}
+      <div className="text-muted-foreground truncate text-sm text-pretty">{children}</div>
     </motion.div>
   );
 }
@@ -324,12 +329,12 @@ function MorphingDialogClose({ children, className, variants }: MorphingDialogCl
 
 export {
   MorphingDialog,
-  MorphingDialogTrigger,
+  MorphingDialogClose,
   MorphingDialogContainer,
   MorphingDialogContent,
-  MorphingDialogClose,
-  MorphingDialogTitle,
-  MorphingDialogSubtitle,
   MorphingDialogDescription,
   MorphingDialogImage,
+  MorphingDialogSubtitle,
+  MorphingDialogTitle,
+  MorphingDialogTrigger,
 };

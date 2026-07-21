@@ -1,8 +1,9 @@
 [package]
-name = "tauri-app"
+name = "skilltopia"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "Skilltopia is a platform for managing your AI agent skills and downloading them from the web."
+authors = ["Coduo Studio, LLC"]
+license = "MIT"
 edition = "2021"
 rust-version = "1.82"
 
@@ -59,4 +60,3 @@ lto = true               # Link-time optimizations
 opt-level = "s"          # Optimize for size over speed
 panic = "abort"          # Don't include panic unwinding code
 strip = true             # Remove debug symbols
-

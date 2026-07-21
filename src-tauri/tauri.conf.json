@@ -48,8 +48,8 @@
     ],
     "publisher": "Coduo Studio, LLC",
     "category": "DeveloperTool",
-    "shortDescription": "Skilltopia is a platform for managing your skills and projects.",
-    "longDescription": "Skilltopia is a platform for managing your skills and projects.",
+    "shortDescription": "Skilltopia is a platform for managing your AI agent skills and downloading them from the web.",
+    "longDescription": "Skilltopia is a platform for managing your AI agent skills and downloading them from the web. It is a tool for developers to create and manage their AI agent skills.",
     "copyright": "Copyright © 2026 Coduo. All rights reserved.",
     "macOS": {
       "frameworks": [],

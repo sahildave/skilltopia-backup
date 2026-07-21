@@ -1,8 +1,8 @@
-import { platform } from '@platform';
-import { useTranslation } from 'react-i18next';
+import { UNIVERSAL_PROVIDER_ID } from '@/platform/types';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
-import { UNIVERSAL_PROVIDER_ID } from '@/platform/types';
+import { platform } from '@platform';
+import { useTranslation } from 'react-i18next';
 import {
   ALL_AGENTS_FILTER_ID,
   contentWarningsForSelection,
@@ -50,6 +50,7 @@ function LocalInstalledSkillsView() {
     <div className="relative flex h-full flex-col">
       <LibraryToolbar
         title={t('skills.installed.title')}
+        description={t('skills.installed.description')}
         skillCount={skillCount}
         refreshing={refreshing}
         hasSnapshot={snapshot !== null}

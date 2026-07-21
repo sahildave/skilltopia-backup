@@ -4,12 +4,14 @@ import { ContinuousTabs } from '@/components/ui/continuous-tabs';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { LibraryLayoutMode } from '@/store/installed-skills-ui-store';
+import { platform } from '@platform';
 import { ArrowLeft, FolderOpen, LayoutGrid, LayoutList, LoaderCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { platform } from '@platform';
+import { DitherGradient } from '../dither-kit';
 
 export function LibraryToolbar({
   title,
+  description,
   skillCount,
   refreshing = false,
   hasSnapshot = false,
@@ -42,8 +44,9 @@ export function LibraryToolbar({
   const { t } = useTranslation();
 
   return (
-    <div className="flex flex-col gap-4 border-b p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="app-material border-border relative sticky top-0 z-10 flex min-w-0 flex-col border-b bg-background gap-4">
+      <DitherGradient from="grey" />
+      <div className="relative flex min-w-0 flex-row flex-wrap items-center justify-between gap-4 p-8 pb-0 pt-16">
         <div className="flex flex-row items-center gap-3">
           {onBack ? (
             <Button
@@ -56,22 +59,39 @@ export function LibraryToolbar({
               {t('skills.dashboard.back')}
             </Button>
           ) : null}
-          <div className="flex flex-row items-baseline gap-1">
-            <h1 className="text-2xl font-semibold text-balance">{title}</h1>
-            {skillCount !== null ? (
-              <Badge variant="secondary" className="tabular-nums">
-                {skillCount}
-              </Badge>
-            ) : null}
-            {refreshing ? (
-              <span className="text-muted-foreground inline-flex items-center gap-1.5 text-xs">
-                <LoaderCircle className="size-3.5 animate-spin" aria-hidden />
-                {t('skills.installed.refreshing')}
-              </span>
-            ) : null}
+          {/* title description */}
+          <div className="flex min-w-0 flex-col items-start gap-2.5">
+            <div className="flex min-w-0 flex-row items-start gap-2.5">
+              <h1 className="text-3xl leading-none text-balance">{title}</h1>
+              {skillCount !== null ? (
+                <Badge variant="secondary" className="tabular-nums">
+                  {skillCount}
+                </Badge>
+              ) : null}
+              {refreshing ? (
+                <span className="text-muted-foreground inline-flex items-center gap-1.5 text-xs">
+                  <LoaderCircle className="size-3.5 animate-spin" aria-hidden />
+                  {t('skills.installed.refreshing')}
+                </span>
+              ) : null}
+            </div>
+            <p className="text-muted-foreground max-w-2xl text-sm text-pretty">{description}</p>
           </div>
         </div>
-        <div className="flex flex-row items-center gap-2">
+      </div>
+      {/* tabs section */}
+      <div className="relative flex min-w-0 flex-wrap items-center gap-3 px-8 pt-0 pb-4">
+        <div className="flex flex-row items-center justify-between w-full gap-2">
+          {onRescan ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRescan}
+              disabled={refreshing && !hasSnapshot}
+            >
+              {t('skills.installed.rescan')}
+            </Button>
+          ) : null}
           <ContinuousTabs
             value={layoutMode}
             tabs={[
@@ -92,19 +112,8 @@ export function LibraryToolbar({
               }
             }}
           />
-          {onRescan ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRescan}
-              disabled={refreshing && !hasSnapshot}
-            >
-              {t('skills.installed.rescan')}
-            </Button>
-          ) : null}
         </div>
       </div>
-
       {pathInfo ? (
         <div className="flex flex-wrap items-center gap-2">
           <button

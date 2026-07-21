@@ -50,7 +50,7 @@ describe('SkillsLibraryView (web)', () => {
     render(<SkillsLibraryView />);
 
     expect(screen.getByRole('heading', { name: 'Installed' })).toBeInTheDocument();
-    expect(screen.getByText(/local skill library lives on disk/i)).toBeInTheDocument();
+    expect(screen.getByText(/local skill library lives on your device/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Get the desktop app' }));
 

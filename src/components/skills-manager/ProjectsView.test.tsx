@@ -22,7 +22,7 @@ describe('ProjectsView (web)', () => {
     render(<ProjectsView />);
 
     expect(screen.getByRole('heading', { name: 'Projects' })).toBeInTheDocument();
-    expect(screen.getByText(/project folders are available/i)).toBeInTheDocument();
+    expect(screen.getByText(/specific projects can only be fetched/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Get the desktop app' }));
 

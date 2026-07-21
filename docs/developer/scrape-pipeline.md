@@ -34,15 +34,26 @@ Vercel project’s OIDC for scrape/enrich batch work so you do not share the app
 Backend’s 600/min budget. See [infisical.md](./infisical.md) and
 [external-apis.md](./external-apis.md).
 
-HTML page fetches are unauthenticated (`https://skills.sh/...`).
+HTML page fetches are unauthenticated. GitHub skills use
+`https://www.skills.sh/{owner}/{repo}/{skill}`; well-known skills use
+`https://www.skills.sh/site/{domain}/{skill}` (detail API omits `url`, so the
+scrape reconstructs from id shape — see `skillPageUrl`). API `source` is
+classified into `skill_metadata.repository` (GitHub `owner/repo`) or
+`skill_metadata.source` (external origin URL). `source_url` remains the
+skills.sh page URL. HTML parsing also stores `page_snapshot.repository` /
+`page_snapshot.source` from the Repository vs Source labels.
 
 ```bash
 MAX_ENRICHED=20 npm run scrape:local
+# Re-scrape specific skills (skips leaderboard; does not use MAX_ENRICHED as the count)
+SKILL_IDS=open.feishu.cn/lark-approval,open.feishu.cn/lark-doc npm run scrape:local
 MAX_ENRICHED=1500 npm run scrape:sweep   # or 1000 fallback; see rotation-pipeline.md
 ```
 
 Invalid/missing `MAX_ENRICHED` defaults to **500**; hard-capped at **1500**. Progress
-logs go to stderr; a JSON summary goes to stdout.
+logs go to stderr; a JSON summary goes to stdout. **Ctrl+C** aborts after the current
+skill (second Ctrl+C force-quits). Without `SKILL_IDS`, `scrape:local` always walks
+the leaderboard cap — that env is ignored unless this script reads it (it does now).
 
 Batch jobs should use the **ingest** Vercel project’s OIDC (not the app Backend).
 See [ingest-oidc.md](./ingest-oidc.md). Daily rotation:

@@ -11,10 +11,13 @@ Do these before local scrape or GHA will succeed.
 ### 1. Supabase migration
 
 Apply all files under `supabase/migrations/` to the **dev** (and later **prod**)
-project, including `20260720160027_skill_page_cache.sql`:
+project, including `20260720160027_skill_page_cache.sql` and
+`20260721030000_skill_source_column.sql`:
 
-- `skill_metadata`: `page_snapshot`, `audits`, `audits_fetched_at`, `page_scraped_at`
+- `skill_metadata`: `page_snapshot`, `audits`, `audits_fetched_at`, `page_scraped_at`, `source`
 - table `skill_install_snapshots` (`skill_id`, `date`, `installs`)
+- `source` holds external non-GitHub origins; host-like values previously in
+  `repository` are moved there by the migration
 
 ```bash
 # linked project / your usual flow
@@ -127,10 +130,11 @@ Same effect via GitHub Actions → **Ingest** workflow → `workflow_dispatch` �
 | npm script               | What it runs                         | OIDC shape                                      |
 | ------------------------ | ------------------------------------ | ----------------------------------------------- |
 | `list-snapshots:local`   | Leaderboard list → installs + snapshots | List pages only                              |
-| `scrape:local`           | Cap via `MAX_ENRICHED` — detail + HTML + audit refresh | Detail (+ audit when stale) per skill |
+| `scrape:local`           | Cap via `MAX_ENRICHED`, or `SKILL_IDS=a,b` for an explicit list | Detail (+ audit when stale) per skill |
 | `rotate:local`           | 200-slot rotation + empty-hash queue | Same as scrape on selected ids                  |
 | `ingest:daily`           | List then rotation                   | List + rotation                                 |
 | `scrape:sweep`           | One-shot scrape to `MAX_ENRICHED`    | Same as scrape; long run                        |
+| `page-cache:coverage`    | TSV/canvas of cached snapshot fields | None (public Backend detail)                    |
 | `enrich:local`           | LLM enrichment (optional)            | Detail + provider APIs; not required for UI cache |
 
 Pipeline docs: [list-snapshots-pipeline.md](./list-snapshots-pipeline.md),
@@ -158,3 +162,18 @@ Pipeline docs: [list-snapshots-pipeline.md](./list-snapshots-pipeline.md),
 - App: open a cached skill in the detail dialog (page fields + audits +
   sparkline when series exist).
 - Uncached skill: still gets on-demand audits from the app Backend.
+- Field coverage (summary / weekly installs / etc.) against the Backend
+  detail cache — TSV on stdout; optional Cursor canvas:
+
+```bash
+MAX_ENRICHED=20 npm run page-cache:coverage -- --canvas
+MAX_ENRICHED=50 npm run page-cache:coverage -- --canvas
+# SKILL_IDS=owner/repo/a,owner/repo/b npm run page-cache:coverage
+```
+
+  Coverage is tiered: **primary** (`source`/`repository` as alternatives,
+  `summary`, installs), **secondary** (`skillMdPreview`, `installCommand`),
+  **tertiary** (`topics`, `related`, `stars`, `firstSeen`). Columns follow that
+  order plus `d1`–`d8` weekly values. `MISSING` cells are gaps to compare on the
+  skills.sh page URL (`/site/{id}` for well-known skills,
+  `/{owner}/{repo}/{skill}` for GitHub).

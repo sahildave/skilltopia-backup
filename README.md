@@ -11,11 +11,10 @@ Skilltopia is created by Coduo Studio, LLC. The main creators are [Sahil Dave](h
 ## Downloads
 
 <!-- downloads:start -->
-
-- [Apple Silicon macOS (.dmg)](https://github.com/sahildave/skilltopia/releases/latest/download/Skilltopia_0.3.0_aarch64.dmg)
+- [Apple Silicon macOS (.dmg)](https://github.com/sahildave/skilltopia/releases/latest/download/Skilltopia_0.5.0_aarch64.dmg)
 - [Intel macOS](https://github.com/sahildave/skilltopia/releases/latest)
-- [Windows](https://github.com/sahildave/skilltopia/releases/latest/download/Skilltopia_0.3.0_x64_en-US.msi)
-- [Linux (.AppImage)](https://github.com/sahildave/skilltopia/releases/latest/download/Skilltopia_0.3.0_amd64.AppImage)
+- [Windows](https://github.com/sahildave/skilltopia/releases/latest/download/Skilltopia_0.5.0_x64_en-US.msi)
+- [Linux (.AppImage)](https://github.com/sahildave/skilltopia/releases/latest/download/Skilltopia_0.5.0_amd64.AppImage)
 <!-- downloads:end -->
 
 Apple Silicon, Windows, and Linux links point straight to the latest published asset and should start downloading immediately. Intel macOS currently falls back to the latest release page until those bundle assets are attached there.

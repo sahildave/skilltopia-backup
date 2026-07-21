@@ -117,7 +117,7 @@ export function SkillCardOverflowMenu({
                   }}
                 />
               ) : null}
-              <div className="relative mt-2 h-14 overflow-hidden border-t border-border pt-2">
+              <div className="relative mt-2 h-10 overflow-hidden border-t border-border pt-2">
                 <AnimatePresence custom={confirming} mode="popLayout" initial={false}>
                   {!confirming ? (
                     <motion.div
@@ -150,6 +150,7 @@ export function SkillCardOverflowMenu({
                       <Button
                         variant="destructive"
                         disabled={uninstalling}
+                        size="sm"
                         onClick={() => void handleUninstall()}
                         className="flex-1 disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -158,6 +159,7 @@ export function SkillCardOverflowMenu({
 
                       <Button
                         variant="secondary"
+                        size="sm"
                         disabled={uninstalling}
                         onClick={() => setConfirming(false)}
                         className="flex-1"

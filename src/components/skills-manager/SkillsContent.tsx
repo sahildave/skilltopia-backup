@@ -1,10 +1,10 @@
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { PlaceholderGrid } from './PlaceholderGrid';
+import { ProjectsView } from './ProjectsView';
 import { SkillsDashboardView } from './SkillsDashboardView';
 import { SkillsLibraryView } from './SkillsLibraryView';
-import { PlaceholderGrid } from './PlaceholderGrid';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { useInstalledScanLifecycle } from './use-installed-scan-lifecycle';
 import type { SkillsNavId } from './types';
-import { ProjectsView } from './ProjectsView';
+import { useInstalledScanLifecycle } from './use-installed-scan-lifecycle';
 
 interface SkillsContentProps {
   active: SkillsNavId;

@@ -203,9 +203,17 @@ function skillsForProvider(snapshot: InstalledScanSnapshot, providerId: string):
   return sortSkills(snapshot.skills.filter((skill) => skill.providerIds.includes(providerId)));
 }
 
+function isUniversalRegistryProvider(
+  snapshot: InstalledScanSnapshot,
+  providerId: string,
+): boolean {
+  return snapshot.providers.some((provider) => provider.id === providerId && provider.universal);
+}
+
 /**
- * Filter skills for the content area.
- * Non-Universal providers use direct directory associations only.
+ * Skills a sidebar selection can invoke.
+ * Universal-registry agents (Codex, Cursor, …) also load `~/.agents/skills`.
+ * Non-universal agents only see their direct directory associations.
  */
 export function filterSkillsForSelection(
   snapshot: InstalledScanSnapshot,
@@ -217,6 +225,18 @@ export function filterSkillsForSelection(
 
   if (selection === UNIVERSAL_PROVIDER_ID) {
     return { primary: skillsForProvider(snapshot, UNIVERSAL_PROVIDER_ID) };
+  }
+
+  if (isUniversalRegistryProvider(snapshot, selection)) {
+    return {
+      primary: sortSkills(
+        snapshot.skills.filter(
+          (skill) =>
+            skill.providerIds.includes(selection) ||
+            skill.providerIds.includes(UNIVERSAL_PROVIDER_ID),
+        ),
+      ),
+    };
   }
 
   return { primary: skillsForProvider(snapshot, selection) };
@@ -249,9 +269,9 @@ export function filterSkillSectionsByQuery(
 
 /**
  * Apply the Installed Skills toolbar view after provider/sidebar filtering.
- * Provider means a real, provider-specific directory with no Universal copy;
- * Available means a Universal skill or a provider entry that resolves through
- * a symlink.
+ * Provider = real folders in a provider-specific directory.
+ * Available = Universal skills and/or provider entries that resolve through a
+ * symlink (shared slash commands an agent can use).
  */
 export function filterSkillSectionsByView(
   sections: FilteredSkillSections,
@@ -266,14 +286,11 @@ export function filterSkillSectionsByView(
     const hasSymlink = skill.paths.some((entry) => Boolean(entry.originalPath));
     if (view === 'available') return hasUniversalPath || hasSymlink;
 
-    return (
-      !hasUniversalPath &&
-      skill.paths.some(
-        (entry) =>
-          !entry.originalPath &&
-          !entry.path.startsWith(universalDir) &&
-          skill.providerIds.some((providerId) => providerId !== UNIVERSAL_PROVIDER_ID),
-      )
+    return skill.paths.some(
+      (entry) =>
+        !entry.originalPath &&
+        !entry.path.startsWith(universalDir) &&
+        skill.providerIds.some((providerId) => providerId !== UNIVERSAL_PROVIDER_ID),
     );
   };
 
@@ -352,26 +369,6 @@ function sortProvidersByCountThenName(a: ProviderSidebarItem, b: ProviderSidebar
   return b.skillCount - a.skillCount || a.name.localeCompare(b.name);
 }
 
-function scannedProviderItem(
-  provider: ScannedProvider,
-  snapshot: InstalledScanSnapshot,
-  inActiveList: boolean,
-): ProviderSidebarItem {
-  return {
-    id: provider.id,
-    name: provider.name,
-    skillCount: provider.skillCount,
-    skillsDir: provider.skillsDir,
-    skillsDirExists: provider.skillsDirExists,
-    active: inActiveList,
-    warnings: warningsFor(snapshot, provider.id),
-  };
-}
-
-function providerHasDirectSkills(provider: ScannedProvider): boolean {
-  return provider.skillCount > 0;
-}
-
 /**
  * True when the provider owns a skills directory distinct from Universal.
  * Agents like Cline share `~/.agents/skills` and must not get a sidebar row.
@@ -384,11 +381,51 @@ function hasDistinctSkillsDir(provider: ScannedProvider, universalSkillsDir: str
   );
 }
 
+/** Count skills a provider row can invoke (Universal agents include Universal). */
+function providerInvocableSkillCount(
+  provider: ScannedProvider,
+  snapshot: InstalledScanSnapshot,
+): number {
+  if (provider.universal && hasDistinctSkillsDir(provider, snapshot.universal.skillsDir)) {
+    return snapshot.skills.filter(
+      (skill) =>
+        skill.providerIds.includes(provider.id) ||
+        skill.providerIds.includes(UNIVERSAL_PROVIDER_ID),
+    ).length;
+  }
+  return provider.skillCount;
+}
+
+function scannedProviderItem(
+  provider: ScannedProvider,
+  snapshot: InstalledScanSnapshot,
+  inActiveList: boolean,
+): ProviderSidebarItem {
+  return {
+    id: provider.id,
+    name: provider.name,
+    skillCount: providerInvocableSkillCount(provider, snapshot),
+    skillsDir: provider.skillsDir,
+    skillsDirExists: provider.skillsDirExists,
+    active: inActiveList,
+    warnings: warningsFor(snapshot, provider.id),
+  };
+}
+
+function providerHasListableSkills(
+  provider: ScannedProvider,
+  snapshot: InstalledScanSnapshot,
+): boolean {
+  return providerInvocableSkillCount(provider, snapshot) > 0;
+}
+
 /** Build sidebar rows from the scan snapshot + full registry. */
 export function buildProviderSidebarModel(snapshot: InstalledScanSnapshot): ProviderSidebarModel {
   const universalSkillsDir = snapshot.universal.skillsDir;
   const filledProviderIds = new Set(
-    snapshot.providers.filter((p) => p.detected && providerHasDirectSkills(p)).map((p) => p.id),
+    snapshot.providers
+      .filter((p) => p.detected && providerHasListableSkills(p, snapshot))
+      .map((p) => p.id),
   );
   const scannedById = new Map(snapshot.providers.map((p) => [p.id, p]));
 
@@ -410,19 +447,20 @@ export function buildProviderSidebarModel(snapshot: InstalledScanSnapshot): Prov
       (p) =>
         p.detected &&
         !p.universal &&
-        providerHasDirectSkills(p) &&
+        providerHasListableSkills(p, snapshot) &&
         hasDistinctSkillsDir(p, universalSkillsDir),
     )
     .map((p) => scannedProviderItem(p, snapshot, true))
     .sort(sortProvidersByCountThenName);
 
-  // Detected universal-registry agents with their own dir (e.g. Cursor) still appear.
+  // Detected universal-registry agents with their own dir (e.g. Codex) still appear.
+  // Counts include Universal skills those agents can invoke without a local copy.
   const detectedUniversalAgents = snapshot.providers
     .filter(
       (p) =>
         p.detected &&
         p.universal &&
-        providerHasDirectSkills(p) &&
+        providerHasListableSkills(p, snapshot) &&
         hasDistinctSkillsDir(p, universalSkillsDir),
     )
     .map((p) => scannedProviderItem(p, snapshot, true))

@@ -67,8 +67,8 @@ function LocalInstalledSkillsView() {
       : null;
   const toolbarTitle =
     providerFilter === ALL_AGENTS_FILTER_ID
-      ? t('skills.installed.allAgents')
-      : (selectedProviderItem?.name ?? t('skills.installed.title'));
+      ? t('skills.nav.installed')
+      : (selectedProviderItem?.name ?? t('skills.nav.installed'));
   const toolbarCount =
     providerFilter === ALL_AGENTS_FILTER_ID
       ? (sidebarModel?.allAgentsCount ?? null)

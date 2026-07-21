@@ -11,6 +11,7 @@ import {
   useSyncExternalStore,
   type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
   type Ref,
   type RefObject,
@@ -56,6 +57,17 @@ function MorphingDialog({ children, transition }: MorphingDialogProps) {
   );
 }
 
+const NESTED_INTERACTIVE_SELECTOR =
+  'button, a, input, textarea, select, [role="menuitem"], [role="option"]';
+
+function isNestedInteractiveTarget(target: EventTarget | null, currentTarget: EventTarget | null) {
+  if (!(target instanceof Element) || !(currentTarget instanceof Element)) {
+    return false;
+  }
+  const interactive = target.closest(NESTED_INTERACTIVE_SELECTOR);
+  return interactive != null && interactive !== currentTarget;
+}
+
 interface MorphingDialogTriggerProps {
   children: ReactNode;
   className?: string;
@@ -78,12 +90,21 @@ function MorphingDialogTrigger({
       ref={triggerRef as Ref<HTMLButtonElement>}
       layoutId={`dialog-${uniqueId}`}
       className={cn('relative', isOpen && 'pointer-events-none', className)}
-      onClick={() => setIsOpen(!isOpen)}
-      onKeyDown={(event: ReactKeyboardEvent) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          setIsOpen(!isOpen);
+      onClick={(event: ReactMouseEvent) => {
+        if (isNestedInteractiveTarget(event.target, event.currentTarget)) {
+          return;
         }
+        setIsOpen(!isOpen);
+      }}
+      onKeyDown={(event: ReactKeyboardEvent) => {
+        if (event.key !== 'Enter' && event.key !== ' ') {
+          return;
+        }
+        if (isNestedInteractiveTarget(event.target, event.currentTarget)) {
+          return;
+        }
+        event.preventDefault();
+        setIsOpen(!isOpen);
       }}
       style={{ ...style, opacity: isOpen ? 0 : 1 }}
       aria-haspopup="dialog"

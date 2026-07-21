@@ -8,7 +8,7 @@ import {
 export type LibraryLayoutMode = 'grid' | 'list';
 
 interface InstalledSkillsUiState {
-  /** Provider filter; defaults to All Agents; session-only (no persist). */
+  /** Provider filter; defaults to all installed skills; session-only (no persist). */
   providerFilter: ProviderFilterId;
   /** Grid/list layout for installed skill items; session-only. */
   layoutMode: LibraryLayoutMode;

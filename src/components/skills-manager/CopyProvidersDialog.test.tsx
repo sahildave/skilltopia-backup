@@ -133,7 +133,8 @@ describe('CopyProvidersDialog', () => {
 
     expect(screen.getByRole('button', { name: /^copy$/i })).toBeDisabled();
     expect(screen.getByText(/select providers to copy/i)).toBeInTheDocument();
-    expect(screen.getByText(/no available providers for this skill/i)).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /^cursor$/i })).toBeInTheDocument();
+    expect(screen.queryByText(/no available providers for this skill/i)).not.toBeInTheDocument();
 
     await user.click(screen.getByText(/already installed/i));
     expect(screen.getByRole('checkbox', { name: /claude code/i })).toBeDisabled();

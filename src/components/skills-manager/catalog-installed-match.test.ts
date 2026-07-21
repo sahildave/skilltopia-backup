@@ -4,8 +4,10 @@ import { MOCK_INSTALLED_SCAN } from '@/platform/fixtures';
 import {
   catalogSourceForScannedSkill,
   catalogSourcesByInstalledKey,
+  findScannedSkillForCatalog,
   installedSkillKeysFromSnapshot,
   isCatalogSkillInstalled,
+  scannedSkillsByKey,
 } from './catalog-installed-match';
 
 function catalogSkill(
@@ -61,6 +63,31 @@ describe('catalog-installed-match', () => {
         keys,
       ),
     ).toBe(true);
+  });
+
+  it('finds the scanned skill by slug or id tail', () => {
+    const byKey = scannedSkillsByKey(MOCK_INSTALLED_SCAN.skills);
+    expect(
+      findScannedSkillForCatalog(
+        catalogSkill({ id: 'vercel-labs/skills/find-skills', slug: 'find-skills' }),
+        byKey,
+      )?.name,
+    ).toBe('find-skills');
+    expect(
+      findScannedSkillForCatalog(
+        catalogSkill({
+          id: 'anthropics/skills/frontend-design',
+          slug: 'Frontend Design',
+        }),
+        byKey,
+      )?.uninstallName,
+    ).toBe('frontend-design');
+    expect(
+      findScannedSkillForCatalog(
+        catalogSkill({ id: 'other/repo/missing-skill', slug: 'missing-skill' }),
+        byKey,
+      ),
+    ).toBeUndefined();
   });
 
   it('maps catalog source onto installed keys', () => {

@@ -10,32 +10,28 @@ export function SkillSurfaceCard({
   headerTrailing,
   footerLeading,
   footerTrailing,
-  compact = false,
 }: {
   title: ReactNode;
   subtitle: ReactNode;
   headerTrailing?: ReactNode;
   footerLeading?: ReactNode;
   footerTrailing?: ReactNode;
-  compact?: boolean;
 }) {
   return (
-    <div className={compact ? 'w-75 max-w-75 shrink-0' : undefined}>
-      <Card className={SURFACE_CARD_CLASS}>
-        <CardHeader className="px-4 gap-1.5">
-          <div className="relative flex items-start justify-between gap-2 text-base">
-            {title}
-            {headerTrailing ? (
-              <div className="absolute top-1 right-1 shrink-0">{headerTrailing}</div>
-            ) : null}
-          </div>
-          {subtitle}
-        </CardHeader>
-        <CardFooter className="flex-wrap justify-between gap-1 px-4 pt-0">
-          {footerLeading}
-          {footerTrailing}
-        </CardFooter>
-      </Card>
-    </div>
+    <Card className={SURFACE_CARD_CLASS}>
+      <CardHeader className="px-4 gap-1.5">
+        <div className="relative flex items-start justify-between gap-2 text-base">
+          {title}
+          {headerTrailing ? (
+            <div className="absolute top-0 right-1 shrink-0">{headerTrailing}</div>
+          ) : null}
+        </div>
+        {subtitle}
+      </CardHeader>
+      <CardFooter className="flex-wrap justify-between gap-1 px-4 pt-0">
+        {footerLeading}
+        {footerTrailing}
+      </CardFooter>
+    </Card>
   );
 }

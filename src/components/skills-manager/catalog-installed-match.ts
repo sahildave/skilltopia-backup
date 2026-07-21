@@ -25,6 +25,31 @@ export function isCatalogSkillInstalled(skill: SkillsShSkill, keys: Set<string>)
   return idTail !== undefined && keys.has(idTail);
 }
 
+/** Map local uninstallName / name → scanned skill. First skill wins on key collision. */
+export function scannedSkillsByKey(skills: ScannedSkill[]): Map<string, ScannedSkill> {
+  const map = new Map<string, ScannedSkill>();
+  for (const skill of skills) {
+    if (!map.has(skill.uninstallName)) {
+      map.set(skill.uninstallName, skill);
+    }
+    if (!map.has(skill.name)) {
+      map.set(skill.name, skill);
+    }
+  }
+  return map;
+}
+
+/** Resolve the local scan row for a catalog skill (same key rules as {@link isCatalogSkillInstalled}). */
+export function findScannedSkillForCatalog(
+  skill: SkillsShSkill,
+  byKey: ReadonlyMap<string, ScannedSkill>,
+): ScannedSkill | undefined {
+  const bySlug = byKey.get(skill.slug);
+  if (bySlug) return bySlug;
+  const idTail = skill.id.split('/').filter(Boolean).at(-1);
+  return idTail !== undefined ? byKey.get(idTail) : undefined;
+}
+
 /**
  * Map local uninstallName / name keys → catalog `source` (owner/repo).
  * First catalog hit wins when multiple skills share a slug.

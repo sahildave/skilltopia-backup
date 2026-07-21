@@ -40,7 +40,10 @@ export function SkillProviderBadges({
                 {label}
               </Badge>
             </TooltipTrigger>
-            <TooltipContent side="top" className="whitespace-pre-line">
+            <TooltipContent
+              side="top"
+              className="max-h-48 overflow-y-auto whitespace-pre-line text-left"
+            >
               {tooltipText}
             </TooltipContent>
           </Tooltip>

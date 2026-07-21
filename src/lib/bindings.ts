@@ -233,6 +233,18 @@ async revealProviderSkillsDir(providerId: string) : Promise<Result<boolean, stri
 }
 },
 /**
+ * Reveal an arbitrary filesystem path in Finder/Explorer.
+ * Returns `false` when the path is missing. Does not rescan skills.
+ */
+async revealPath(path: string) : Promise<Result<boolean, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("reveal_path", { path }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Delete one skill folder from the Universal `~/.agents/skills` cache.
  * Returns `false` when the folder is already missing.
  */
@@ -288,7 +300,7 @@ export type CopyProviderStatus = "copied" | "conflict" | "failed"
 export type CopySkillToProvidersResult = { results: CopyProviderResult[] }
 export type InstalledScanSnapshot = { scannedAt: string; source: ProviderRegistrySourceMeta; universal: UniversalScanInfo; providers: ScannedProvider[]; skills: ScannedSkill[]; warnings: ScanWarning[] }
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
-export type ProjectInfo = { name: string; path: string; depth: number }
+export type ProjectInfo = { name: string; path: string; depth: number; skillCount: number }
 export type ProviderRegistrySourceMeta = { repositoryUrl: string; commit: string; license: string; attribution: string }
 /**
  * Error types for recovery operations (typed for frontend matching)

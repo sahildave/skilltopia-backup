@@ -1,7 +1,7 @@
 //! Scan global skill directories and build a normalized snapshot.
 
 use crate::utils::platform::normalize_path_for_serialization;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -13,7 +13,8 @@ use super::paths::{
 };
 use super::types::{
     InstalledScanSnapshot, ProjectInfo, ProviderRegistrySourceMeta, ScanWarning, ScanWarningCode,
-    ScannedProvider, ScannedSkill, ScannedSkillPath, UniversalScanInfo, UNIVERSAL_PROVIDER_ID,
+    ScannedProvider, ScannedSkill, ScannedSkillPath, UniversalScanInfo, PROJECT_AGENTS_PROVIDER_ID,
+    UNIVERSAL_PROVIDER_ID,
 };
 
 #[derive(Debug, Clone)]
@@ -440,10 +441,37 @@ fn project_marker(path: &Path) -> bool {
     .any(|marker| path.join(marker).exists())
 }
 
+/// Count unique project-local skills without building a full scan snapshot.
+fn count_project_skills(
+    project_path: &Path,
+    registry: &RegistryFile,
+    include_internal: bool,
+) -> u32 {
+    let mut names = BTreeSet::new();
+    let universal_dir = project_path.join(".agents/skills");
+    if universal_dir.is_dir() {
+        let outcome = scan_skills_dir(&universal_dir, include_internal, None);
+        for (name, _, _) in outcome.skills {
+            names.insert(name);
+        }
+    }
+    for provider in &registry.providers {
+        let skills_dir = project_path.join(&provider.skills_dir);
+        if skills_dir == universal_dir || !skills_dir.is_dir() {
+            continue;
+        }
+        let outcome = scan_skills_dir(&skills_dir, include_internal, None);
+        for (name, _, _) in outcome.skills {
+            names.insert(name);
+        }
+    }
+    names.len() as u32
+}
+
 /// Discover project directories one or two levels below the selected root.
 /// A marked project stops traversal, preventing nested package directories from
 /// being reported as separate projects.
-pub fn list_projects(root: &Path) -> Result<Vec<ProjectInfo>, String> {
+pub fn list_projects(root: &Path, ctx: &ScanContext) -> Result<Vec<ProjectInfo>, String> {
     if !root.is_dir() {
         return Err(format!(
             "Coding folder is not a directory: {}",
@@ -451,6 +479,7 @@ pub fn list_projects(root: &Path) -> Result<Vec<ProjectInfo>, String> {
         ));
     }
 
+    let registry = load_registry()?;
     let mut marked = Vec::new();
     let mut unmarked = Vec::new();
     let first_level = fs::read_dir(root)
@@ -485,10 +514,12 @@ pub fn list_projects(root: &Path) -> Result<Vec<ProjectInfo>, String> {
         .into_iter()
         .filter_map(|(path, depth)| {
             let name = path.file_name()?.to_str()?.to_string();
+            let skill_count = count_project_skills(&path, &registry, ctx.include_internal);
             Some(ProjectInfo {
                 name,
                 path: normalize_path_for_serialization(&path),
                 depth,
+                skill_count,
             })
         })
         .collect::<Vec<_>>();
@@ -518,7 +549,7 @@ pub fn scan_project(
         let outcome = scan_skills_dir(
             &universal_dir,
             ctx.include_internal,
-            Some(UNIVERSAL_PROVIDER_ID),
+            Some(PROJECT_AGENTS_PROVIDER_ID),
         );
         warnings.extend(outcome.warnings);
         for (name, description, path) in outcome.skills {
@@ -527,7 +558,7 @@ pub fn scan_project(
                 &mut skills_map,
                 name,
                 description,
-                UNIVERSAL_PROVIDER_ID,
+                PROJECT_AGENTS_PROVIDER_ID,
                 path,
             );
         }
@@ -540,10 +571,10 @@ pub fn scan_project(
                 ScanWarningCode::SkillsDirMissing
             },
             message: format!(
-                "Project Universal skills directory missing or empty: {}",
+                "Project .agents/skills directory missing or empty: {}",
                 normalize_path_for_serialization(&universal_dir)
             ),
-            provider_id: Some(UNIVERSAL_PROVIDER_ID.into()),
+            provider_id: Some(PROJECT_AGENTS_PROVIDER_ID.into()),
             path: Some(normalize_path_for_serialization(&universal_dir)),
         });
     }
@@ -556,16 +587,8 @@ pub fn scan_project(
         let mut count = 0;
         if shares_universal {
             count = universal_count;
-            for skill in skills_map.values_mut() {
-                if skill
-                    .provider_ids
-                    .iter()
-                    .any(|id| id == UNIVERSAL_PROVIDER_ID)
-                    && !skill.provider_ids.iter().any(|id| id == &provider.id)
-                {
-                    skill.provider_ids.push(provider.id.clone());
-                }
-            }
+            // Do not tag project `.agents` skills with global provider ids (cursor,
+            // claude-code, registry `universal`, …). Those ids mean home installs.
         } else if exists {
             let outcome = scan_skills_dir(&skills_dir, ctx.include_internal, Some(&provider.id));
             warnings.extend(outcome.warnings);
@@ -790,14 +813,36 @@ mod tests {
         fs::write(root.join("projects/nested/package.json"), "{}").unwrap();
         fs::create_dir_all(root.join("projects/not-a-project")).unwrap();
 
-        let projects = list_projects(&root).unwrap();
+        let projects = list_projects(&root, &scan_ctx(&root)).unwrap();
         assert_eq!(projects.len(), 2);
         assert_eq!(projects[0].depth, 1);
         assert_eq!(projects[1].depth, 2);
+        assert_eq!(projects[0].skill_count, 0);
+        assert_eq!(projects[1].skill_count, 0);
     }
 
     #[test]
-    fn scans_project_universal_skills_with_project_scope() {
+    fn list_projects_counts_project_local_skills() {
+        let root = temp_home("projects-skills");
+        fs::create_dir_all(root.join("with-skills/.git")).unwrap();
+        write_skill(
+            &root.join("with-skills/.agents/skills"),
+            "local-skill",
+            "local-skill",
+            "Project skill",
+        );
+        fs::create_dir_all(root.join("empty/.git")).unwrap();
+
+        let projects = list_projects(&root, &scan_ctx(&root)).unwrap();
+        assert_eq!(projects.len(), 2);
+        let with_skills = projects.iter().find(|p| p.name == "with-skills").unwrap();
+        let empty = projects.iter().find(|p| p.name == "empty").unwrap();
+        assert_eq!(with_skills.skill_count, 1);
+        assert_eq!(empty.skill_count, 0);
+    }
+
+    #[test]
+    fn scans_project_agents_skills_with_project_scope() {
         let root = temp_home("project-scan");
         let project = root.join("project");
         write_skill(
@@ -812,7 +857,11 @@ mod tests {
         assert_eq!(snapshot.skills[0].scope, "project");
         assert!(snapshot.skills[0]
             .provider_ids
-            .contains(&"universal".to_string()));
+            .contains(&PROJECT_AGENTS_PROVIDER_ID.to_string()));
+        assert!(!snapshot.skills[0]
+            .provider_ids
+            .contains(&UNIVERSAL_PROVIDER_ID.to_string()));
+        assert_eq!(snapshot.skills[0].provider_ids, vec![PROJECT_AGENTS_PROVIDER_ID.to_string()]);
     }
 
     #[test]

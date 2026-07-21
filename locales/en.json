@@ -147,10 +147,12 @@
   "skills.nav.explore": "Explore",
   "skills.nav.installed": "Installed",
   "skills.nav.projects": "Projects",
+  "skills.nav.providers": "Providers",
   "skills.nav.install": "Install Skills",
   "skills.nav.presets": "Presets",
   "skills.nav.settings": "Settings",
   "skills.installed.title": "Installed",
+  "skills.installed.descriptionGlobal": "All your installed skills",
   "skills.installed.description": "Installed global skills in",
   "skills.installed.webUnavailable": "Your local skill library lives on disk in the desktop app.",
   "skills.installed.getAppDescription": "Download Skills Explorer to browse installed skills and install them on your machine.",
@@ -290,6 +292,9 @@
   "skills.projects.getApp": "Get the desktop app",
   "skills.projects.noFolder": "Choose a coding folder to discover projects",
   "skills.projects.chooseFolder": "Choose coding folder",
+  "skills.projects.search": "Search projects",
+  "skills.projects.clearSearch": "Clear project search",
+  "skills.projects.noMatching": "No projects match.",
   "skills.projects.chooseTitle": "Find your projects",
   "skills.projects.chooseDescription": "Select the folder that contains your projects. We look one or two levels deep.",
   "skills.projects.refresh": "Refresh projects",
@@ -299,5 +304,7 @@
   "skills.projects.loadFailed": "Couldn't load projects",
   "skills.projects.skillsTitle": "Project skills",
   "skills.projects.skillsFound": "skills found",
-  "skills.projects.catalogMatch": "Catalog match"
+  "skills.projects.catalogMatch": "Catalog match",
+  "skills.projects.otherProjects": "Other projects",
+  "skills.projects.agentsBadge": "Project"
 }

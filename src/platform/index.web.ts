@@ -30,6 +30,10 @@ export const platform: PlatformPort = {
     return false;
   },
 
+  async revealPath() {
+    return false;
+  },
+
   async listInstalled() {
     return [];
   },

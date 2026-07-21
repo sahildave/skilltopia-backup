@@ -6,19 +6,22 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from '@/components/ui/input-group';
-import { Separator } from '@/components/ui/separator';
 import { useTheme } from '@/hooks/use-theme';
 import { CODUO_URL, GITHUB_REPO_URL } from '@/lib/desktop-download';
 import { cn } from '@/lib/utils';
+import type { ProjectInfo } from '@/platform/types';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
+import { useProjectsStore } from '@/store/projects-store';
 import { platform } from '@platform';
 import type { LucideIcon } from 'lucide-react';
 import {
   AlertTriangle,
   BookOpen,
-  FolderGit2,
+  Bot,
   ChevronDown,
+  FolderOpen,
+  FolderTree,
   LayoutDashboard,
   Moon,
   Search,
@@ -35,8 +38,8 @@ import {
   type ProviderFilterId,
   type ProviderSidebarItem,
 } from './installed-skills-model';
+import { SkillsSidebarFilter } from './SkillsSidebarFilter';
 import type { SkillsNavId } from './types';
-
 
 /** Lucide dropped brand icons; keep the GitHub mark as a local SVG. */
 function GithubIcon(props: SVGProps<SVGSVGElement>) {
@@ -54,7 +57,6 @@ const PRIMARY_NAV: {
 }[] = [
   { id: 'explore', labelKey: 'skills.nav.explore', icon: LayoutDashboard },
   { id: 'installed', labelKey: 'skills.nav.installed', icon: BookOpen },
-  { id: 'projects', labelKey: 'skills.nav.projects', icon: FolderGit2 },
 ];
 
 interface SkillsSidebarProps {
@@ -68,8 +70,16 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
   const snapshot = useInstalledScanStore((state) => state.snapshot);
   const providerFilter = useInstalledSkillsUiStore((state) => state.providerFilter);
   const setProviderFilter = useInstalledSkillsUiStore((state) => state.setProviderFilter);
+  const projects = useProjectsStore((state) => state.projects);
+  const root = useProjectsStore((state) => state.root);
+  const selectedPath = useProjectsStore((state) => state.selectedPath);
+  const chooseRoot = useProjectsStore((state) => state.chooseRoot);
+  const clearSelection = useProjectsStore((state) => state.clearSelection);
+  const selectProject = useProjectsStore((state) => state.selectProject);
   const [inactiveOpen, setInactiveOpen] = useState(false);
   const [providerQuery, setProviderQuery] = useState('');
+  const [projectQuery, setProjectQuery] = useState('');
+  const [otherProjectsOpen, setOtherProjectsOpen] = useState(false);
 
   const model = platform.hasLocalLibrary && snapshot ? buildProviderSidebarModel(snapshot) : null;
 
@@ -107,13 +117,15 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
       >
         {PRIMARY_NAV.map((item) => {
           const Icon = item.icon;
-          const isActive = active === item.id;
+          const isActive = item.id !== 'installed' && active === item.id;
           return (
             <button
               key={item.id}
               type="button"
               onClick={() => {
-                if (item.id === 'installed') {
+                if (item.id === 'explore') {
+                  setProviderFilter(ALL_AGENTS_FILTER_ID);
+                } else if (item.id === 'installed') {
                   setProviderFilter(ALL_AGENTS_FILTER_ID);
                 }
                 onSelect(item.id);
@@ -126,7 +138,7 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
                 'focus-visible:border-ring focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px]',
               )}
             >
-              {isActive ? (
+              {isActive && item.labelKey != 'skills.nav.installed' ? (
                 <span
                   aria-hidden
                   className="bg-primary absolute inset-y-1 inset-s-0 w-0.5 rounded-full"
@@ -138,17 +150,57 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
           );
         })}
 
-        {model ? (
-          <>
-            <Separator className="my-3" />
-            <div className="min-h-0 flex-1 flex flex-col gap-0 overflow-y-auto pb-2">
-              <div className="px-3 py-1">
-                <p className="text-muted-foreground text-xs mb-1 font-medium uppercase">
-                  {t('skills.installed.providersHeading')}
-                </p>
-              </div>
+        <div className="ms-4 flex flex-col gap-0.5 border-s-2 border-border ps-2">
+          <button
+            type="button"
+            onClick={() => {
+              setProviderFilter(ALL_AGENTS_FILTER_ID);
+              onSelect('installed');
+            }}
+            className={cn(
+              'app-pressable app-pressable-subtle flex items-center gap-2 rounded-md px-3 py-1.5 text-sm',
+              active === 'installed'
+                ? 'bg-background text-foreground font-medium shadow-xs'
+                : 'text-muted-foreground hover:bg-background/70 hover:text-foreground',
+            )}
+          >
+            <Bot className="size-4 shrink-0" />
+            <span className="truncate">{t('skills.nav.providers')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              clearSelection();
+              onSelect('projects');
+            }}
+            className={cn(
+              'app-pressable app-pressable-subtle flex items-center gap-2 rounded-md px-3 py-1.5 text-sm',
+              active === 'projects'
+                ? 'bg-background text-foreground font-medium shadow-xs'
+                : 'text-muted-foreground hover:bg-background/70 hover:text-foreground',
+            )}
+          >
+            <FolderTree className="size-4 shrink-0" />
+            <span className="truncate">{t('skills.nav.projects')}</span>
+          </button>
+        </div>
 
-              <div className="mb-2">
+        {active === 'projects' && platform.hasLocalLibrary ? (
+          <ProjectFilter
+            root={root}
+            projects={projects}
+            selectedPath={selectedPath}
+            query={projectQuery}
+            onQueryChange={setProjectQuery}
+            otherOpen={otherProjectsOpen}
+            onOtherOpenChange={setOtherProjectsOpen}
+            onChooseRoot={() => void chooseRoot()}
+            onSelect={selectProject}
+          />
+        ) : model ? (
+          <SkillsSidebarFilter title={t('skills.installed.providersHeading')}>
+            <div className="flex flex-col gap-1">
+              <div className="my-2">
                 <InputGroup className="h-8">
                   <InputGroupAddon>
                     <Search className="size-3.5" />
@@ -165,7 +217,7 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
                   {providerQuery ? (
                     <InputGroupAddon align="inline-end">
                       <InputGroupButton
-                        size="icon-xs"
+                        size="icon-sm"
                         aria-label={t('skills.installed.clearProviderSearch')}
                         onClick={() => setProviderQuery('')}
                       >
@@ -251,7 +303,7 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
                 </div>
               ) : null}
             </div>
-          </>
+          </SkillsSidebarFilter>
         ) : null}
       </nav>
 
@@ -288,6 +340,193 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ProjectFilter({
+  root,
+  projects,
+  selectedPath,
+  query,
+  onQueryChange,
+  otherOpen,
+  onOtherOpenChange,
+  onChooseRoot,
+  onSelect,
+}: {
+  root: string | null;
+  projects: ProjectInfo[];
+  selectedPath: string | null;
+  query: string;
+  onQueryChange: (query: string) => void;
+  otherOpen: boolean;
+  onOtherOpenChange: (open: boolean) => void;
+  onChooseRoot: () => void;
+  onSelect: (project: ProjectInfo) => Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const activeProjects = projects
+    .filter((project) => project.skillCount > 0 && matchesProjectQuery(project.name, query))
+    .sort(sortByCountThenName);
+  const otherProjects = projects
+    .filter((project) => project.skillCount === 0 && matchesProjectQuery(project.name, query))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const hasProjectMatches = activeProjects.length > 0 || otherProjects.length > 0;
+
+  return (
+    <SkillsSidebarFilter title={t('skills.nav.projects')}>
+      {root ? (
+        <div className="flex flex-col gap-1">
+          <div className="my-2">
+            <InputGroup className="h-8">
+              <InputGroupAddon>
+                <Search className="size-3.5" />
+              </InputGroupAddon>
+              <InputGroupInput
+                value={query}
+                onChange={(event) => onQueryChange(event.target.value)}
+                placeholder={t('skills.projects.search')}
+                className="text-xs"
+                aria-label={t('skills.projects.search')}
+                autoComplete="off"
+                spellCheck={false}
+              />
+              {query ? (
+                <InputGroupAddon align="inline-end">
+                  <InputGroupButton
+                    size="icon-sm"
+                    aria-label={t('skills.projects.clearSearch')}
+                    onClick={() => onQueryChange('')}
+                  >
+                    <X />
+                  </InputGroupButton>
+                </InputGroupAddon>
+              ) : null}
+            </InputGroup>
+          </div>
+          <div className="flex flex-col gap-1">
+            {activeProjects.map((project) => (
+              <ProjectSidebarRow
+                key={project.path}
+                project={project}
+                showSelected={selectedPath === project.path}
+                onSelect={onSelect}
+              />
+            ))}
+          </div>
+          {query && !hasProjectMatches ? (
+            <p className="text-muted-foreground px-1 py-2 text-xs">
+              {t('skills.projects.noMatching')}
+            </p>
+          ) : null}
+          {otherProjects.length > 0 ? (
+            <div className="mt-1">
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground flex w-full items-center gap-1.5 border-t border-border py-1 pt-3 pl-1 pr-2"
+                onClick={() => onOtherOpenChange(!otherOpen)}
+                aria-expanded={otherOpen}
+              >
+                <ChevronDown className={cn('size-3.5 shrink-0', !otherOpen && '-rotate-90')} />
+                <span className="truncate text-xs font-medium uppercase">
+                  {t('skills.projects.otherProjects')}
+                </span>
+                <span className="bg-muted ms-auto rounded-md px-1.5 py-0.5 text-xs tabular-nums">
+                  {otherProjects.length}
+                </span>
+              </button>
+              {otherOpen ? (
+                <div className="mt-1 flex flex-col gap-1 ps-2">
+                  {otherProjects.map((project) => (
+                    <ProjectSidebarRow
+                      key={project.path}
+                      project={project}
+                      showSelected={selectedPath === project.path}
+                      onSelect={onSelect}
+                      compact
+                    />
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          {projects.length === 0 ? (
+            <p className="text-muted-foreground px-1 py-2 text-xs">{t('skills.projects.empty')}</p>
+          ) : null}
+        </div>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="mt-2 w-full"
+          onClick={onChooseRoot}
+        >
+          <FolderOpen data-icon="inline-start" />
+          {t('skills.projects.chooseFolder')}
+        </Button>
+      )}
+    </SkillsSidebarFilter>
+  );
+}
+
+function matchesProjectQuery(name: string, query: string): boolean {
+  return !query.trim() || name.toLowerCase().includes(query.trim().toLowerCase());
+}
+
+function sortByCountThenName(a: ProjectInfo, b: ProjectInfo): number {
+  return b.skillCount - a.skillCount || a.name.localeCompare(b.name);
+}
+
+function ProjectSidebarRow({
+  project,
+  showSelected,
+  onSelect,
+  compact = false,
+}: {
+  project: ProjectInfo;
+  showSelected: boolean;
+  onSelect: (project: ProjectInfo) => Promise<void>;
+  compact?: boolean;
+}) {
+  const { t } = useTranslation();
+  return (
+    <div
+      className={cn(
+        'relative flex w-full h-9.5 items-center gap-1 rounded-md px-2 text-sm',
+        compact ? 'py-1.5' : 'py-2',
+        showSelected
+          ? 'bg-background text-foreground font-medium shadow-xs'
+          : 'text-muted-foreground hover:bg-background/70 hover:text-foreground',
+      )}
+    >
+      {showSelected ? (
+        <span aria-hidden className="bg-primary absolute inset-y-1 inset-s-0 w-0.5 rounded-full" />
+      ) : null}
+      <button
+        type="button"
+        onClick={() => void onSelect(project)}
+        className="flex min-w-0 flex-1 items-center gap-2 text-start"
+      >
+        <span className="truncate">{project.name}</span>
+      </button>
+      {showSelected ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="size-6 shrink-0"
+          aria-label={t('skills.installed.openFolder')}
+          title={t('skills.installed.openFolder')}
+          onClick={() => void platform.revealPath(project.path)}
+        >
+          <FolderOpen />
+        </Button>
+      ) : null}
+      <span className="bg-muted shrink-0 rounded-md px-1.5 py-0.5 text-xs tabular-nums">
+        {project.skillCount}
+      </span>
     </div>
   );
 }
@@ -330,7 +569,7 @@ function ProviderRow(props: {
         if (!installedTabActive) onEnsureInstalledTab();
       }}
       className={cn(
-        'relative flex w-full items-center gap-2 rounded-md px-2 text-sm transition-colors',
+        'relative flex w-full items-center gap-2 h-9.5 rounded-md px-2 text-sm transition-colors',
         compact ? 'py-1.5' : 'py-2',
         showSelected
           ? 'bg-background text-foreground font-medium shadow-xs'

@@ -9,7 +9,16 @@ import {
 } from '@/components/ui/input-group';
 import type { LibraryLayoutMode } from '@/store/installed-skills-ui-store';
 import { platform } from '@platform';
-import { ArrowLeft, LayoutGrid, LayoutList, LoaderCircle, Search, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  LayoutGrid,
+  LayoutList,
+  LoaderCircle,
+  RefreshCw,
+  Search,
+  X,
+} from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DitherGradient } from '../dither-kit';
 import type { InstalledSkillView } from './installed-skills-model';
@@ -21,11 +30,18 @@ export function InstalledToolbar({
   refreshing = false,
   hasSnapshot = false,
   pathInfo = null,
-  layoutMode,
-  installedSkillView,
+  layoutMode = 'list',
+  installedSkillView = 'all',
   skillQuery,
   onBack,
   onRescan,
+  rescanLabel,
+  leadingAction,
+  searchError,
+  searchPlaceholder,
+  searchLabel,
+  clearSearchLabel,
+  showInstalledControls = true,
   onLayoutModeChange,
   onInstalledSkillViewChange,
   onSkillQueryChange,
@@ -40,13 +56,20 @@ export function InstalledToolbar({
     skillsDirExists: boolean;
     revealId: string;
   } | null;
-  layoutMode: LibraryLayoutMode;
-  installedSkillView: InstalledSkillView;
+  layoutMode?: LibraryLayoutMode;
+  installedSkillView?: InstalledSkillView;
   skillQuery: string;
   onBack?: () => void;
   onRescan?: () => void;
-  onLayoutModeChange: (mode: LibraryLayoutMode) => void;
-  onInstalledSkillViewChange: (view: InstalledSkillView) => void;
+  rescanLabel?: string;
+  leadingAction?: ReactNode;
+  searchError?: ReactNode;
+  searchPlaceholder?: string;
+  searchLabel?: string;
+  clearSearchLabel?: string;
+  showInstalledControls?: boolean;
+  onLayoutModeChange?: (mode: LibraryLayoutMode) => void;
+  onInstalledSkillViewChange?: (view: InstalledSkillView) => void;
   onSkillQueryChange: (value: string) => void;
 }) {
   const { t } = useTranslation();
@@ -70,7 +93,7 @@ export function InstalledToolbar({
         {/* title description */}
         <div className="relative flex min-w-0 w-full flex-row flex-wrap items-center justify-between gap-4 p-8 pb-3.5 pt-15">
           <div className="flex min-w-0 flex-col px-1 items-start gap-2.5">
-            <div className="flex min-w-0 flex-row items-center  gap-2.5">
+            <div className="flex min-w-0 h-7.5 flex-row items-center  gap-2.5">
               <h1 className="text-3xl leading-none text-balance">{title}</h1>
               {skillCount !== null ? (
                 <Badge variant="secondary" size="sm" className="mt-3.5 tabular-nums">
@@ -116,8 +139,8 @@ export function InstalledToolbar({
             <InputGroupInput
               value={skillQuery}
               onChange={(event) => onSkillQueryChange(event.target.value)}
-              placeholder={t('skills.installed.searchSkills')}
-              aria-label={t('skills.installed.searchSkills')}
+              placeholder={searchPlaceholder ?? t('skills.installed.searchSkills')}
+              aria-label={searchLabel ?? t('skills.installed.searchSkills')}
               autoComplete="off"
               spellCheck={false}
             />
@@ -125,7 +148,7 @@ export function InstalledToolbar({
               <InputGroupAddon align="inline-end">
                 <InputGroupButton
                   size="icon-xs"
-                  aria-label={t('skills.installed.clearSkillSearch')}
+                  aria-label={clearSearchLabel ?? t('skills.installed.clearSkillSearch')}
                   onClick={() => onSkillQueryChange('')}
                 >
                   <X />
@@ -133,70 +156,80 @@ export function InstalledToolbar({
               </InputGroupAddon>
             ) : null}
           </InputGroup>
+          {searchError}
         </div>
       </div>
 
       {/* tabs section */}
       <div className="relative flex min-w-0 flex-wrap items-center gap-3 px-8 pb-4">
         <div className="flex flex-row flex-wrap items-center justify-between w-full gap-2">
-          {onRescan ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRescan}
-              disabled={refreshing && !hasSnapshot}
-            >
-              {t('skills.installed.rescan')}
-            </Button>
+          <div className="flex flex-wrap items-center gap-2">{leadingAction}</div>
+
+          {showInstalledControls ? (
+            <ContinuousTabs
+              value={installedSkillView}
+              tabs={[
+                {
+                  id: 'all',
+                  label: t('skills.installed.viewAll'),
+                  helpTooltip: t('skills.installed.viewHelp.all'),
+                },
+                {
+                  id: 'provider',
+                  label: t('skills.installed.viewProvider'),
+                  helpTooltip: t('skills.installed.viewHelp.provider'),
+                },
+                {
+                  id: 'available',
+                  label: t('skills.installed.viewAvailable'),
+                  helpTooltip: t('skills.installed.viewHelp.available'),
+                },
+              ]}
+              onChange={(id) => {
+                if (id === 'all' || id === 'provider' || id === 'available') {
+                  onInstalledSkillViewChange?.(id);
+                }
+              }}
+            />
           ) : null}
 
-          <ContinuousTabs
-            value={installedSkillView}
-            tabs={[
-              {
-                id: 'all',
-                label: t('skills.installed.viewAll'),
-                helpTooltip: t('skills.installed.viewHelp.all'),
-              },
-              {
-                id: 'provider',
-                label: t('skills.installed.viewProvider'),
-                helpTooltip: t('skills.installed.viewHelp.provider'),
-              },
-              {
-                id: 'available',
-                label: t('skills.installed.viewAvailable'),
-                helpTooltip: t('skills.installed.viewHelp.available'),
-              },
-            ]}
-            onChange={(id) => {
-              if (id === 'all' || id === 'provider' || id === 'available') {
-                onInstalledSkillViewChange(id);
-              }
-            }}
-          />
+          <div className="ms-auto flex items-center gap-2">
+            {onRescan ? (
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={onRescan}
+                disabled={refreshing && !hasSnapshot}
+                aria-label={rescanLabel ?? t('skills.installed.rescan')}
+                title={rescanLabel ?? t('skills.installed.rescan')}
+              >
+                <RefreshCw aria-hidden />
+              </Button>
+            ) : null}
 
-          <ContinuousTabs
-            className="ms-auto"
-            value={layoutMode}
-            tabs={[
-              {
-                id: 'list',
-                label: t('skills.installed.layoutList'),
-                icon: LayoutList,
-              },
-              {
-                id: 'grid',
-                label: t('skills.installed.layoutGrid'),
-                icon: LayoutGrid,
-              },
-            ]}
-            onChange={(id) => {
-              if (id === 'grid' || id === 'list') {
-                onLayoutModeChange(id);
-              }
-            }}
-          />
+            {onLayoutModeChange ? (
+              <ContinuousTabs
+                value={layoutMode}
+                tabs={[
+                  {
+                    id: 'list',
+                    label: t('skills.installed.layoutList'),
+                    icon: LayoutList,
+                  },
+                  {
+                    id: 'grid',
+                    label: t('skills.installed.layoutGrid'),
+                    icon: LayoutGrid,
+                  },
+                ]}
+                onChange={(id) => {
+                  if (id === 'grid' || id === 'list') {
+                    onLayoutModeChange(id);
+                  }
+                }}
+              />
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

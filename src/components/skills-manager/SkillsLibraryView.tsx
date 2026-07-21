@@ -69,6 +69,10 @@ function LocalInstalledSkillsView() {
     providerFilter === ALL_AGENTS_FILTER_ID
       ? t('skills.nav.installed')
       : (selectedProviderItem?.name ?? t('skills.nav.installed'));
+  const toolbarDesc =
+    providerFilter === ALL_AGENTS_FILTER_ID
+      ? t('skills.installed.descriptionGlobal')
+      : t('skills.installed.description');
   const toolbarCount =
     providerFilter === ALL_AGENTS_FILTER_ID
       ? (sidebarModel?.allAgentsCount ?? null)
@@ -81,7 +85,7 @@ function LocalInstalledSkillsView() {
     <div className="relative flex h-full flex-col">
       <InstalledToolbar
         title={toolbarTitle}
-        description={t('skills.installed.description')}
+        description={toolbarDesc}
         skillCount={toolbarCount}
         refreshing={refreshing}
         hasSnapshot={snapshot !== null}

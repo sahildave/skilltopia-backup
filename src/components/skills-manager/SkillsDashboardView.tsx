@@ -9,12 +9,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty';
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from '@/components/ui/input-group';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
@@ -35,11 +29,11 @@ import {
 import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
 import { useQueryClient } from '@tanstack/react-query';
-import { AlertCircle, LayoutGrid, LayoutList, Search, X } from 'lucide-react';
+import { AlertCircle, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DitherGradient } from '../dither-kit';
 import { CatalogSkillCard, CatalogSkillListRow } from './CatalogSkillCard';
+import { InstalledToolbar } from './InstalledToolbar';
 import {
   findScannedSkillForCatalog,
   installedSkillKeysFromSnapshot,
@@ -216,96 +210,52 @@ export function SkillsDashboardView() {
 
   return (
     <div className="relative flex h-full min-w-0 flex-col overflow-hidden">
-      <div className="app-material border-border sticky top-0 z-10 flex min-w-0 flex-col border-b bg-background">
-        <DitherGradient from="grey" />
-
-        <div className="relative flex min-w-0 flex-row flex-wrap items-center justify-between gap-4 p-8 pb-4 pt-16">
-          <div className="flex min-w-0 px-1 flex-col items-start gap-2.5">
-            <h1 className="text-3xl leading-none text-balance">{t('skills.dashboard.title')}</h1>
-            <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
-              {t('skills.dashboard.description')}
-            </p>
-          </div>
-
-          <InputGroup className="h-10 w-full max-w-sm shrink-0 rounded-xl bg-background!">
-            <InputGroupAddon>
-              <Search />
-            </InputGroupAddon>
-            <InputGroupInput
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder={t('skills.dashboard.searchPlaceholder')}
-              aria-label={t('skills.dashboard.searchLabel')}
-              autoComplete="off"
-              spellCheck={false}
+      <InstalledToolbar
+        title={t('skills.dashboard.title')}
+        description={t('skills.dashboard.description')}
+        skillCount={null}
+        layoutMode={layoutMode}
+        skillQuery={searchInput}
+        onSkillQueryChange={setSearchInput}
+        searchPlaceholder={t('skills.dashboard.searchPlaceholder')}
+        searchLabel={t('skills.dashboard.searchLabel')}
+        clearSearchLabel={t('skills.dashboard.clearSearch')}
+        showInstalledControls={false}
+        leadingAction={
+          <>
+            <ContinuousTabs
+              value={viewId}
+              defaultActiveId="trending"
+              tabs={DISCOVERY_VIEWS.map((view) => ({
+                id: view.id,
+                label: view.label,
+                helpTooltip: t(`skills.dashboard.viewHelp.${view.id}`),
+              }))}
+              onChange={(id) => {
+                if (id === 'all-time' || id === 'trending' || id === 'hot') {
+                  setViewId(id);
+                }
+              }}
             />
-            {searchInput ? (
-              <InputGroupAddon align="inline-end">
-                <InputGroupButton
-                  size="icon-xs"
-                  aria-label={t('skills.dashboard.clearSearch')}
-                  onClick={() => setSearchInput('')}
-                  className="app-pressable"
-                >
-                  <X />
-                </InputGroupButton>
-              </InputGroupAddon>
+            {isRefreshing ? (
+              <Spinner
+                className="text-muted-foreground size-3.5"
+                aria-label={t('skills.dashboard.refreshing')}
+              />
             ) : null}
-          </InputGroup>
-          {hasSearchError ? (
+          </>
+        }
+        searchError={
+          hasSearchError ? (
             <Alert variant="destructive" className="max-w-xl">
               <AlertCircle />
               <AlertTitle>{t('skills.dashboard.searchFailed')}</AlertTitle>
               <AlertDescription>{errorMessage(search.error)}</AlertDescription>
             </Alert>
-          ) : null}
-        </div>
-
-        <div className="relative flex min-w-0 flex-wrap items-center gap-3 px-8 pb-4">
-          <ContinuousTabs
-            value={viewId}
-            defaultActiveId="trending"
-            tabs={DISCOVERY_VIEWS.map((view) => ({
-              id: view.id,
-              label: view.label,
-              helpTooltip: t(`skills.dashboard.viewHelp.${view.id}`),
-            }))}
-            onChange={(id) => {
-              if (id === 'all-time' || id === 'trending' || id === 'hot') {
-                setViewId(id);
-              }
-            }}
-          />
-          {isRefreshing ? (
-            <Spinner
-              className="text-muted-foreground size-3.5"
-              aria-label={t('skills.dashboard.refreshing')}
-            />
-          ) : null}
-          <ContinuousTabs
-            className="ms-auto"
-            value={layoutMode}
-            defaultActiveId="grid"
-            tabs={[
-              {
-                id: 'list',
-                label: t('skills.installed.layoutList'),
-                icon: LayoutList,
-              },
-              {
-                id: 'grid',
-                label: t('skills.installed.layoutGrid'),
-                icon: LayoutGrid,
-              },
-            ]}
-            onChange={(id) => {
-              if (id === 'grid' || id === 'list') {
-                setLayoutMode(id);
-              }
-            }}
-          />
-        </div>
-      </div>
+          ) : null
+        }
+        onLayoutModeChange={setLayoutMode}
+      />
       <ScrollArea className="min-h-0 min-w-0 flex-1">
         <div className="flex w-full min-w-0 max-w-full flex-col gap-6 px-6 py-6">
           <SkillsResults

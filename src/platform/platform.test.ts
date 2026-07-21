@@ -38,6 +38,10 @@ describe('PlatformPort mock', () => {
     await expect(mockPlatform.revealProviderSkillsDir('missing-provider')).resolves.toBe(false);
   });
 
+  it('revealPath succeeds in the mock', async () => {
+    await expect(mockPlatform.revealPath('/tmp/project')).resolves.toBe(true);
+  });
+
   it('accepts mocked install without throwing', async () => {
     await expect(
       mockPlatform.install(
@@ -95,6 +99,10 @@ describe('PlatformPort web', () => {
 
   it('does not reveal provider directories', async () => {
     await expect(webPlatform.revealProviderSkillsDir(UNIVERSAL_PROVIDER_ID)).resolves.toBe(false);
+  });
+
+  it('does not reveal arbitrary paths', async () => {
+    await expect(webPlatform.revealPath('/tmp/project')).resolves.toBe(false);
   });
 
   it('copies a pasteable install command to the clipboard', async () => {

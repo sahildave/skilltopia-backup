@@ -21,6 +21,9 @@ export interface InstallableSkill {
 /** Synthetic id for skills found under `~/.agents/skills`. */
 export const UNIVERSAL_PROVIDER_ID = 'universal' as const;
 
+/** Synthetic id for skills found under `<project>/.agents/skills` (not Universal). */
+export const PROJECT_AGENTS_PROVIDER_ID = 'project-agents' as const;
+
 export interface ProviderRegistrySourceMeta {
   repositoryUrl: string;
   commit: string;
@@ -65,7 +68,7 @@ export interface ScannedSkill {
   uninstallName: string;
   description: string;
   scope: InstallScope;
-  /** Provider ids plus {@link UNIVERSAL_PROVIDER_ID} when found in Universal. */
+  /** Provider ids plus {@link UNIVERSAL_PROVIDER_ID} or {@link PROJECT_AGENTS_PROVIDER_ID}. */
   providerIds: string[];
   /** Source paths (all copies after dedupe). */
   paths: ScannedSkillPath[];
@@ -88,6 +91,7 @@ export interface ProjectInfo {
   name: string;
   path: string;
   depth: number;
+  skillCount: number;
 }
 
 /** Agent scope for `skills remove` (maps from Installed Skills sidebar filter). */
@@ -126,6 +130,11 @@ export interface PlatformPort {
    * Does not rescan. Returns false when the directory is missing.
    */
   revealProviderSkillsDir(providerId: string): Promise<boolean>;
+  /**
+   * Reveal an arbitrary path in Finder/Explorer.
+   * Does not rescan. Returns false when the path is missing.
+   */
+  revealPath(path: string): Promise<boolean>;
   listInstalled(): Promise<SkillEntry[]>;
   listProviders(): Promise<SkillProvider[]>;
   install(skill: InstallableSkill, scope: InstallScope): Promise<void>;

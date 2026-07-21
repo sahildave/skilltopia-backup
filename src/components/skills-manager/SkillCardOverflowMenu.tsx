@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 
 import {
   ActionMenuContent,
@@ -151,10 +152,15 @@ export function SkillCardOverflowMenu({
                         variant="destructive"
                         disabled={uninstalling}
                         size="sm"
+                        aria-label={t('skills.installed.uninstallYes')}
                         onClick={() => void handleUninstall()}
                         className="flex-1 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {t('skills.installed.uninstallYes')}
+                        {uninstalling ? (
+                          <Spinner aria-hidden />
+                        ) : (
+                          t('skills.installed.uninstallYes')
+                        )}
                       </Button>
 
                       <Button

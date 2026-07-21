@@ -4,7 +4,7 @@ import {
   MOCK_PROVIDER_ONLY_SCAN,
   MOCK_UNIVERSAL_ONLY_SCAN,
 } from '@/platform/fixtures';
-import { UNIVERSAL_PROVIDER_ID } from '@/platform/types';
+import { PROJECT_AGENTS_PROVIDER_ID, UNIVERSAL_PROVIDER_ID } from '@/platform/types';
 import { describe, expect, it } from 'vitest';
 import {
   ALL_AGENTS_FILTER_ID,
@@ -262,6 +262,128 @@ describe('providerBadgesForSkill', () => {
     expect(providerBadgesForSkill(skill, snapshot)).toEqual([
       { kind: 'universal' },
       { kind: 'providers', count: 1, names: ['Claude Code'] },
+    ]);
+  });
+
+  it('shows Project badge for project .agents skills, not Universal', () => {
+    const skill = {
+      name: 'local-skill',
+      uninstallName: 'local-skill',
+      description: 'Project skill',
+      scope: 'project' as const,
+      providerIds: [PROJECT_AGENTS_PROVIDER_ID],
+      paths: [{ path: '/Users/mock/code/app/.agents/skills/local-skill' }],
+    };
+    const snapshot = {
+      ...MOCK_INSTALLED_SCAN,
+      skills: [skill],
+      universal: {
+        skillsDir: '/Users/mock/code/app/.agents/skills',
+        skillsDirExists: true,
+        skillCount: 1,
+      },
+      providers: [
+        {
+          id: 'cursor',
+          name: 'Cursor',
+          universal: true,
+          detected: true,
+          skillsDir: '/Users/mock/code/app/.agents/skills',
+          skillsDirExists: true,
+          skillCount: 1,
+        },
+        {
+          id: 'claude-code',
+          name: 'Claude Code',
+          universal: false,
+          detected: true,
+          skillsDir: '/Users/mock/code/app/.claude/skills',
+          skillsDirExists: true,
+          skillCount: 0,
+        },
+      ],
+    };
+    expect(providerBadgesForSkill(skill, snapshot)).toEqual([{ kind: 'project' }]);
+  });
+
+  it('shows Project plus .claude location for project-local provider copies', () => {
+    const skill = {
+      name: 'local-skill',
+      uninstallName: 'local-skill',
+      description: 'Project skill',
+      scope: 'project' as const,
+      providerIds: [PROJECT_AGENTS_PROVIDER_ID, 'claude-code'],
+      paths: [
+        { path: '/Users/mock/code/app/.agents/skills/local-skill' },
+        { path: '/Users/mock/code/app/.claude/skills/local-skill' },
+      ],
+    };
+    const snapshot = {
+      ...MOCK_INSTALLED_SCAN,
+      skills: [skill],
+      universal: {
+        skillsDir: '/Users/mock/code/app/.agents/skills',
+        skillsDirExists: true,
+        skillCount: 1,
+      },
+      providers: [
+        {
+          id: 'cursor',
+          name: 'Cursor',
+          universal: true,
+          detected: true,
+          skillsDir: '/Users/mock/code/app/.agents/skills',
+          skillsDirExists: true,
+          skillCount: 1,
+        },
+        {
+          id: 'claude-code',
+          name: 'Claude Code',
+          universal: false,
+          detected: true,
+          skillsDir: '/Users/mock/code/app/.claude/skills',
+          skillsDirExists: true,
+          skillCount: 1,
+        },
+      ],
+    };
+    expect(providerBadgesForSkill(skill, snapshot)).toEqual([
+      { kind: 'project' },
+      { kind: 'location', label: '.claude' },
+    ]);
+  });
+
+  it('shows .claude location only for project skills outside .agents', () => {
+    const skill = {
+      name: 'claude-only',
+      uninstallName: 'claude-only',
+      description: 'Claude project skill',
+      scope: 'project' as const,
+      providerIds: ['claude-code'],
+      paths: [{ path: '/Users/mock/code/app/.claude/skills/claude-only' }],
+    };
+    const snapshot = {
+      ...MOCK_INSTALLED_SCAN,
+      skills: [skill],
+      universal: {
+        skillsDir: '/Users/mock/code/app/.agents/skills',
+        skillsDirExists: true,
+        skillCount: 0,
+      },
+      providers: [
+        {
+          id: 'claude-code',
+          name: 'Claude Code',
+          universal: false,
+          detected: true,
+          skillsDir: '/Users/mock/code/app/.claude/skills',
+          skillsDirExists: true,
+          skillCount: 1,
+        },
+      ],
+    };
+    expect(providerBadgesForSkill(skill, snapshot)).toEqual([
+      { kind: 'location', label: '.claude' },
     ]);
   });
 });

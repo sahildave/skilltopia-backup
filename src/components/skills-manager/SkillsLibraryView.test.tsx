@@ -149,7 +149,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     const listRow = screen.getByText('find-skills').closest('[data-slot="skill-list-row"]');
     expect(listRow).toBeTruthy();
     expect(listRow?.textContent).not.toMatch(/\/Users\/mock/);
-    expect(screen.getByText('find-skills').closest('[data-slot="card"]')).toBeNull();
+    expect(listRow?.querySelector('[data-slot="card"]')).toBeTruthy();
     expect(screen.queryByText(/Original at/i)).not.toBeInTheDocument();
   });
 
@@ -441,6 +441,15 @@ describe('SkillsSidebar providers', () => {
     expect(useInstalledSkillsUiStore.getState().providerFilter).toBe('claude-code');
     expect(scanMock.scanInstalled).not.toHaveBeenCalled();
     expect(scanMock.getInstalledScan).not.toHaveBeenCalled();
+  });
+
+  it('hides the Projects filter in the web app', () => {
+    scanMock.hasLocalLibrary = false;
+    render(<SkillsSidebar active="projects" onSelect={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Projects' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Search projects')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Choose coding folder' })).not.toBeInTheDocument();
   });
 });
 

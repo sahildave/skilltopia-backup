@@ -37,6 +37,10 @@ export const platform: PlatformPort = {
     return provider?.skillsDirExists ?? false;
   },
 
+  async revealPath() {
+    return true;
+  },
+
   async listInstalled() {
     return skillEntriesFromScan(cachedScan);
   },

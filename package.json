@@ -42,6 +42,7 @@
     "rust:test": "source ~/.cargo/env && cd src-tauri && cargo test",
     "rust:bindings": "source ~/.cargo/env && cd src-tauri && cargo test export_bindings -- --ignored --nocapture",
     "tauri": "tauri",
+    "icons": "node scripts/generate-icons.mjs",
     "tauri:dev": "source ~/.cargo/env && infisical run --env=local -- npm run tauri -- dev",
     "tauri:dev:local": "source ~/.cargo/env && infisical run --env=local -- env SKILLS_PROXY_BASE_URL=http://127.0.0.1:3000 npm run tauri -- dev",
     "proxy:dev": "infisical run --env=dev -- env VERCEL_TELEMETRY_DISABLED=1 npx vercel dev --yes",

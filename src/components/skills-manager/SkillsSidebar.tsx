@@ -10,7 +10,6 @@ import { Separator } from '@/components/ui/separator';
 import { useTheme } from '@/hooks/use-theme';
 import { CODUO_URL, GITHUB_REPO_URL } from '@/lib/desktop-download';
 import { cn } from '@/lib/utils';
-import { usePreferences, useSavePreferences } from '@/services/preferences';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
 import { platform } from '@platform';
@@ -63,8 +62,6 @@ interface SkillsSidebarProps {
 export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
   const { t } = useTranslation();
   const { theme, setTheme } = useTheme();
-  const { data: preferences } = usePreferences();
-  const savePreferences = useSavePreferences();
   const snapshot = useInstalledScanStore((state) => state.snapshot);
   const providerFilter = useInstalledSkillsUiStore((state) => state.providerFilter);
   const setProviderFilter = useInstalledSkillsUiStore((state) => state.setProviderFilter);
@@ -93,11 +90,7 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
 
   const handleThemeChange = (value: 'light' | 'dark' | 'system') => {
     setTheme(value);
-    if (preferences) {
-      savePreferences.mutate({ ...preferences, theme: value });
-    }
   };
-
   const isDark =
     theme === 'dark' ||
     (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);

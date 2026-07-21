@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useState, useRef } from 'react';
 import { emit } from '@tauri-apps/api/event';
 import { ThemeProviderContext, type Theme } from '@/lib/theme-context';
-import { usePreferences } from '@/services/preferences';
+import { usePreferences, useSavePreferences } from '@/services/preferences';
 
 interface ThemeProviderProps {
   children: React.ReactNode;
@@ -21,6 +21,7 @@ export function ThemeProvider({
 
   // Load theme from persistent preferences
   const { data: preferences } = usePreferences();
+  const savePreferences = useSavePreferences();
   const hasSyncedPreferences = useRef(false);
 
   // Sync theme with preferences when they load
@@ -61,9 +62,12 @@ export function ThemeProvider({
       setTheme(newTheme);
       // Notify other windows (e.g., quick pane) of theme change
       emit('theme-changed', { theme: newTheme });
+      // Persist for desktop restart (shared UI calls setTheme only — no Tauri imports)
+      if (preferences) {
+        savePreferences.mutate({ ...preferences, theme: newTheme });
+      }
     },
   };
-
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
       {children}

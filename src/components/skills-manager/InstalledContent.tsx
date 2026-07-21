@@ -17,7 +17,7 @@ import { emptyMessage, warningKey } from './library-path';
 import { ScanWarningBanner } from './ScanWarningBanner';
 import { SkillCardContainer } from './SkillCardContainer';
 
-export function LibraryContent({
+export function InstalledContent({
   snapshot,
   error,
   showPermissionCard,

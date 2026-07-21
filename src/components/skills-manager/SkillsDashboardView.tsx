@@ -207,13 +207,15 @@ export function SkillsDashboardView() {
     <div className="relative flex h-full min-w-0 flex-col overflow-hidden">
       <div className="app-material border-border relative sticky top-0 z-10 flex min-w-0 flex-col border-b bg-background">
         <DitherGradient from="grey" />
+
         <div className="relative flex min-w-0 flex-row flex-wrap items-center justify-between gap-4 p-8 pb-4 pt-16">
-          <div className="flex min-w-0 flex-col items-start gap-2.5">
+          <div className="flex min-w-0 px-1 flex-col items-start gap-2.5">
             <h1 className="text-3xl leading-none text-balance">{t('skills.dashboard.title')}</h1>
             <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
               {t('skills.dashboard.description')}
             </p>
           </div>
+
           <InputGroup className="h-10 w-full max-w-sm shrink-0 rounded-xl bg-background!">
             <InputGroupAddon>
               <Search />
@@ -247,6 +249,7 @@ export function SkillsDashboardView() {
             </Alert>
           ) : null}
         </div>
+
         <div className="relative flex min-w-0 flex-wrap items-center gap-3 px-8 pb-4">
           <ContinuousTabs
             value={viewId}

@@ -3,7 +3,7 @@ import { DESKTOP_APP_DOWNLOAD_URL } from '@/lib/desktop-download';
 import { platform } from '@platform';
 import { useTranslation } from 'react-i18next';
 
-export function LibraryUnavailableStub() {
+export function InstalledUnavailableStub() {
   const { t } = useTranslation();
 
   return (

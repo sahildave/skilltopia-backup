@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { Toaster } from 'sonner';
 
 const LAYOUT = {
-  leftSidebar: { default: 15, min: 13, max: 18 },
+  leftSidebar: { default: 16, min: 15, max: 18 },
   main: { min: 30 },
 } as const;
 

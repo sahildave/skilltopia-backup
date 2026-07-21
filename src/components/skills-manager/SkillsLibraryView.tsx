@@ -14,15 +14,15 @@ import {
   filterSkillSectionsByQuery,
   filterSkillsForSelection,
 } from './installed-skills-model';
+import { InstalledContent } from './InstalledContent';
+import { InstalledToolbar } from './InstalledToolbar';
+import { InstalledUnavailableStub } from './InstalledUnavailableStub';
 import { isPermissionError } from './library-errors';
 import { resolveSelectedPath } from './library-path';
-import { LibraryContent } from './LibraryContent';
-import { LibraryToolbar } from './LibraryToolbar';
-import { LibraryUnavailableStub } from './LibraryUnavailableStub';
 
 export function SkillsLibraryView() {
   if (!platform.hasLocalLibrary) {
-    return <LibraryUnavailableStub />;
+    return <InstalledUnavailableStub />;
   }
 
   return <LocalInstalledSkillsView />;
@@ -63,7 +63,7 @@ function LocalInstalledSkillsView() {
 
   return (
     <div className="relative flex h-full flex-col">
-      <LibraryToolbar
+      <InstalledToolbar
         title={t('skills.installed.title')}
         description={t('skills.installed.description')}
         skillCount={skillCount}
@@ -79,7 +79,7 @@ function LocalInstalledSkillsView() {
         onLayoutModeChange={setLayoutMode}
         onSkillQueryChange={setSkillQuery}
       />
-      <LibraryContent
+      <InstalledContent
         snapshot={snapshot}
         error={error}
         showPermissionCard={showPermissionCard}

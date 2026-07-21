@@ -90,7 +90,7 @@ export function SkillCardOverflowMenu({
 
   return (
     <>
-      <ActionMenuRoot ref={ref}>
+      <ActionMenuRoot ref={ref} open={open}>
         <ActionMenuTrigger
           aria-label={t('skills.installed.overflowMenu')}
           aria-expanded={open}

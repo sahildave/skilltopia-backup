@@ -45,13 +45,17 @@ export function useActionMenuDismiss({ open, onOpenChange }: UseActionMenuDismis
 
 interface ActionMenuRootProps {
   ref?: Ref<HTMLDivElement>;
+  open?: boolean;
   children: React.ReactNode;
   className?: string;
 }
 
-export function ActionMenuRoot({ ref, children, className }: ActionMenuRootProps) {
+export function ActionMenuRoot({ ref, open = false, children, className }: ActionMenuRootProps) {
   return (
-    <div ref={ref} className={cn('relative shrink-0', className)}>
+    <div
+      ref={ref}
+      className={cn('relative shrink-0', open && 'z-10 pointer-events-auto', className)}
+    >
       {children}
     </div>
   );
@@ -85,7 +89,7 @@ export function ActionMenuPanel({
           style={{ transformOrigin: align === 'right' ? 'top right' : 'top left' }}
           role="menu"
           className={cn(
-            'absolute top-full z-50 mt-2  overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-lg sm:w-[220px]',
+            'pointer-events-auto absolute top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-lg sm:w-[220px]',
             align === 'right' ? 'right-0' : 'left-0',
             className,
           )}

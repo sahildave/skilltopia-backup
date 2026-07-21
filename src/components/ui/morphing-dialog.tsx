@@ -311,7 +311,7 @@ function MorphingDialogClose({ children, className, variants }: MorphingDialogCl
       onClick={() => setIsOpen(false)}
       aria-label="Close dialog"
       className={cn(
-        'app-pressable ring-offset-background focus:ring-ring absolute top-4 right-4 rounded-xs opacity-70 hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden',
+        'app-pressable ring-offset-background focus:ring-ring absolute top-7 right-7 rounded-xs opacity-70 hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden',
         className,
       )}
       initial="initial"
@@ -319,7 +319,7 @@ function MorphingDialogClose({ children, className, variants }: MorphingDialogCl
       exit="exit"
       variants={variants}
     >
-      {children ?? <XIcon className="size-4" />}
+      {children ?? <XIcon className="size-6" />}
     </motion.button>
   );
 }

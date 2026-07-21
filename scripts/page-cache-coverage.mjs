@@ -2,7 +2,7 @@
 /**
  * Field coverage report for cached skill page snapshots.
  *
- * Reads the public Backend (no Infisical): leaderboard top N, then detail cache.
+ * Reads the public Backend (no Infisical): leaderboard top N, then batch page-cache.
  *
  *   MAX_ENRICHED=20 npm run page-cache:coverage
  *   MAX_ENRICHED=50 npm run page-cache:coverage
@@ -40,6 +40,8 @@ const TIER_BY_KEY = Object.fromEntries([
 ]);
 
 const DEFAULT_BASE = 'https://skills-explorer-six.vercel.app';
+/** Keep in sync with api/_lib/query.ts PAGE_CACHE_BATCH_MAX. */
+const PAGE_CACHE_BATCH_MAX = 100;
 const DEFAULT_CANVAS = resolve(
   process.env.HOME ?? '',
   '.cursor/projects/Users-sahildave-code-projects-skills-explorer/canvases/scrape-field-coverage.canvas.tsx',
@@ -182,8 +184,8 @@ function rowToneFor(row) {
   return 'success';
 }
 
-function buildRow(skillId, detailBody) {
-  const data = detailBody?.data ?? {};
+function buildRow(skillId, cacheRow) {
+  const data = cacheRow ?? {};
   const snapshot = data.pageSnapshot ?? null;
   const missing = missingCoverageKeys(snapshot);
   const days = weeklyDays(snapshot);
@@ -192,7 +194,7 @@ function buildRow(skillId, detailBody) {
   const tertiaryGap = !snapshot || tierGap(missing, TERTIARY_KEYS);
   return {
     skillId,
-    pageUrl: skillPageUrl(skillId, detailBody?.data?.sourceUrl),
+    pageUrl: skillPageUrl(skillId, data.sourceUrl),
     hasPage: snapshot ? 'yes' : 'NO',
     pageScrapedAt: data.pageScrapedAt ?? MISSING,
     sourceOrRepo: sourceOrRepoCell(snapshot),
@@ -218,6 +220,28 @@ function buildRow(skillId, detailBody) {
     missingCount: missing.length,
     missingFields: missing.join(',') || '—',
   };
+}
+
+async function loadPageCaches(skillIds) {
+  const rows = [];
+  for (let offset = 0; offset < skillIds.length; offset += PAGE_CACHE_BATCH_MAX) {
+    const chunk = skillIds.slice(offset, offset + PAGE_CACHE_BATCH_MAX);
+    const batchNum = Math.floor(offset / PAGE_CACHE_BATCH_MAX) + 1;
+    const batchTotal = Math.ceil(skillIds.length / PAGE_CACHE_BATCH_MAX);
+    process.stderr.write(
+      `[coverage] page-cache batch ${batchNum}/${batchTotal} (${chunk.length} id(s))\n`,
+    );
+    const params = new URLSearchParams({ skill_ids: chunk.join(',') });
+    const body = await fetchJson(`${baseUrl()}/api/skills/page-cache?${params}`);
+    const batch = body.data ?? [];
+    if (!Array.isArray(batch) || batch.length !== chunk.length) {
+      throw new Error(
+        `page-cache batch size mismatch: expected ${chunk.length}, got ${Array.isArray(batch) ? batch.length : typeof batch}`,
+      );
+    }
+    rows.push(...batch);
+  }
+  return rows;
 }
 
 const HEADERS = [
@@ -439,14 +463,8 @@ async function main() {
   const ids = await loadSkillIds(limit);
   console.error(`[coverage] loaded ${ids.length} skill id(s)`);
 
-  const rows = [];
-  for (const [index, skillId] of ids.entries()) {
-    const enc = encodeURIComponent(skillId);
-    const url = `${baseUrl()}/api/skills/detail?skill_id=${enc}`;
-    process.stderr.write(`[coverage] [${index + 1}/${ids.length}] ${skillId}\n`);
-    const body = await fetchJson(url);
-    rows.push(buildRow(skillId, body));
-  }
+  const caches = await loadPageCaches(ids);
+  const rows = ids.map((skillId, index) => buildRow(skillId, caches[index]));
 
   const { counts, noPage } = fieldMissingCounts(rows);
   const tiers = tierStats(rows);

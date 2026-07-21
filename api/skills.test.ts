@@ -15,6 +15,7 @@ vi.mock('./_lib/supabase-repository.js', () => ({ createSupabaseRepositoryFromEn
 import { GET as getSkills, POST as postSkills } from './skills.js';
 import { GET as getSkillAudits } from './skills/audit.js';
 import { GET as getSkillDetail } from './skills/detail.js';
+import { GET as getSkillPageCacheBatch } from './skills/page-cache.js';
 import { GET as searchSkills } from './skills/search.js';
 
 describe('skills proxy routes', () => {
@@ -148,6 +149,7 @@ describe('skills proxy routes', () => {
         pageSnapshot,
         pageScrapedAt: '2026-07-20T00:00:00.000Z',
         repository: 'owner/repo',
+        source: null,
         installCount: 99,
         sourceUrl: 'https://github.com/owner/repo',
         installSeries: [1, 2, 3, 4, 5, 6, 7, 8],
@@ -185,5 +187,59 @@ describe('skills proxy routes', () => {
         pageSnapshot: { summary: 'Cached without chart' },
       }),
     });
+  });
+
+  it('batches page-cache rows in request order and fills missing ids', async () => {
+    createSupabaseRepositoryFromEnv.mockReturnValue({
+      listSkillPageCaches: async () => [
+        {
+          skillId: 'owner/b',
+          pageSnapshot: { summary: 'B' },
+          pageScrapedAt: '2026-07-20T00:00:00.000Z',
+          repository: 'owner/repo',
+          source: null,
+          installCount: 2,
+          sourceUrl: 'https://example.com/b',
+        },
+      ],
+    });
+
+    const response = await getSkillPageCacheBatch(
+      new Request('https://proxy.test/api/skills/page-cache?skill_ids=owner%2Fa,owner%2Fb'),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      data: [
+        {
+          skillId: 'owner/a',
+          pageSnapshot: null,
+          pageScrapedAt: null,
+          repository: null,
+          source: null,
+          installCount: null,
+          sourceUrl: null,
+        },
+        {
+          skillId: 'owner/b',
+          pageSnapshot: { summary: 'B' },
+          pageScrapedAt: '2026-07-20T00:00:00.000Z',
+          repository: 'owner/repo',
+          source: null,
+          installCount: 2,
+          sourceUrl: 'https://example.com/b',
+        },
+      ],
+    });
+  });
+
+  it('rejects oversized page-cache batches before touching Supabase', async () => {
+    const tooMany = Array.from({ length: 101 }, (_, i) => `owner/skill-${i}`).join(',');
+    const response = await getSkillPageCacheBatch(
+      new Request(`https://proxy.test/api/skills/page-cache?skill_ids=${encodeURIComponent(tooMany)}`),
+    );
+
+    expect(response.status).toBe(400);
+    expect(createSupabaseRepositoryFromEnv).not.toHaveBeenCalled();
   });
 });

@@ -11,6 +11,10 @@ const LEADERBOARD_VIEWS = new Set(['all-time', 'trending', 'hot']);
 const LEADERBOARD_KEYS = new Set(['view', 'page', 'per_page']);
 const SEARCH_KEYS = new Set(['q', 'limit', 'owner']);
 const DETAIL_KEYS = new Set(['skill_id']);
+const PAGE_CACHE_BATCH_KEYS = new Set(['skill_ids']);
+
+/** Max ids per `/api/skills/page-cache` request (URL + DB `.in` bound). */
+export const PAGE_CACHE_BATCH_MAX = 100;
 
 function invalid(message: string): QueryParseResult {
   return {
@@ -107,18 +111,57 @@ export function parseSkillsSearchQuery(params: URLSearchParams): QueryParseResul
   return { ok: true, query: cleaned };
 }
 
+/** skills.sh ids are slash paths: owner/skill or owner/repo/skill */
+export function isValidSkillId(skillId: string): boolean {
+  return skillId.length > 0 && skillId.length <= 200 && /^[^/\s]+(?:\/[^/\s]+)+$/u.test(skillId);
+}
+
 export function parseSkillDetailQuery(params: URLSearchParams): QueryParseResult {
   const unknown = rejectUnknownKeys(params, DETAIL_KEYS);
   if (unknown) return unknown;
 
   const skillId = params.get('skill_id')?.trim();
   if (!skillId) return invalid('skill_id is required');
-  // skills.sh ids are slash paths: owner/skill or owner/repo/skill
-  if (skillId.length > 200 || !/^[^/\s]+(?:\/[^/\s]+)+$/u.test(skillId)) {
+  if (!isValidSkillId(skillId)) {
     return invalid('skill_id must be a slash-separated path (e.g. owner/repo/skill)');
   }
 
   const cleaned = new URLSearchParams();
   cleaned.set('skill_id', skillId);
   return { ok: true, query: cleaned };
+}
+
+export type PageCacheBatchParseResult =
+  | { ok: true; skillIds: string[] }
+  | { ok: false; status: 400; body: QueryErrorBody };
+
+/** Comma-separated `skill_ids` (1–PAGE_CACHE_BATCH_MAX), each a slash path. */
+export function parseSkillPageCacheBatchQuery(params: URLSearchParams): PageCacheBatchParseResult {
+  const unknown = rejectUnknownKeys(params, PAGE_CACHE_BATCH_KEYS);
+  if (unknown) return unknown;
+
+  const raw = params.get('skill_ids')?.trim();
+  if (!raw) return invalid('skill_ids is required');
+
+  const skillIds = raw
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean);
+  if (skillIds.length === 0) return invalid('skill_ids is required');
+  if (skillIds.length > PAGE_CACHE_BATCH_MAX) {
+    return invalid(`skill_ids must contain at most ${PAGE_CACHE_BATCH_MAX} ids`);
+  }
+
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  for (const skillId of skillIds) {
+    if (!isValidSkillId(skillId)) {
+      return invalid(`invalid skill_id: ${skillId}`);
+    }
+    if (seen.has(skillId)) continue;
+    seen.add(skillId);
+    unique.push(skillId);
+  }
+
+  return { ok: true, skillIds: unique };
 }

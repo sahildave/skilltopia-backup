@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   parseSkillDetailQuery,
+  parseSkillPageCacheBatchQuery,
   parseSkillsLeaderboardQuery,
   parseSkillsSearchQuery,
 } from './query.js';
@@ -135,5 +136,35 @@ describe('parseSkillDetailQuery', () => {
     expect(
       parseSkillDetailQuery(new URLSearchParams({ skill_id: 'owner/skill', extra: '1' })).ok,
     ).toBe(false);
+  });
+});
+
+describe('parseSkillPageCacheBatchQuery', () => {
+  it('accepts comma-separated skill ids and dedupes', () => {
+    const result = parseSkillPageCacheBatchQuery(
+      new URLSearchParams({
+        skill_ids: 'owner/a, owner/b ,owner/a',
+      }),
+    );
+    expect(result).toEqual({ ok: true, skillIds: ['owner/a', 'owner/b'] });
+  });
+
+  it('rejects missing, empty, invalid, oversized, and unknown params', () => {
+    expect(parseSkillPageCacheBatchQuery(new URLSearchParams()).ok).toBe(false);
+    expect(parseSkillPageCacheBatchQuery(new URLSearchParams({ skill_ids: '  ' })).ok).toBe(false);
+    expect(
+      parseSkillPageCacheBatchQuery(new URLSearchParams({ skill_ids: 'solo' })).ok,
+    ).toBe(false);
+    expect(
+      parseSkillPageCacheBatchQuery(
+        new URLSearchParams({ skill_ids: 'owner/a', extra: '1' }),
+      ).ok,
+    ).toBe(false);
+
+    const tooMany = Array.from({ length: 101 }, (_, i) => `owner/skill-${i}`).join(',');
+    const oversized = parseSkillPageCacheBatchQuery(new URLSearchParams({ skill_ids: tooMany }));
+    expect(oversized.ok).toBe(false);
+    if (oversized.ok) return;
+    expect(oversized.body.message).toContain('at most 100');
   });
 });

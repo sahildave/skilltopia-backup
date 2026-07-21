@@ -18,14 +18,14 @@ still be missing applied migrations, Storage policies, or advisor cleanups.
 
 ## Scope
 
-- [ ] Run Supabase security advisors on the skills-explorer project; fix RLS /
+- [x] Run Supabase security advisors on the skills-explorer project; fix RLS /
       policy findings
-- [ ] Verify RLS is enabled on all `public` tables (idempotent migration if
+- [x] Verify RLS is enabled on all `public` tables (idempotent migration if
       any table lacks it)
-- [ ] Confirm no `anon` / `authenticated` policies grant SELECT/INSERT/UPDATE/
+- [x] Confirm no `anon` / `authenticated` policies grant SELECT/INSERT/UPDATE/
       DELETE on skill tables
-- [ ] Lock down `raw-skills` Storage bucket (private + no public object policies)
-- [ ] Document verification (advisor green / SQL check) in
+- [x] Lock down `raw-skills` Storage bucket (private + no public object policies)
+- [x] Document verification (advisor green / SQL check) in
       `docs/developer/supabase-repository.md` if anything changes
 
 ## Out of scope

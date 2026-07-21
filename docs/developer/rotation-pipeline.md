@@ -15,8 +15,9 @@ even beyond 200.
 4. Reuse the scrape pipeline with `skillIds` (hash-gated, one scrape retry,
    `/audit` refresh when hash changed or audits older than 7 days).
 
-Default throttle is **1000ms** between skills. Worst case ~2 OIDC calls/skill
-(detail + audit) ≈ **120 req/min**, well under the skills.sh **600/min**
+Default throttle is **1000ms** between skills (daily). One-shot `scrape:sweep` /
+GHA `mode=sweep` default to **250ms** (`THROTTLE_MS`). Worst case ~2 OIDC calls/skill
+(detail + audit) at 250ms still stays under the skills.sh **600/min**
 per-project budget. Prefer the **ingest** Vercel project’s OIDC — see
 [ingest-oidc.md](./ingest-oidc.md).
 

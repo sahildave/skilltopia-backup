@@ -3,6 +3,7 @@
 **Milestone:** release  
 **Depends on:** task-20  
 **Priority:** 27 — easy to miss; required before public desktop downloads  
+**Security:** Clears Medium findings from [2026-07-21 security review](../reports/2026-07-21-security-review-main.md). Required before task-26 public publish/downloads.  
 **Why this exists:** Not in the original packaging list, but desktop builds call the Backend API; a public binary without a stable public API (and a clear data story) will fail in the wild.
 
 ## Goal
@@ -11,13 +12,16 @@ Ensure anonymous/public desktop and web clients can use production Backend API s
 
 ## Context
 
-Vocabulary: **Backend API** owns secrets (skills.sh, Supabase, Qdrant, AI keys). Desktop must not embed those. Going OSS + shipping binaries implies strangers will hit your production API.
+Vocabulary: **Backend API** owns secrets (skills.sh, Supabase, Qdrant, AI keys). Desktop must not embed those. Going OSS + shipping binaries implies strangers will hit your production API. Security review: public `/api/*` is an intentional OIDC amplifier with only per-instance in-memory rate limits; desktop defaults to a hardcoded production Backend URL when unset.
 
 ## Scope
 
 - [ ] Confirm production Backend base URL is configured for release desktop builds (no localhost)
+- [ ] Remove or fail-fast hardcoded `DEFAULT_PROXY_BASE_URL` for release builds; require explicit `SKILLS_PROXY_BASE_URL` at build time (security review Medium)
 - [ ] Review CORS / auth model for public clients (no leaked service-role keys)
 - [ ] Rate limits / abuse basics for search, detail, scrape-adjacent endpoints
+- [ ] Distributed rate limiting (KV/Redis) and/or Vercel Firewall on `/api/*` — in-memory per Fluid instance is insufficient (security review Medium)
+- [ ] Stricter limits and/or longer cache / batch-only refresh for `/api/skills/audit` to reduce primary OIDC burn (security review Medium)
 - [ ] Short **Privacy** section in README (or `docs/privacy.md`): what is sent to Backend vs stays local (installed skills scan, etc.)
 - [ ] Ensure Infisical/Vercel secrets stay server-side; audit client env for accidental Backend secrets
 - [ ] Decide crash/analytics posture for v1 (off, opt-in, or documented third party)
@@ -30,5 +34,7 @@ Vocabulary: **Backend API** owns secrets (skills.sh, Supabase, Qdrant, AI keys).
 ## Done when
 
 - A release desktop build against production API works on a machine with no Infisical
+- Release builds do not silently fall back to another operator’s hardcoded Backend URL
+- Abuse controls are not solely per-instance in-memory maps (or Firewall covers the gap)
 - README states what data is transmitted
 - No Backend secrets in the public repo or client bundle

@@ -50,7 +50,7 @@ All scrape, list-snapshots, rotate, enrich, and GHA ingest traffic uses the
 | ---------------------------------- | -------------------------------------------------- | -------------------------------------------- |
 | List snapshots                     | Paginated list only                                | Cheap                                        |
 | Daily rotation (~200 + queued)     | Detail (+ audit when stale) per skill, 1s throttle | ≪ 600/min                                    |
-| Full sweep (`MAX_ENRICHED` ≤ 1500) | Same as scrape, longer wall clock                  | Prefer secondary OIDC; fallback `1000` if heavy |
+| Full sweep (`MAX_ENRICHED` ≤ 1500) | Same as scrape, `THROTTLE_MS` default **250** | Prefer secondary OIDC; raise throttle or use `1000` cap if heavy |
 
-If you see upstream `429`, increase `throttleMs` or lower `MAX_ENRICHED` — do
+If you see upstream `429`, increase `THROTTLE_MS` / `throttleMs` or lower `MAX_ENRICHED` — do
 not point batch jobs at the primary (app Backend) OIDC.

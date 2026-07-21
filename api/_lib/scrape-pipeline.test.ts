@@ -52,7 +52,7 @@ describe('scrape pipeline', () => {
     expect(repository.upsertPageSnapshot).not.toHaveBeenCalled();
   });
 
-  it('retries scrape once then saves metadata without clearing page_snapshot', async () => {
+  it('retries scrape once then clears page_snapshot to null for later rotation', async () => {
     const repository = repositoryStub();
     const fetchPageHtml = vi
       .fn()
@@ -78,7 +78,11 @@ describe('scrape pipeline', () => {
 
     expect(fetchPageHtml).toHaveBeenCalledTimes(2);
     expect(repository.upsertSkillMetadata).toHaveBeenCalledTimes(1);
-    expect(repository.upsertPageSnapshot).not.toHaveBeenCalled();
+    expect(repository.upsertPageSnapshot).toHaveBeenCalledWith(
+      'owner/skill',
+      null,
+      expect.any(String),
+    );
     expect(repository.upsertInstallSnapshots).not.toHaveBeenCalled();
   });
 

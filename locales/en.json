@@ -229,8 +229,6 @@
   "skills.detail.auditsLoading": "Loading audits...",
   "skills.detail.auditsFailed": "Couldn't load audits",
   "skills.detail.noAudits": "No security audits are available yet.",
-  "skills.detail.notCachedTitle": "Not cached yet",
-  "skills.detail.notCached": "This skill has not been scraped into the page cache yet. You can still open it on skills.sh, and audits may load on demand.",
   "skills.detail.primaryGoal": "Primary goal",
   "skills.detail.difficulty": "Difficulty",
   "skills.detail.readTime": "Read time",

@@ -62,11 +62,10 @@ describe('SkillDetailBody', () => {
     expect(screen.getByText('128,000')).toBeInTheDocument();
     expect(screen.getByText('Socket')).toBeInTheDocument();
     expect(screen.getByText('No alerts')).toBeInTheDocument();
-    expect(screen.queryByText(/not been scraped/i)).not.toBeInTheDocument();
     expect(catalog.fetchAudits).toHaveBeenCalledWith(MOCK_DETAIL.skillId);
   });
 
-  it('shows not-cached copy and still requests on-demand audits', async () => {
+  it('still requests on-demand audits when page cache is empty', async () => {
     vi.mocked(catalog.fetchDetail).mockResolvedValue(MOCK_UNCACHED_DETAIL);
     vi.mocked(catalog.fetchAudits).mockResolvedValue({
       skillId: MOCK_UNCACHED_DETAIL.skillId,
@@ -76,10 +75,6 @@ describe('SkillDetailBody', () => {
     });
 
     await renderOpenDetail(MOCK_LEADERBOARD[1]!);
-
-    await waitFor(() => {
-      expect(screen.getByText(/not been scraped into the page cache/i)).toBeInTheDocument();
-    });
 
     expect(screen.getByRole('button', { name: /open on skills\.sh/i })).toBeInTheDocument();
     expect(catalog.fetchAudits).toHaveBeenCalledWith(MOCK_UNCACHED_DETAIL.skillId);

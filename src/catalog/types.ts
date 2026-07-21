@@ -59,21 +59,18 @@ export interface SkillDetailData {
   related: RelatedSkill[];
 }
 
-export interface SkillAuditEntry {
-  provider: string;
-  slug: string;
-  status: string;
-  summary: string;
-  auditedAt: string;
-  riskLevel?: string;
-  categories?: string[];
-}
+export type {
+  SkillAuditEntry,
+  SkillAuditStatus,
+  SkillAuditsPayload,
+} from '../../api/_lib/audit-cache';
 
-export interface SkillAuditsPayload {
-  id: string;
-  source: string;
-  slug: string;
-  audits: SkillAuditEntry[];
+import type { SkillAuditStatus, SkillAuditsPayload } from '../../api/_lib/audit-cache';
+
+export function isPassAuditStatus(
+  status: string,
+): status is Extract<SkillAuditStatus, 'pass' | 'passed'> {
+  return status === 'pass' || status === 'passed';
 }
 
 export interface SkillAuditsData {

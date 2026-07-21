@@ -154,7 +154,8 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
         log(`${step}: scraped`, 'ok');
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        // Keep any prior page_snapshot; only metadata/hash was saved above.
+        // Clear stale snapshot so rotation can retry; metadata/hash already saved.
+        await options.repository.upsertPageSnapshot(detail.id, null, scrapeDate.toISOString());
         result.failed.push({ skillId, message });
         log(`${step}: scrape failed after retry — ${message}`, 'error');
       }

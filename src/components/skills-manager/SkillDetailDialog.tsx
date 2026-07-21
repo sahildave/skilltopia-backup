@@ -1,4 +1,4 @@
-import type { SkillAuditEntry, SkillsShSkill } from '@/catalog/types';
+import { isPassAuditStatus, type SkillAuditEntry, type SkillsShSkill } from '@/catalog/types';
 import { Sparkline } from '@/components/dither-kit';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -25,8 +25,8 @@ function DetailList({ values }: { values: string[] }) {
   );
 }
 
-function AuditStatusBadge({ status }: { status: string }) {
-  const variant = status === 'pass' || status === 'passed' ? 'secondary' : 'outline';
+function AuditStatusBadge({ status }: { status: SkillAuditEntry['status'] }) {
+  const variant = isPassAuditStatus(status) ? 'secondary' : 'outline';
   return (
     <Badge variant={variant} className="capitalize">
       {status}

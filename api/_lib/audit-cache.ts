@@ -2,10 +2,14 @@
 
 export const AUDIT_STALE_MS = 7 * 24 * 60 * 60 * 1000;
 
+/** Known skills.sh audit status values (wire may still send other strings). */
+export type SkillAuditStatus = 'pass' | 'passed' | 'fail' | 'failed' | 'warn' | 'warning';
+
 export type SkillAuditEntry = {
   provider: string;
   slug: string;
-  status: string;
+  /** Prefer known statuses; upstream may send other strings. */
+  status: SkillAuditStatus | (string & {});
   summary: string;
   auditedAt: string;
   riskLevel?: string;

@@ -94,7 +94,7 @@ Hybrid search, enrichment UI, and seed (tasks 5–8) reuse the Backend set above
 
 You do **not** need any secrets in Infisical `local` for daily `npm run dev:local`. An empty `local` env is fine (CLI still injects).
 
-Default when unset: `https://skilltopia-api.vercel.app`.
+Default when unset: `https://skilltopia.coduo.co`.
 
 ## How to obtain hard variables
 
@@ -140,7 +140,7 @@ value and fall back to `VERCEL_OIDC_TOKEN` only if secondary is unset. See
 
 **You do not need this for `npm run dev:local`.**
 
-That script aliases `tauri:dev`: Tauri talks to the deployed Backend API (default `https://skilltopia-api.vercel.app`). skills.sh auth stays on the Backend; Tauri never holds a skills.sh credential.
+That script aliases `tauri:dev`: Tauri talks to the deployed Backend API (default `https://skilltopia.coduo.co`). skills.sh auth stays on the Backend; Tauri never holds a skills.sh credential.
 
 `SKILLS_SH_TOKEN` is an escape hatch only: if set in the Tauri process, Rust **bypasses** the Backend API and calls `https://skills.sh` with that bearer token. Prefer not setting it. Do not put it in `prod` or release builds.
 

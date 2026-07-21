@@ -33,7 +33,7 @@ Dashboard → TanStack Query → Rust reqwest
 
 Rust clamps `per_page` (1–500) and search `limit` (1–200). The **proxy does not** — direct HTTP callers bypass clamps.
 
-Default proxy base: `https://skilltopia-api.vercel.app` (override with `SKILLS_PROXY_BASE_URL`). Maintainer-only direct path: `SKILLS_SH_TOKEN` → call skills.sh from Rust.
+Default proxy base: `https://skilltopia.coduo.co` (override with `SKILLS_PROXY_BASE_URL`). Maintainer-only direct path: `SKILLS_SH_TOKEN` → call skills.sh from Rust.
 
 ## Security findings to fix
 

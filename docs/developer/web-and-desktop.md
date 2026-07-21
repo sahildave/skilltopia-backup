@@ -121,7 +121,7 @@ Web module graph must not import desktop-only startup (menus, quick panes, recov
 
 - Day-to-day **UI** work: Chrome + `npm run dev` / `dev:web`. Open `http://localhost:1420`.
 - With `npm run dev:all`: Chrome opens `http://localhost:5173` automatically (web TARGET). Do **not** open `:1420` in Chrome for catalog UI — that Vite is TARGET=desktop and will fail Tauri invokes in the browser.
-- Catalog calls go to relative `/api/*`; Vite proxies them to the deployed Backend (`SKILLS_PROXY_BASE_URL` or `https://skilltopia-api.vercel.app`).
+- Catalog calls go to relative `/api/*`; Vite proxies them to the deployed Backend (`SKILLS_PROXY_BASE_URL` or `https://skilltopia.coduo.co`).
 - Use Tauri (`tauri:dev` / `dev:local`) when you need filesystem, install, opener, or desktop shell (titlebar/menu).
 - `npm run dev:mock` exercises Library / installed-list UI from fixtures without a desktop binary or Backend.
 

@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "tauri-app",
+  "productName": "skilltopia",
   "version": "0.1.0",
-  "identifier": "com.tauri-app.app",
+  "identifier": "co.coduo.skilltopia",
   "build": {
     "removeUnusedCommands": true,
     "beforeDevCommand": "TARGET=desktop vite",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Skills Manager",
+        "title": "Skilltopia",
         "width": 1920,
         "height": 1080,
         "minWidth": 1200,
@@ -46,11 +46,11 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "publisher": "Your Name",
+    "publisher": "Coduo Studio, LLC",
     "category": "DeveloperTool",
-    "shortDescription": "A Tauri React template application",
-    "longDescription": "A modern Tauri React template with comprehensive boilerplate code, TypeScript, Tailwind CSS, and shadcn/ui components.",
-    "copyright": "Copyright © 2025 Your Name. All rights reserved.",
+    "shortDescription": "Skilltopia is a platform for managing your skills and projects.",
+    "longDescription": "Skilltopia is a platform for managing your skills and projects.",
+    "copyright": "Copyright © 2026 Coduo. All rights reserved.",
     "macOS": {
       "frameworks": [],
       "minimumSystemVersion": "10.15",

@@ -128,14 +128,14 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
         {model ? (
           <>
             <Separator className="my-3" />
-            <div className="min-h-0 flex-1 overflow-y-auto pb-2">
+            <div className="min-h-0 flex-1 flex flex-col gap-0 overflow-y-auto pb-2">
               <div className="px-3 py-1">
-                <p className="text-muted-foreground text-xs font-medium uppercase">
+                <p className="text-muted-foreground text-xs mb-1 font-medium uppercase">
                   {t('skills.installed.providersHeading')}
                 </p>
               </div>
 
-              <div className="mb-2 px-2">
+              <div className="mb-2">
                 <InputGroup className="h-8">
                   <InputGroupAddon>
                     <Search className="size-3.5" />
@@ -206,10 +206,10 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
               ) : null}
 
               {filteredInactiveProviders.length > 0 || !query ? (
-                <div className="mt-3">
+                <div className="mt-1">
                   <button
                     type="button"
-                    className="text-muted-foreground hover:text-foreground flex w-full items-center gap-1.5 px-3 py-1"
+                    className="text-muted-foreground hover:text-foreground flex w-full items-center gap-1.5 pl-1 pr-2 py-1 pt-3 border-t border-border"
                     onClick={() => setInactiveOpen((open) => !open)}
                     aria-expanded={inactiveExpanded}
                   >
@@ -228,7 +228,7 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
                   </button>
 
                   {inactiveExpanded ? (
-                    <div className="mt-1 space-y-1 px-2">
+                    <div className="mt-1 space-y-1 pl-2">
                       {(query ? filteredInactiveProviders : model.inactiveProviders).map((item) => (
                         <ProviderRow
                           key={item.id}
@@ -241,7 +241,7 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
                         />
                       ))}
                       {query && filteredInactiveProviders.length === 0 ? (
-                        <p className="text-muted-foreground px-1 py-2 text-xs">
+                        <p className="text-muted-foreground px-2 py-2 text-xs">
                           {t('skills.installed.noMatchingProviders')}
                         </p>
                       ) : null}
@@ -306,8 +306,8 @@ function ProviderRow(props: {
         if (!installedTabActive) onEnsureInstalledTab();
       }}
       className={cn(
-        'relative flex w-full items-center gap-2 rounded-md px-3 text-sm transition-colors',
-        compact ? 'py-1.5 text-xs' : 'py-2',
+        'relative flex w-full items-center gap-2 rounded-md px-2 text-sm transition-colors',
+        compact ? 'py-1.5' : 'py-2',
         showSelected
           ? 'bg-background text-foreground font-medium shadow-xs'
           : 'text-muted-foreground hover:bg-background/70 hover:text-foreground',

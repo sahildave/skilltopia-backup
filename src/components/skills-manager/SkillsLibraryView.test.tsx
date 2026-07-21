@@ -83,6 +83,7 @@ describe('SkillsLibraryView (local / mock)', () => {
   it('lists All Agents skills with Universal and aggregated provider badges', () => {
     render(<SkillsLibraryView />);
 
+    expect(screen.getByRole('heading', { name: 'All Agents' })).toBeInTheDocument();
     expect(screen.getByText('find-skills')).toBeInTheDocument();
     expect(screen.getAllByText('Universal').length).toBeGreaterThan(0);
     expect(screen.getAllByText('1 Provider').length).toBeGreaterThan(0);
@@ -92,6 +93,15 @@ describe('SkillsLibraryView (local / mock)', () => {
     expect(findSkillsCard).toBeTruthy();
     expect(findSkillsCard?.textContent).not.toMatch(/\/Users\/mock/);
     expect(screen.queryByText(/Original at/i)).not.toBeInTheDocument();
+  });
+
+  it('mirrors the selected provider filter in the toolbar title and count', () => {
+    useInstalledSkillsUiStore.setState({ providerFilter: 'claude-code' });
+    render(<SkillsLibraryView />);
+
+    const toolbarHeading = screen.getByRole('heading', { name: 'Claude Code' });
+    expect(toolbarHeading).toBeInTheDocument();
+    expect(toolbarHeading.closest('div')).toHaveTextContent('2');
   });
 
   it('filters the skill list from the local search field', async () => {

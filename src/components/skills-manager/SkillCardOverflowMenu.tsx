@@ -104,7 +104,7 @@ export function SkillCardOverflowMenu({
           className={
             confirming
               ? 'relative flex h-12 min-w-56 flex-col py-0.5'
-              : 'flex min-w-56 flex-col py-0.5'
+              : 'flex min-w-56 flex-col py-1'
           }
         >
           <AnimatePresence custom={confirming} mode="popLayout" initial={false}>
@@ -151,13 +151,13 @@ export function SkillCardOverflowMenu({
                 initial="initial"
                 animate="animate"
                 exit="exit"
-                className="absolute inset-x-0 flex items-center gap-2"
+                className="absolute w-full h-full inset-x-0 justify-center px-2 pb-1 flex items-center gap-1"
               >
                 <Button
                   type="button"
                   variant="destructive"
                   size="sm"
-                  className="flex-1"
+                  className="grow"
                   disabled={uninstalling}
                   onClick={() => void handleUninstall()}
                 >
@@ -167,7 +167,7 @@ export function SkillCardOverflowMenu({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="flex-1"
+                  className="grow"
                   disabled={uninstalling}
                   onClick={() => setConfirming(false)}
                 >

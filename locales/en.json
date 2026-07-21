@@ -208,7 +208,7 @@
   "skills.installed.uninstallConfirmAllAgents": "This removes the skill from all agents.",
   "skills.installed.uninstallConfirmProvider": "This removes the skill from {{provider}}.",
   "skills.installed.uninstallConfirmUniversal": "This removes the skill from Universal (~/.agents/skills).",
-  "skills.installed.uninstallYes": "Yes, uninstall",
+  "skills.installed.uninstallYes": "Uninstall",
   "skills.installed.uninstallCancel": "Cancel",
   "skills.installed.uninstallSuccess": "Uninstalled {{name}}",
   "skills.installed.uninstallFailed": "Couldn't uninstall {{name}}",

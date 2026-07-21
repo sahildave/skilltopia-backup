@@ -19,7 +19,7 @@ export function SkillProviderBadges({
       {badges.map((badge) => {
         if (badge.kind === 'universal') {
           return (
-            <Badge key="universal" variant="outline">
+            <Badge key="universal" variant="outline" size="sm">
               {t('skills.installed.universal')}
             </Badge>
           );
@@ -34,6 +34,7 @@ export function SkillProviderBadges({
               <Badge
                 variant="outline"
                 tabIndex={0}
+                size="sm"
                 aria-label={`${label}: ${badge.names.join(', ')}`}
               >
                 {label}

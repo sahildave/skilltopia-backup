@@ -4,7 +4,7 @@
 
 Skilltopia is a desktop and web app for discovering, reviewing, and installing agent skills. It helps developers browse the public skills catalog, inspect skill details and audit metadata, and manage locally installed global skills from one interface.
 
-<img width="1200" height="630" alt="appview" src="https://github.com/user-attachments/assets/52e32794-fdae-4e09-942c-87db54ecdcf8" />
+<img width="1200" height="630" alt="Skilltopia-01" src="https://github.com/user-attachments/assets/eed1b960-5b58-4793-88da-43e4011f9cf3" />
 
 Skilltopia is created by Coduo Studio, LLC. The main creators are [Sahil Dave](https://github.com/sahildave) and [Indhuja](https://github.com/indhuja).
 

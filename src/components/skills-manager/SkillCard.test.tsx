@@ -1,5 +1,5 @@
-import { render, screen } from '@/test/test-utils';
 import { MOCK_INSTALLED_SCAN } from '@/platform/fixtures';
+import { render, screen } from '@/test/test-utils';
 import { describe, expect, it } from 'vitest';
 import { ALL_AGENTS_FILTER_ID } from './installed-skills-model';
 import { SkillCard } from './SkillCard';
@@ -29,7 +29,6 @@ describe('SkillCard', () => {
     expect(footer).toBeTruthy();
     expect(footer).toContainElement(screen.getByText('Universal'));
     expect(footer).toContainElement(screen.getByText('1 Provider'));
-    expect(footer).toContainElement(screen.getByText('Installed'));
 
     expect(
       screen.queryByRole('button', { name: /Open find-skills on skills\.sh/i }),

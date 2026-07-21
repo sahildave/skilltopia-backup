@@ -1,9 +1,9 @@
-import { render, screen, waitFor } from '@/test/test-utils';
-import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MOCK_INSTALLED_SCAN, MOCK_UNIVERSAL_ONLY_SCAN } from '@/platform/fixtures';
 import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
+import { render, screen, waitFor } from '@/test/test-utils';
+import userEvent from '@testing-library/user-event';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CopyProvidersDialog } from './CopyProvidersDialog';
 
 const copyMock = vi.hoisted(() => ({
@@ -159,7 +159,7 @@ describe('CopyProvidersDialog', () => {
     expect(screen.getByRole('button', { name: /^copy$/i })).toBeEnabled();
     expect(screen.getByText(/copying to 1 provider/i)).toBeInTheDocument();
 
-    await user.click(screen.getByText(/other providers/i));
+    // Other providers starts expanded; do not toggle or Cursor is unmounted.
     expect(screen.getByRole('checkbox', { name: /^cursor$/i })).not.toBeChecked();
 
     await user.click(screen.getByRole('button', { name: /^copy$/i }));

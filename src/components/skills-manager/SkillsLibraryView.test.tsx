@@ -1,7 +1,7 @@
 import { render, screen, waitFor, within } from '@/test/test-utils';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DESKTOP_APP_DOWNLOAD_URL } from '@/lib/desktop-download';
+import { GITHUB_REPO_URL } from '@/lib/desktop-download';
 import { MOCK_EMPTY_SCAN, MOCK_INSTALLED_SCAN } from '@/platform/fixtures';
 import { UNIVERSAL_PROVIDER_ID } from '@/platform/types';
 import type { ScannedSkill } from '@/platform/types';
@@ -54,7 +54,7 @@ describe('SkillsLibraryView (web)', () => {
 
     await user.click(screen.getByRole('button', { name: 'Get the desktop app' }));
 
-    expect(scanMock.openExternal).toHaveBeenCalledWith(DESKTOP_APP_DOWNLOAD_URL);
+    expect(scanMock.openExternal).toHaveBeenCalledWith(GITHUB_REPO_URL);
   });
 });
 

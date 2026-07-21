@@ -1,7 +1,7 @@
 import { render, screen } from '@/test/test-utils';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DESKTOP_APP_DOWNLOAD_URL } from '@/lib/desktop-download';
+import { GITHUB_REPO_URL } from '@/lib/desktop-download';
 import { ProjectsView } from './ProjectsView';
 
 const platformMock = vi.hoisted(() => ({
@@ -26,6 +26,6 @@ describe('ProjectsView (web)', () => {
 
     await user.click(screen.getByRole('button', { name: 'Get the desktop app' }));
 
-    expect(platformMock.openExternal).toHaveBeenCalledWith(DESKTOP_APP_DOWNLOAD_URL);
+    expect(platformMock.openExternal).toHaveBeenCalledWith(GITHUB_REPO_URL);
   });
 });

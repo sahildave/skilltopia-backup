@@ -26,24 +26,25 @@ Confirm Infisical **`dev`** (and Vercel app env) already have `SUPABASE_URL` +
 `SUPABASE_SERVICE_ROLE_KEY`. See [infisical.md](./infisical.md) and
 [supabase-repository.md](./supabase-repository.md).
 
-### 2. App Backend Vercel (user traffic + on-demand `/audit`)
+### 2. Primary — App Backend Vercel (user traffic + on-demand `/audit`)
 
 1. Deploy this repo’s web + `api/` to the **app** Vercel project.
 2. **Settings → OIDC Federation → On** (runtime uses `@vercel/oidc`; no
-   `VERCEL_OIDC_TOKEN` secret on the app deploy).
+   batch OIDC secret on the app deploy).
 3. Sync Infisical `dev` / `prod` → that project’s env.
 
-On-demand audits use **app** OIDC. See [audit-cache.md](./audit-cache.md).
+On-demand audits use **primary** (app) OIDC. See [audit-cache.md](./audit-cache.md).
 
-### 3. Ingest Vercel project (batch OIDC)
+### 3. Secondary — Ingest Vercel project (backend/batch OIDC)
 
-Batch list/scrape/rotation must **not** share the app’s 600/min skills.sh
-budget.
+Batch list/scrape/rotation/enrich must **not** share the app’s 600/min
+skills.sh budget. All of those jobs use the **secondary** token.
 
-1. Create a **separate** Vercel project; enable **OIDC Federation**.
-2. Mint a short-lived OIDC token for **that** project and export it locally as
-   `VERCEL_OIDC_TOKEN` when running ingest scripts (CLI / dashboard — same
-   pattern as enrichment: linked project + token in the shell env).
+1. Create a **separate** Vercel project (partner account is fine); enable
+   **OIDC Federation**.
+2. Mint a short-lived OIDC token for **that** project and store it in Infisical
+   **`dev`** as **`VERCEL_OIDC_TOKEN_SECONDARY`** (preferred). Optional fallback:
+   `VERCEL_OIDC_TOKEN` in Infisical/`env` if secondary is unset.
 3. Do **not** store long-lived skills.sh passwords; refresh the token when it
    expires.
 
@@ -52,16 +53,18 @@ Details: [ingest-oidc.md](./ingest-oidc.md).
 ### 4. GitHub Actions secrets (for scheduled ingest)
 
 On the GitHub repo, set secrets used by `.github/workflows/ingest.yml`
-(**ingest** project values, not app):
+(**secondary** ingest project values, not app primary):
 
-| Secret                       | Source                                      |
-| ---------------------------- | ------------------------------------------- |
-| `SUPABASE_URL`               | Same Supabase project the app Backend uses  |
-| `SUPABASE_SERVICE_ROLE_KEY`  | Service role / secret key                   |
-| `VERCEL_OIDC_TOKEN`          | Token minted for the **ingest** Vercel project |
+| Secret                         | Source                                                         |
+| ------------------------------ | -------------------------------------------------------------- |
+| `SUPABASE_URL`                 | Same Supabase project the app Backend uses                     |
+| `SUPABASE_SERVICE_ROLE_KEY`    | Service role / secret key                                      |
+| `VERCEL_OIDC_TOKEN_SECONDARY`  | Preferred: token minted for the **ingest** Vercel project      |
+| `VERCEL_OIDC_TOKEN`            | Optional fallback when secondary is unset                      |
 
-Until these are set, the daily cron and `workflow_dispatch` sweep will fail.
-Local scripts still work with Infisical + a local `VERCEL_OIDC_TOKEN`.
+Until secondary (or fallback) OIDC plus Supabase secrets are set, the daily cron
+and `workflow_dispatch` sweep will fail. Local scripts work with Infisical
+`VERCEL_OIDC_TOKEN_SECONDARY` (or `VERCEL_OIDC_TOKEN` fallback).
 
 ### 5. Optional: Infisical `MAX_ENRICHED`
 
@@ -75,8 +78,9 @@ LLM keys are **not** required for scrape / list / rotate.
 ## Scripts to run
 
 All `*:local` / `ingest:daily` / `scrape:sweep` entries use
-`infisical run --env=dev`. Export **`VERCEL_OIDC_TOKEN`** (ingest project) in
-the same shell (or a gitignored env file Infisical/shell can see).
+`infisical run --env=dev`. Prefer **`VERCEL_OIDC_TOKEN_SECONDARY`** in Infisical
+`dev` (ingest/partner project). If unset, batch falls back to
+`VERCEL_OIDC_TOKEN`.
 
 Progress logs → stderr; JSON summary → stdout.
 
@@ -139,8 +143,9 @@ Pipeline docs: [list-snapshots-pipeline.md](./list-snapshots-pipeline.md),
 ## Ongoing (after ramp)
 
 1. Keep GHA **Ingest** enabled (`cron: 15 6 * * *` UTC = list + rotation).
-2. Refresh **`VERCEL_OIDC_TOKEN`** in GitHub secrets when the ingest token
-   expires (app deploy does not need this secret).
+2. Refresh **`VERCEL_OIDC_TOKEN_SECONDARY`** (and optional
+   `VERCEL_OIDC_TOKEN` fallback) in GitHub / Infisical when the ingest token
+   expires (app deploy does not need these secrets).
 3. Re-run a sweep only when growing the corpus or after a large schema/parser
    change.
 4. App users never run these scripts — they read Supabase via

@@ -1,11 +1,38 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchAllLeaderboard,
   fetchLeaderboard,
   fetchLeaderboardPage,
   fetchSkillAudits,
   fetchSkillDetail,
+  resolveBatchOidcToken,
 } from './skills-catalog.js';
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
+describe('resolveBatchOidcToken', () => {
+  it('prefers VERCEL_OIDC_TOKEN_SECONDARY when both are set', () => {
+    vi.stubEnv('VERCEL_OIDC_TOKEN_SECONDARY', ' secondary-token ');
+    vi.stubEnv('VERCEL_OIDC_TOKEN', 'fallback-token');
+    expect(resolveBatchOidcToken()).toBe('secondary-token');
+  });
+
+  it('falls back to VERCEL_OIDC_TOKEN when secondary is unset or blank', () => {
+    vi.stubEnv('VERCEL_OIDC_TOKEN_SECONDARY', '  ');
+    vi.stubEnv('VERCEL_OIDC_TOKEN', ' fallback-token ');
+    expect(resolveBatchOidcToken()).toBe('fallback-token');
+
+    vi.unstubAllEnvs();
+    vi.stubEnv('VERCEL_OIDC_TOKEN', 'only-fallback');
+    expect(resolveBatchOidcToken()).toBe('only-fallback');
+  });
+
+  it('returns undefined when neither token is set', () => {
+    expect(resolveBatchOidcToken()).toBeUndefined();
+  });
+});
 
 describe('skills catalog client', () => {
   it('loads leaderboard and detail response shapes', async () => {

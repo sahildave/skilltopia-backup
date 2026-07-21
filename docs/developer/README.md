@@ -45,7 +45,7 @@ Technical documentation for building and extending this app. These docs describe
 | [Page-cache ops](./page-cache-ops.md)                   | Manual setup + which scripts/GHA to run for scrape/cache         |
 | [Scrape Pipeline](./scrape-pipeline.md)                 | Local `scrape:local` HTML page cache + install backfill          |
 | [Rotation Pipeline](./rotation-pipeline.md)             | Daily 200-skill rotation + `ingest:daily` / GHA sweep            |
-| [Ingest OIDC](./ingest-oidc.md)                         | Dual Vercel projects: app Backend vs ingest batch OIDC           |
+| [Ingest OIDC](./ingest-oidc.md)                         | Primary (user-facing) vs secondary (backend/batch) OIDC          |
 | [Audit Cache](./audit-cache.md)                         | skills.sh `/audit` proxy, 7-day cache, async persist             |
 | [List Snapshots Pipeline](./list-snapshots-pipeline.md) | Local `list-snapshots:local` daily list install history          |
 | [Qdrant Embeddings](./qdrant.md)                        | Server-only Cloud Inference vectors and nearest-neighbor helpers |

@@ -75,9 +75,11 @@ Used by `npm run enrich:local` (Infisical `dev`) and any Backend enrich path tha
 | `GOOGLE_GENERATIVE_AI_API_KEY` | **yes** | `@ai-sdk/google` default. Gemini fallback.                                                                                                                                                                    |
 | `ENRICHMENT_MODEL_CHAIN`       | no      | Ordered `provider/model` list. Prefer Groq models that support structured outputs (`openai/gpt-oss-20b`). Default in code: `groq/openai/gpt-oss-20b,gemini/gemini-3.1-flash-lite`. Rule-based is always last. |
 | `MAX_ENRICHED`                 | no      | Config knob (default **500**, hard-capped at **1500**); bounds `enrich:local`, `scrape:local`, and `scrape:sweep`                                                                                             |
+| `VERCEL_OIDC_TOKEN_SECONDARY`  | **yes** | Preferred **secondary** (backend/batch) OIDC from the ingest/partner Vercel project. Used by scrape / list / rotate / enrich / GHA via `skills-catalog`. Not used by app runtime `@vercel/oidc`.              |
+| `VERCEL_OIDC_TOKEN`            | **yes** | Optional batch fallback when `VERCEL_OIDC_TOKEN_SECONDARY` is unset. Do not put either token in Infisical `local`.                                                                                            |
 | Enrich-route protect secret    | **yes** | Only if a secret-protected Backend enrich route is added                                                                                                                                                      |
 
-Missing provider keys are skipped at runtime; at least one of Groq/Gemini should be set for LLM enrichment. See [enrichment-pipeline.md](./enrichment-pipeline.md). Local HTML scrape/cache (`npm run scrape:local`), daily list snapshots (`npm run list-snapshots:local`), and rotation (`npm run rotate:local` / `ingest:daily`) need Supabase + OIDC but not LLM keys — see [scrape-pipeline.md](./scrape-pipeline.md), [list-snapshots-pipeline.md](./list-snapshots-pipeline.md), and [rotation-pipeline.md](./rotation-pipeline.md). Prefer a dedicated **ingest** Vercel project’s OIDC for batch work so the app Backend keeps its own 600/min budget — [ingest-oidc.md](./ingest-oidc.md).
+Missing provider keys are skipped at runtime; at least one of Groq/Gemini should be set for LLM enrichment. See [enrichment-pipeline.md](./enrichment-pipeline.md). Local HTML scrape/cache (`npm run scrape:local`), daily list snapshots (`npm run list-snapshots:local`), and rotation (`npm run rotate:local` / `ingest:daily`) need Supabase + **secondary** OIDC but not LLM keys — see [scrape-pipeline.md](./scrape-pipeline.md), [list-snapshots-pipeline.md](./list-snapshots-pipeline.md), and [rotation-pipeline.md](./rotation-pipeline.md). Primary (user-facing) OIDC stays on the app Vercel project; secondary is Infisical `VERCEL_OIDC_TOKEN_SECONDARY` — [ingest-oidc.md](./ingest-oidc.md).
 
 Hybrid search, enrichment UI, and seed (tasks 5–8) reuse the Backend set above; they do not add desktop secrets.
 
@@ -115,13 +117,21 @@ See [supabase-repository.md](./supabase-repository.md).
 
 See [qdrant.md](./qdrant.md).
 
-### skills.sh on Vercel (not Infisical)
+### skills.sh OIDC — primary vs secondary
+
+**Primary (user-facing):** minted at runtime by the **app** Vercel project via
+`@vercel/oidc`. Do not store a long-lived skills.sh password in Infisical for
+the proxy.
 
 1. Deploy `api/` to Vercel and link the Infisical → Vercel sync for `dev` / `prod`.
 2. Vercel project → **Settings → OIDC Federation → On**.
 3. Smoke-test `/api/skills` and `/api/skills/search` (see [external-apis.md](./external-apis.md)).
 
-OIDC tokens are minted at runtime by Vercel; do not store a long-lived skills.sh password in Infisical for the proxy.
+**Secondary (backend/batch):** mint an OIDC token from a **separate** ingest
+Vercel project (often a partner account) and store it as
+`VERCEL_OIDC_TOKEN_SECONDARY` in Infisical **`dev`**. Batch scripts prefer that
+value and fall back to `VERCEL_OIDC_TOKEN` only if secondary is unset. See
+[ingest-oidc.md](./ingest-oidc.md) and [page-cache-ops.md](./page-cache-ops.md).
 
 ### `SKILLS_SH_TOKEN` — skip for daily work
 

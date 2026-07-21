@@ -24,8 +24,16 @@ export type { SkillAuditsPayload };
 
 type FetchCatalog = (url: string) => Promise<unknown>;
 
+/** Batch/backend OIDC: secondary (Infisical/GHA) preferred; else VERCEL_OIDC_TOKEN. */
+export function resolveBatchOidcToken(): string | undefined {
+  const secondary = process.env.VERCEL_OIDC_TOKEN_SECONDARY?.trim();
+  if (secondary) return secondary;
+  const fallback = process.env.VERCEL_OIDC_TOKEN?.trim();
+  return fallback || undefined;
+}
+
 function authHeaders(): HeadersInit {
-  const token = process.env.VERCEL_OIDC_TOKEN;
+  const token = resolveBatchOidcToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 

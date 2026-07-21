@@ -17,7 +17,7 @@ function formatDate(date) {
   const day = String(date.getDate()).padStart(2, '0');
   const hour = String(date.getHours()).padStart(2, '0');
   const minute = String(date.getMinutes()).padStart(2, '0');
-  return `${year}-${month}-${day}-${hour}:${minute}`;
+  return `${year}-${month}-${day}-${hour}-${minute}`;
 }
 
 function getLastModifiedDate(filePath) {
@@ -40,7 +40,7 @@ function addDatePrefix(filename, date) {
 function insertTimeIntoDatePrefix(filename, date) {
   const hour = String(date.getHours()).padStart(2, '0');
   const minute = String(date.getMinutes()).padStart(2, '0');
-  return filename.replace(/^(task-\d{4}-\d{2}-\d{2}-)/, `$1${hour}:${minute}-`);
+  return filename.replace(/^(task-\d{4}-\d{2}-\d{2}-)/, `$1${hour}-${minute}-`);
 }
 
 function renameExistingTasks() {
@@ -55,9 +55,25 @@ function renameExistingTasks() {
   taskFiles.forEach((filename) => {
     const oldPath = path.join(DONE_DIR, filename);
 
-    if (/^task-\d{4}-\d{2}-\d{2}-\d{2}:\d{2}-/.test(filename)) {
+    if (/^task-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-/.test(filename)) {
       console.log(`Skipping (already timed): ${filename}`);
       skippedCount++;
+      return;
+    }
+
+    if (filename.includes(':')) {
+      const migratedFilename = filename.replace(/:/g, '-');
+      const migratedPath = path.join(DONE_DIR, migratedFilename);
+
+      if (fs.existsSync(migratedPath)) {
+        console.error(`Skipping (migration target exists): ${filename} -> ${migratedFilename}`);
+        skippedCount++;
+        return;
+      }
+
+      fs.renameSync(oldPath, migratedPath);
+      console.log(`${filename} -> ${migratedFilename} (colon migration)`);
+      renamedCount++;
       return;
     }
 
@@ -134,7 +150,7 @@ Examples:
 
 Notes:
   - Task name can be partial
-  - Completed tasks are moved to tasks-done/ with format: task-YYYY-MM-DD-HH:MM-description.md
+  - Completed tasks are moved to tasks-done/ with format: task-YYYY-MM-DD-HH-MM-description.md
   - Existing tasks are renamed using their last modified date
 `);
 }

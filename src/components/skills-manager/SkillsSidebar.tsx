@@ -297,6 +297,7 @@ function ProviderRow(props: {
   }
   const count = item?.skillCount ?? props.skillCount ?? 0;
   const hasWarning = sidebarWarnings(item?.warnings ?? []).length > 0;
+  const showSelected = selected && installedTabActive;
 
   return (
     <button
@@ -308,12 +309,12 @@ function ProviderRow(props: {
       className={cn(
         'relative flex w-full items-center gap-2 rounded-md px-3 text-sm transition-colors',
         compact ? 'py-1.5 text-xs' : 'py-2',
-        selected
+        showSelected
           ? 'bg-background text-foreground font-medium shadow-xs'
           : 'text-muted-foreground hover:bg-background/70 hover:text-foreground',
       )}
     >
-      {selected ? (
+      {showSelected ? (
         <span aria-hidden className="bg-primary absolute inset-y-1 inset-s-0 w-0.5 rounded-full" />
       ) : null}
       {Icon ? <Icon className="size-4 shrink-0" /> : null}

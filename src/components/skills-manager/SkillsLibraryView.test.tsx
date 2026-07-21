@@ -394,6 +394,21 @@ describe('SkillsSidebar providers', () => {
     });
   });
 
+  it('does not show provider selection styling when Explore is active', () => {
+    render(<SkillsSidebar active="explore" onSelect={vi.fn()} />);
+
+    const allAgents = screen.getByText('All Agents').closest('button');
+    expect(allAgents).not.toHaveClass('font-medium');
+    expect(allAgents).not.toHaveClass('shadow-xs');
+  });
+
+  it('shows provider selection styling when Installed is active', () => {
+    render(<SkillsSidebar active="installed" onSelect={vi.fn()} />);
+
+    const allAgents = screen.getByText('All Agents').closest('button');
+    expect(allAgents).toHaveClass('font-medium');
+  });
+
   it('shows Universal, filled providers, and collapsible other providers', async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();

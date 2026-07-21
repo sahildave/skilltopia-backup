@@ -21,6 +21,19 @@ export function isPlaceholderValue(value) {
   );
 }
 
+export function isValidUpdaterPubkey(value) {
+  if (typeof value !== 'string') {
+    return false;
+  }
+
+  const normalized = value.trim();
+  if (!normalized || normalized.includes('/') || normalized.includes('\\') || normalized.includes('~')) {
+    return false;
+  }
+
+  return /^[A-Za-z0-9+/]+=*$/.test(normalized) && normalized.length >= 40;
+}
+
 export function validateUpdaterReleaseConfig(tauriConfig) {
   const updaterConfig = tauriConfig.plugins?.updater;
   const errors = [];
@@ -32,6 +45,10 @@ export function validateUpdaterReleaseConfig(tauriConfig) {
 
   if (!updaterConfig.pubkey || isPlaceholderValue(updaterConfig.pubkey)) {
     errors.push('Updater public key is missing or still uses a placeholder value.');
+  } else if (!isValidUpdaterPubkey(updaterConfig.pubkey)) {
+    errors.push(
+      'Updater public key must be the minisign public key string, not a file path or invalid value.',
+    );
   }
 
   const endpoints = Array.isArray(updaterConfig.endpoints) ? updaterConfig.endpoints : [];

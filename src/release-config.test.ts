@@ -46,6 +46,30 @@ describe('updater release config guard', () => {
     );
   });
 
+  it('rejects a file path used as the updater public key', () => {
+    const errors = validateUpdaterReleaseConfig({
+      bundle: {
+        createUpdaterArtifacts: true,
+      },
+      plugins: {
+        updater: {
+          active: true,
+          endpoints: [
+            'https://github.com/sahildave/skills-explorer/releases/latest/download/latest.json',
+          ],
+          pubkey: '~/.tauri/skills-explorer.key.pub',
+        },
+      },
+    });
+
+    expect(errors).toContain(
+      'Updater public key must be the minisign public key string, not a file path or invalid value.',
+    );
+    expect(errors).toContain(
+      'Disable the updater until a real public key and endpoint are configured.',
+    );
+  });
+
   it('allows release config with a real public key and GitHub latest endpoint', () => {
     const errors = validateUpdaterReleaseConfig({
       bundle: {

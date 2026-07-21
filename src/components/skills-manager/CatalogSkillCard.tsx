@@ -5,12 +5,7 @@ import { toast } from 'sonner';
 import { platform } from '@platform';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,7 +33,7 @@ const MORPH_TRANSITION = { type: 'spring', stiffness: 200, damping: 24 } as cons
 const DETAIL_CONTENT_CLASS =
   'app-material-strong bg-background relative max-h-[85vh] w-full max-w-[calc(100%-2rem)] overflow-y-auto rounded-lg border p-6 shadow-lg sm:max-w-2xl';
 
-export function formatInstalls(count: number): string {
+function formatInstalls(count: number): string {
   return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(count);
 }
 
@@ -134,10 +129,7 @@ export function CatalogSkillCard({
 
   return (
     <MorphingDialog transition={MORPH_TRANSITION}>
-      <MorphingDialogTrigger
-        asChild
-        className={compact ? 'w-75 max-w-75 shrink-0' : undefined}
-      >
+      <MorphingDialogTrigger asChild className={compact ? 'w-75 max-w-75 shrink-0' : undefined}>
         <div>
           <Card className="gap-4 overflow-hidden py-4 hover:ring-5 hover:ring-primary/20 hover:outline-0.5 hover:outline-primary/80">
             <CardHeader className="px-4">

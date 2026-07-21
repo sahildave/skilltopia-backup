@@ -62,7 +62,11 @@ export default tseslint.config(
   },
   prettierConfig,
   {
-    files: ['src/components/ui/**/*.{ts,tsx}', 'src/test/**/*.{ts,tsx}'],
+    files: [
+      'src/components/ui/**/*.{ts,tsx}',
+      'src/components/dither-kit/**/*.{ts,tsx}',
+      'src/test/**/*.{ts,tsx}',
+    ],
     rules: {
       'react-refresh/only-export-components': 'off',
       // Disable compiler rule for UI components (from shadcn) and test files
@@ -88,6 +92,8 @@ export default tseslint.config(
         setInterval: 'readonly',
         clearInterval: 'readonly',
         fetch: 'readonly',
+        URLSearchParams: 'readonly',
+        AbortController: 'readonly',
       },
     },
     rules: {

@@ -2,10 +2,10 @@ import type { SkillsShSkill } from '@/catalog/types';
 import type { QueryClient } from '@tanstack/react-query';
 import { skillsShQueryKeys } from './skills-sh';
 
-export type LeaderboardCacheEntry = {
+export interface LeaderboardCacheEntry {
   data: SkillsShSkill[] | undefined;
   dataUpdatedAt: number;
-};
+}
 
 function dedupeById(skills: SkillsShSkill[]): SkillsShSkill[] {
   const seen = new Set<string>();

@@ -1,16 +1,7 @@
-import { useState } from 'react';
-import { ChevronDown, ExternalLink } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
-import { platform } from '@platform';
+import type { SkillsShSkill } from '@/catalog/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from '@/components/ui/card';
+import { Card, CardFooter, CardHeader } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,8 +17,12 @@ import {
   MorphingDialogTitle,
   MorphingDialogTrigger,
 } from '@/components/ui/morphing-dialog';
-import type { SkillsShSkill } from '@/catalog/types';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
+import { platform } from '@platform';
+import { Check, ChevronDown, Info } from 'lucide-react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { isCatalogSkillInstalled } from './catalog-installed-match';
 import { isInstallCancelled, isPermissionError } from './library-errors';
 import { SkillDetailBody } from './SkillDetailDialog';
@@ -95,7 +90,14 @@ export function SkillInstallMenu({
 
   if (isInstalled) {
     return (
-      <Button variant="outline" size="sm" disabled>
+      <Button
+        variant="outline"
+        size="sm"
+        className="text-teal-600 bg-transparent shadow-none border-none"
+        onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => event.stopPropagation()}
+      >
+        <Check size={16} data-icon="inline-end" />
         {t('skills.install.installed')}
       </Button>
     );
@@ -134,50 +136,38 @@ export function CatalogSkillCard({
 
   return (
     <MorphingDialog transition={MORPH_TRANSITION}>
-      <MorphingDialogTrigger
-        asChild
-        className={compact ? 'w-75 max-w-75 shrink-0' : undefined}
-      >
+      <MorphingDialogTrigger asChild className={compact ? 'w-75 p-2 max-w-75 shrink-0' : undefined}>
         <div>
-          <Card className="gap-4 overflow-hidden py-4 hover:ring-5 hover:ring-primary/20 hover:outline-0.5 hover:outline-primary/80">
-            <CardHeader className="px-4">
-              <div className="flex items-start justify-between gap-2 text-base">
-                <MorphingDialogTitle className="truncate text-balance line-clamp-1 font-semibold leading-none">
+          <Card className="gap-4 overflow-hidden ring-1 ring-foreground/5 dark:ring-foreground/10 hover:scale-102 hover:bg-linear-to-t hover:from-secondary hover:via-background hover:to-background dark:hover:bg-linear-to-t dark:hover:from-primary/10 dark:hover:via-secondary/30 dark:hover:to-transparent transition-all">
+            <CardHeader className="px-4 gap-1.5">
+              <div className="relative flex items-start justify-between gap-2 text-base">
+                <MorphingDialogTitle className="truncate text-balance line-clamp-1 font-semibold leading-normal">
                   {skill.name}
                 </MorphingDialogTitle>
-                <Badge variant="secondary" className="shrink-0 tabular-nums">
+                <Badge
+                  variant="secondary"
+                  size="md"
+                  className="absolute top-1 right-1 shrink-0 tabular-nums font-mono"
+                >
                   {formatInstalls(skill.installs)}
                 </Badge>
               </div>
-              <MorphingDialogSubtitle className="text-muted-foreground truncate text-sm text-pretty">
-                {skill.source}
-              </MorphingDialogSubtitle>
+              <MorphingDialogSubtitle>{skill.source}</MorphingDialogSubtitle>
             </CardHeader>
-            <CardContent className="px-4">
-              <div className="flex flex-wrap gap-1.5">
-                <Badge variant="outline">{skill.sourceType}</Badge>
-                <Badge variant="outline" className="max-w-full truncate">
-                  {skill.slug}
-                </Badge>
-              </div>
-            </CardContent>
-            <CardFooter
-              className="flex-wrap justify-end gap-1 border-t px-4 pt-4"
-              onClick={(event) => event.stopPropagation()}
-              onKeyDown={(event) => event.stopPropagation()}
-            >
-              <SkillInstallMenu skill={skill} installedKeys={installedKeys} />
+            {/* <CardContent className="px-4"></CardContent> */}
+            <CardFooter className="flex-wrap justify-between gap-1 px-4 pt-0">
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
+                className="size-7"
                 onClick={() => void platform.openExternal(skill.url)}
                 aria-label={t('skills.dashboard.openExternalLabel', {
                   name: skill.name,
                 })}
               >
-                <ExternalLink data-icon="inline-start" />
-                {t('skills.dashboard.view')}
+                <Info data-icon="inline-start" />
               </Button>
+              <SkillInstallMenu skill={skill} installedKeys={installedKeys} />
             </CardFooter>
           </Card>
         </div>
@@ -203,42 +193,35 @@ export function CatalogSkillListRow({
 
   return (
     <MorphingDialog transition={MORPH_TRANSITION}>
-      <div
-        data-slot="catalog-skill-list-row"
-        className="flex items-center gap-3 border-b border-border/60 py-3 last:border-b-0"
-      >
-        <div className="min-w-0 flex-1">
-          <MorphingDialogTitle className="truncate text-sm font-semibold">
-            {skill.name}
-          </MorphingDialogTitle>
-          <MorphingDialogSubtitle className="text-muted-foreground truncate text-xs text-pretty">
-            {skill.source}
-          </MorphingDialogSubtitle>
+      <MorphingDialogTrigger asChild>
+        <div data-slot="catalog-skill-list-row">
+          <Card className="flex flex-row items-center ring-1 ring-foreground/5 dark:ring-foreground/10  rounded-[min(var(--radius-4xl),24px)] gap-3 py-(--card-spacing) [--card-spacing:--spacing(5)] px-4 hover:scale-101 transition-all hover:bg-linear-to-t hover:from-secondary hover:via-background hover:to-background dark:hover:bg-linear-to-t dark:hover:from-primary/10 dark:hover:via-secondary/30 dark:hover:to-transparent">
+            <div className="flex flex-1 gap-1.5 flex-col">
+              <MorphingDialogTitle>{skill.name}</MorphingDialogTitle>
+              <MorphingDialogSubtitle>{skill.source}</MorphingDialogSubtitle>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Badge variant="secondary" size="md">
+                {formatInstalls(skill.installs)}
+              </Badge>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7"
+                onClick={() => void platform.openExternal(skill.url)}
+                aria-label={t('skills.dashboard.openExternalLabel', {
+                  name: skill.name,
+                })}
+              >
+                <Info data-icon="inline-start" />
+              </Button>
+              <SkillInstallMenu skill={skill} installedKeys={installedKeys} />
+            </div>
+          </Card>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Badge variant="secondary" className="tabular-nums">
-            {formatInstalls(skill.installs)}
-          </Badge>
-          <Badge variant="outline">{skill.sourceType}</Badge>
-          <SkillInstallMenu skill={skill} installedKeys={installedKeys} />
-          <MorphingDialogTrigger asChild>
-            <Button variant="outline" size="sm">
-              {t('skills.dashboard.details')}
-            </Button>
-          </MorphingDialogTrigger>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => void platform.openExternal(skill.url)}
-            aria-label={t('skills.dashboard.openExternalLabel', {
-              name: skill.name,
-            })}
-          >
-            <ExternalLink data-icon="inline-start" />
-            {t('skills.dashboard.view')}
-          </Button>
-        </div>
-      </div>
+      </MorphingDialogTrigger>
+
       <MorphingDialogContainer>
         <MorphingDialogContent className={DETAIL_CONTENT_CLASS}>
           <SkillDetailBody skill={skill} />

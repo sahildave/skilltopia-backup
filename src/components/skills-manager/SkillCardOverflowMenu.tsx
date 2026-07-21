@@ -106,6 +106,8 @@ export function SkillCardOverflowMenu({
               className="absolute inset-1"
             >
               <DropdownMenuItem
+                onClick={(event) => event.stopPropagation()}
+                onKeyDown={(event) => event.stopPropagation()}
                 variant="destructive"
                 disabled={uninstalling}
                 onSelect={(event) => {

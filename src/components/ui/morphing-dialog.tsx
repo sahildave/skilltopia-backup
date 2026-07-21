@@ -1,3 +1,6 @@
+import { Slot } from '@radix-ui/react-slot';
+import { XIcon } from 'lucide-react';
+import { AnimatePresence, MotionConfig, motion, type Transition, type Variant } from 'motion/react';
 import {
   createContext,
   useContext,
@@ -12,27 +15,18 @@ import {
   type RefObject,
 } from 'react';
 import { createPortal } from 'react-dom';
-import {
-  AnimatePresence,
-  MotionConfig,
-  motion,
-  type Transition,
-  type Variant,
-} from 'motion/react';
-import { XIcon } from 'lucide-react';
-import { Slot } from '@radix-ui/react-slot';
 
 import { useClickOutside } from '@/hooks/use-click-outside';
 import { cn } from '@/lib/utils';
 
 const MotionSlot = motion.create(Slot);
 
-type MorphingDialogContextValue = {
+interface MorphingDialogContextValue {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
   uniqueId: string;
   triggerRef: RefObject<HTMLElement | null>;
-};
+}
 
 const MorphingDialogContext = createContext<MorphingDialogContextValue | null>(null);
 
@@ -44,10 +38,10 @@ function useMorphingDialog() {
   return context;
 }
 
-type MorphingDialogProps = {
+interface MorphingDialogProps {
   children: ReactNode;
   transition?: Transition;
-};
+}
 
 function MorphingDialog({ children, transition }: MorphingDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -61,13 +55,13 @@ function MorphingDialog({ children, transition }: MorphingDialogProps) {
   );
 }
 
-type MorphingDialogTriggerProps = {
+interface MorphingDialogTriggerProps {
   children: ReactNode;
   className?: string;
   style?: CSSProperties;
   /** Merge props onto the child (e.g. a card) instead of rendering a button. */
   asChild?: boolean;
-};
+}
 
 function MorphingDialogTrigger({
   children,
@@ -82,7 +76,7 @@ function MorphingDialogTrigger({
     <Comp
       ref={triggerRef as Ref<HTMLButtonElement>}
       layoutId={`dialog-${uniqueId}`}
-      className={cn('relative cursor-pointer', isOpen && 'pointer-events-none', className)}
+      className={cn('relative', isOpen && 'pointer-events-none', className)}
       onClick={() => setIsOpen(!isOpen)}
       onKeyDown={(event: ReactKeyboardEvent) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -103,11 +97,11 @@ function MorphingDialogTrigger({
   );
 }
 
-type MorphingDialogContentProps = {
+interface MorphingDialogContentProps {
   children: ReactNode;
   className?: string;
   style?: CSSProperties;
-};
+}
 
 function MorphingDialogContent({ children, className, style }: MorphingDialogContentProps) {
   const { setIsOpen, isOpen, uniqueId, triggerRef } = useMorphingDialog();
@@ -162,9 +156,9 @@ function MorphingDialogContent({ children, className, style }: MorphingDialogCon
   );
 }
 
-type MorphingDialogContainerProps = {
+interface MorphingDialogContainerProps {
   children: ReactNode;
-};
+}
 
 function MorphingDialogContainer({ children }: MorphingDialogContainerProps) {
   const { isOpen, uniqueId } = useMorphingDialog();
@@ -198,11 +192,11 @@ function MorphingDialogContainer({ children }: MorphingDialogContainerProps) {
   );
 }
 
-type MorphingDialogTitleProps = {
+interface MorphingDialogTitleProps {
   children: ReactNode;
   className?: string;
   style?: CSSProperties;
-};
+}
 
 function MorphingDialogTitle({ children, className, style }: MorphingDialogTitleProps) {
   const { uniqueId } = useMorphingDialog();
@@ -215,16 +209,18 @@ function MorphingDialogTitle({ children, className, style }: MorphingDialogTitle
       layout
       id={`morphing-dialog-title-${uniqueId}`}
     >
-      {children}
+      <div className="truncate text-balance line-clamp-1 font-semibold leading-normal">
+        {children}
+      </div>
     </motion.div>
   );
 }
 
-type MorphingDialogSubtitleProps = {
+interface MorphingDialogSubtitleProps {
   children: ReactNode;
   className?: string;
   style?: CSSProperties;
-};
+}
 
 function MorphingDialogSubtitle({ children, className, style }: MorphingDialogSubtitleProps) {
   const { uniqueId } = useMorphingDialog();
@@ -235,12 +231,12 @@ function MorphingDialogSubtitle({ children, className, style }: MorphingDialogSu
       className={className}
       style={style}
     >
-      {children}
+      <div className="text-muted-foreground truncate text-sm text-pretty">{children}</div>
     </motion.div>
   );
 }
 
-type MorphingDialogDescriptionProps = {
+interface MorphingDialogDescriptionProps {
   children: ReactNode;
   className?: string;
   disableLayoutAnimation?: boolean;
@@ -249,7 +245,7 @@ type MorphingDialogDescriptionProps = {
     animate: Variant;
     exit: Variant;
   };
-};
+}
 
 function MorphingDialogDescription({
   children,
@@ -274,12 +270,12 @@ function MorphingDialogDescription({
   );
 }
 
-type MorphingDialogImageProps = {
+interface MorphingDialogImageProps {
   src: string;
   alt: string;
   className?: string;
   style?: CSSProperties;
-};
+}
 
 function MorphingDialogImage({ src, alt, className, style }: MorphingDialogImageProps) {
   const { uniqueId } = useMorphingDialog();
@@ -295,7 +291,7 @@ function MorphingDialogImage({ src, alt, className, style }: MorphingDialogImage
   );
 }
 
-type MorphingDialogCloseProps = {
+interface MorphingDialogCloseProps {
   children?: ReactNode;
   className?: string;
   variants?: {
@@ -303,7 +299,7 @@ type MorphingDialogCloseProps = {
     animate: Variant;
     exit: Variant;
   };
-};
+}
 
 function MorphingDialogClose({ children, className, variants }: MorphingDialogCloseProps) {
   const { setIsOpen } = useMorphingDialog();
@@ -329,12 +325,12 @@ function MorphingDialogClose({ children, className, variants }: MorphingDialogCl
 
 export {
   MorphingDialog,
-  MorphingDialogTrigger,
+  MorphingDialogClose,
   MorphingDialogContainer,
   MorphingDialogContent,
-  MorphingDialogClose,
-  MorphingDialogTitle,
-  MorphingDialogSubtitle,
   MorphingDialogDescription,
   MorphingDialogImage,
+  MorphingDialogSubtitle,
+  MorphingDialogTitle,
+  MorphingDialogTrigger,
 };

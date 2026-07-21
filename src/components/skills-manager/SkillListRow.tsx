@@ -22,7 +22,9 @@ export function SkillListRow({
     >
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold">{skill.name}</p>
-        <p className="text-muted-foreground line-clamp-1 text-xs text-pretty">{skill.description}</p>
+        <p className="text-muted-foreground line-clamp-1 text-xs text-pretty">
+          {skill.description}
+        </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <div className="flex flex-wrap justify-end gap-1.5">

@@ -30,6 +30,11 @@ h6,
   font-weight: 400; /* Uses the Bold variant for headings */
 }
 
+.font-mono {
+  font-family: 'Geist Mono', serif;
+  font-weight: 400; /* Uses the Bold variant for headings */
+}
+
 body {
   font-family:
     'Inter',

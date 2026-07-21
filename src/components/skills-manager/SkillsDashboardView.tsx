@@ -53,7 +53,7 @@ function SkillsSkeleton({ layoutMode }: { layoutMode: 'grid' | 'list' }) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 p-2">
       {Array.from({ length: 6 }, (_, index) => (
         <Card key={index} className="gap-4 py-4">
           <CardHeader className="px-4">
@@ -136,8 +136,8 @@ function SkillsResults({
         data-layout={layoutMode}
         className={cn(
           layoutMode === 'grid'
-            ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
-            : 'flex flex-col',
+            ? 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3'
+            : 'flex flex-col space-y-3',
         )}
       >
         {skills.map((skill) =>
@@ -175,7 +175,7 @@ export function SkillsDashboardView() {
     <div className="relative flex h-full min-w-0 flex-col overflow-hidden">
       <div className="app-material border-border relative sticky top-0 z-10 flex min-w-0 flex-col border-b bg-background">
         <DitherGradient from="grey" />
-        <div className="relative flex min-w-0 flex-row flex-wrap items-end justify-between gap-4 p-8 pb-6">
+        <div className="relative flex min-w-0 flex-row flex-wrap items-center justify-between gap-4 p-8 pb-4 pt-16">
           <div className="flex min-w-0 flex-col items-start gap-2.5">
             <h1 className="text-3xl leading-none text-balance">{t('skills.dashboard.title')}</h1>
             <p className="text-muted-foreground max-w-2xl text-sm text-pretty">
@@ -215,7 +215,7 @@ export function SkillsDashboardView() {
             </Alert>
           ) : null}
         </div>
-        <div className="relative flex min-w-0 flex-wrap items-center gap-3 px-8 pb-6">
+        <div className="relative flex min-w-0 flex-wrap items-center gap-3 px-8 pb-4">
           <ContinuousTabs
             value={viewId}
             defaultActiveId="trending"

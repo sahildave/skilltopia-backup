@@ -18,8 +18,6 @@ import {
   AlertTriangle,
   BookOpen,
   ChevronDown,
-  Download,
-  Layers,
   LayoutDashboard,
   Search,
   Settings,
@@ -44,8 +42,6 @@ const PRIMARY_NAV: {
 }[] = [
   { id: 'explore', labelKey: 'skills.nav.explore', icon: LayoutDashboard },
   { id: 'installed', labelKey: 'skills.nav.installed', icon: BookOpen },
-  { id: 'install', labelKey: 'skills.nav.install', icon: Download },
-  { id: 'presets', labelKey: 'skills.nav.presets', icon: Layers },
 ];
 
 interface SkillsSidebarProps {

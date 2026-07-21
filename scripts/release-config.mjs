@@ -27,7 +27,12 @@ export function isValidUpdaterPubkey(value) {
   }
 
   const normalized = value.trim();
-  if (!normalized || normalized.includes('/') || normalized.includes('\\') || normalized.includes('~')) {
+  if (
+    !normalized ||
+    normalized.includes('/') ||
+    normalized.includes('\\') ||
+    normalized.includes('~')
+  ) {
     return false;
   }
 

@@ -31,6 +31,31 @@ function askQuestion(question) {
   });
 }
 
+function hasStagedChanges() {
+  try {
+    execSync('git diff --cached --quiet', { stdio: 'ignore' });
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+function tagExists(tagVersion) {
+  try {
+    execSync(`git rev-parse --verify --quiet ${tagVersion}^{commit}`, { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getTagCommit(tagVersion) {
+  return execSync(`git rev-parse ${tagVersion}^{commit}`, {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  }).trim();
+}
+
 async function prepareRelease() {
   const version = process.argv[2];
 
@@ -120,10 +145,10 @@ async function prepareRelease() {
 
     console.log(`\n🎉 Successfully prepared release ${tagVersion}!`);
     console.log('\n📋 Git commands to execute:');
-    console.log(`   git add .`);
-    console.log(`   git commit -m "chore: release ${tagVersion}"`);
+    console.log('   git add .');
+    console.log(`   git commit -m "chore: release ${tagVersion}"  # skipped when version files are unchanged`);
     console.log(`   git tag ${tagVersion}`);
-    console.log(`   git push origin main --tags`);
+    console.log('   git push origin main --tags');
 
     console.log('\n🚀 After pushing:');
     console.log('   • GitHub Actions will automatically build the release');
@@ -142,11 +167,27 @@ async function prepareRelease() {
       console.log('📝 Adding changes...');
       exec('git add .');
 
-      console.log('💾 Creating commit...');
-      exec(`git commit -m "chore: release ${tagVersion}"`);
+      if (hasStagedChanges()) {
+        console.log('💾 Creating commit...');
+        exec(`git commit -m "chore: release ${tagVersion}"`);
+      } else {
+        console.log('⏭️  Skipping commit (version files already at target version)');
+      }
 
-      console.log('🏷️  Creating tag...');
-      exec(`git tag ${tagVersion}`);
+      const headCommit = exec('git rev-parse HEAD', { silent: true }).trim();
+      if (tagExists(tagVersion)) {
+        const taggedCommit = getTagCommit(tagVersion);
+        if (taggedCommit === headCommit) {
+          console.log(`⏭️  Tag ${tagVersion} already points at HEAD`);
+        } else {
+          throw new Error(
+            `Tag ${tagVersion} already exists at ${taggedCommit.slice(0, 7)} but HEAD is ${headCommit.slice(0, 7)}. Delete or move the tag before releasing.`,
+          );
+        }
+      } else {
+        console.log('🏷️  Creating tag...');
+        exec(`git tag ${tagVersion}`);
+      }
 
       console.log('📤 Pushing to remote...');
       exec('git push origin main --tags');

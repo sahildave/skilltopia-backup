@@ -2,6 +2,10 @@
 
 mod copy;
 mod frontmatter;
+/// Seam B foundation. Ships ahead of its caller (Seam D makes install
+/// authoritative), so nothing in the tree reads these verdicts yet.
+#[allow(dead_code)]
+mod path_entry;
 mod paths;
 mod scan;
 mod types;

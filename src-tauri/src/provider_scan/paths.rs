@@ -1,5 +1,6 @@
 //! Registry JSON types and path / detection evaluation.
 
+use super::types::UNIVERSAL_PROVIDER_ID;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -27,7 +28,7 @@ pub struct RegistrySource {
 pub struct ProviderDefinition {
     pub id: String,
     pub display_name: String,
-    #[allow(dead_code)] // Needed for serde parity with registry.json
+    /// Sole declaration of the Universal root for `id == "universal"`.
     pub skills_dir: String,
     pub universal: bool,
     pub global_skills_dir: GlobalSkillsDir,
@@ -261,8 +262,25 @@ pub fn resolve_global_skills_dir(dir: &GlobalSkillsDir, ctx: &ProbeContext) -> O
     }
 }
 
-pub fn universal_skills_dir(ctx: &ProbeContext) -> PathBuf {
-    ctx.home.join(".agents").join("skills")
+/// The canonical Universal skills root, `$HOME` joined with the `universal`
+/// provider's `skillsDir` in `registry.json`. That field is the single
+/// declaration of this path; nothing else may hardcode it.
+///
+/// Deliberately not the `universal` entry's `globalSkillsDir`: upstream points
+/// that at `configHome/agents/skills`, which no provider actually resolves to.
+/// The six providers that share the Universal tree (cline, dexto,
+/// kimi-code-cli, loaf, warp, zed) declare `home/.agents/skills`, which is what
+/// `skillsDir` says. `universal_dir_matches_sharing_providers` guards the pair.
+pub fn universal_skills_dir(
+    registry: &RegistryFile,
+    ctx: &ProbeContext,
+) -> Result<PathBuf, String> {
+    let universal = registry
+        .providers
+        .iter()
+        .find(|p| p.id == UNIVERSAL_PROVIDER_ID)
+        .ok_or("Provider registry is missing the 'universal' provider")?;
+    Ok(ctx.home.join(&universal.skills_dir))
 }
 
 #[cfg(test)]
@@ -287,6 +305,44 @@ mod tests {
             registry.source.repository_url,
             "https://github.com/vercel-labs/skills"
         );
+    }
+
+    /// Providers whose `globalSkillsDir` must resolve to the Universal root.
+    /// `scan_installed` attributes their skills instead of re-scanning; if this
+    /// pair ever diverges, the Seam D alias guard checks the wrong root.
+    const UNIVERSAL_SHARING_PROVIDERS: [&str; 6] =
+        ["cline", "dexto", "kimi-code-cli", "loaf", "warp", "zed"];
+
+    #[test]
+    fn universal_dir_derives_from_registry_skills_dir() {
+        let registry = load_registry().expect("registry");
+        let tmp = tempfile_dir();
+        let ctx = ctx_with_home(&tmp);
+        assert_eq!(
+            universal_skills_dir(&registry, &ctx).unwrap(),
+            tmp.join(".agents/skills")
+        );
+    }
+
+    #[test]
+    fn universal_dir_matches_sharing_providers() {
+        let registry = load_registry().expect("registry");
+        let tmp = tempfile_dir();
+        let ctx = ctx_with_home(&tmp);
+        let universal = universal_skills_dir(&registry, &ctx).unwrap();
+
+        for id in UNIVERSAL_SHARING_PROVIDERS {
+            let provider = registry
+                .providers
+                .iter()
+                .find(|p| p.id == id)
+                .unwrap_or_else(|| panic!("registry is missing provider {id}"));
+            assert_eq!(
+                resolve_global_skills_dir(&provider.global_skills_dir, &ctx),
+                Some(universal.clone()),
+                "{id} no longer resolves to the Universal skills dir"
+            );
+        }
     }
 
     #[test]

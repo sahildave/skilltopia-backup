@@ -37,6 +37,17 @@ export function getProviderById(
   return registry.providers.find((provider) => provider.id === id);
 }
 
+/**
+ * The Universal skills tree relative to `$HOME`, as declared by the `universal`
+ * provider's `skillsDir`. Sole TS reader of that declaration — mirrors
+ * `universal_skills_dir` in `src-tauri/src/provider_scan/paths.rs`.
+ */
+export function universalSkillsDirRelative(registry: ProviderRegistry): string {
+  const universal = getProviderById(registry, 'universal');
+  if (!universal) throw new Error("Provider registry is missing the 'universal' provider");
+  return universal.skillsDir;
+}
+
 export function assertCanonicalSourceUrl(url: string): void {
   if (url !== PROVIDER_REGISTRY_SOURCE_URL) {
     throw new Error(`Expected canonical source URL ${PROVIDER_REGISTRY_SOURCE_URL}, got ${url}`);

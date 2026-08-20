@@ -39,7 +39,7 @@ roles:
   implementer:
     always: [implement, karpathy-guidelines]
     offer: [vercel:vercel-functions, vercel:shadcn]
-    notes: "This project uses Supabase. Write every schema change as a migration file under supabase/migrations/. Do not change the database from the dashboard."
+    notes: 'This project uses Supabase. Write every schema change as a migration file under supabase/migrations/. Do not change the database from the dashboard.'
   integrator:
     offer: [resolving-merge-conflicts]
   # plan-reviewer:

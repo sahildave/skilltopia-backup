@@ -1,7 +1,7 @@
 {
   "source": {
     "repositoryUrl": "https://github.com/vercel-labs/skills",
-    "commit": "777599e1159e401b11ce4c8a57c20f09a8f1596e",
+    "commit": "435076e78988e1e6ec40d00b0b1d76bdbbc5419a",
     "license": "MIT",
     "attribution": "Provider definitions derived from vercel-labs/skills (MIT). See source.repositoryUrl and source.commit.",
     "agentsTsPath": "src/agents.ts"
@@ -798,6 +798,34 @@
       }
     },
     {
+      "id": "grok",
+      "displayName": "Grok Build",
+      "skillsDir": ".grok/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "envHome",
+          "env": "GROK_HOME",
+          "defaultPath": ".grok",
+          "path": "skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "envHome",
+            "env": "GROK_HOME",
+            "defaultPath": ".grok"
+          }
+        ]
+      }
+    },
+    {
       "id": "hermes-agent",
       "displayName": "Hermes Agent",
       "skillsDir": ".hermes/skills",
@@ -955,6 +983,31 @@
       }
     },
     {
+      "id": "kimchi",
+      "displayName": "Kimchi",
+      "skillsDir": ".kimchi/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".config/kimchi/harness/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".config/kimchi"
+          }
+        ]
+      }
+    },
+    {
       "id": "kimi-code-cli",
       "displayName": "Kimi Code CLI",
       "skillsDir": ".agents/skills",
@@ -1104,6 +1157,35 @@
           {
             "base": "home",
             "path": ".mcpjam"
+          }
+        ]
+      }
+    },
+    {
+      "id": "minimax-code",
+      "displayName": "MiniMax Code",
+      "skillsDir": ".minimax/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".minimax/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".minimax"
+          },
+          {
+            "base": "absolute",
+            "path": "/Applications/MiniMax Code.app"
           }
         ]
       }
@@ -1362,6 +1444,35 @@
           {
             "base": "home",
             "path": ".pochi"
+          }
+        ]
+      }
+    },
+    {
+      "id": "posit-assistant",
+      "displayName": "Posit Assistant",
+      "skillsDir": ".posit/assistant/skills",
+      "universal": false,
+      "showInUniversalList": true,
+      "showInUniversalPrompt": true,
+      "globalSkillsDir": {
+        "type": "path",
+        "path": {
+          "base": "home",
+          "path": ".posit/assistant/skills"
+        }
+      },
+      "detection": {
+        "type": "paths",
+        "match": "any",
+        "paths": [
+          {
+            "base": "home",
+            "path": ".posit/assistant"
+          },
+          {
+            "base": "home",
+            "path": ".positai"
           }
         ]
       }

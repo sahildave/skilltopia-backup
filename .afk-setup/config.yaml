@@ -1,0 +1,52 @@
+# How this stack is verified. Human-edited, committed, read-only to the runner.
+# Everything commented out below is optional — uncomment a line to use it.
+
+defaultChecks:
+  - npm run check:all
+baselineChecks:
+  - npm run check:all
+
+# Most scripts here run through `infisical run`, so a lane may need env wiring
+# linked or copied in before checks pass. Left empty until that is confirmed.
+worktreeSetup:
+  link: []
+  copy: []
+  run: []
+
+maxParallel: 5
+
+# Which top-level keys of a protected JSON file a lane may edit. The default
+# below is applied when this key is absent; `package.json: []` reverts every
+# edit, as the runner did before. A reverted package.json or lockfile blocks the
+# lane, because its checks ran against a chain that file no longer describes.
+# protectedEdits:
+#   package.json: [scripts]
+
+agent:
+  timeoutMs: 900000
+  runtime: herdr
+  # model: claude-opus-5
+  # reasoningEffort: medium
+
+# Skills each role gets. `always` is a rule the agent must apply; `offer` is a
+# choice it applies only when the task needs it. `notes` is prose for a stack
+# with no skill at all. Propose this block with `afk stack detect`; safe to
+# hand-edit afterwards.
+#
+# vercel:nextjs is deliberately NOT offered — this app is Vite + Tauri, and that
+# skill would only mislead. The Vercel skills here are for the Backend API under api/.
+roles:
+  implementer:
+    always: [implement, karpathy-guidelines]
+    offer: [vercel:vercel-functions, vercel:shadcn]
+    notes: "This project uses Supabase. Write every schema change as a migration file under supabase/migrations/. Do not change the database from the dashboard."
+  integrator:
+    offer: [resolving-merge-conflicts]
+  # plan-reviewer:
+  #   always: []
+  #   offer:  []
+  verifier:
+    offer: [diagnosing-bugs, vercel:react-best-practices]
+  # supervisor:
+  #   always: []
+  #   offer:  []

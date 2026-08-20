@@ -65,7 +65,8 @@ direct global skills directory. Shared UI must not import `@tauri-apps/*`.
 
 ### Desktop skill install paths
 
-Desktop `platform.install` runs `npx skills add` (shell plugin). Conventions:
+Desktop `platform.install` runs `npx skills add` through the Rust `run_skills_cli`
+command. Conventions:
 
 | Scope     | CLI flags                                                       | Typical on-disk location                                          |
 | --------- | --------------------------------------------------------------- | ----------------------------------------------------------------- |
@@ -74,7 +75,20 @@ Desktop `platform.install` runs `npx skills add` (shell plugin). Conventions:
 
 Desktop install reads the cached provider scan and never passes `-a '*'`, so undetected registry agents do not get new folders. Universal agents (Cursor, Codex, etc.) read from `~/.agents/skills` and do not need an explicit `-a` flag. Web `install` copies a universal-only command (no scan available).
 
-Skill ids are `owner/repo/skill` → CLI source `owner/repo` + `--skill skill`. Web `install` copies a pasteable `npx skills add …` command (`copiesInstallCommand: true`). Desktop runs the same args via the shell plugin. Shared UI must not import `@tauri-apps/*`; only `index.desktop.ts` may.
+Skill ids are `owner/repo/skill` → CLI source `owner/repo` + `--skill skill`. Web `install` copies a pasteable `npx skills add …` command (`copiesInstallCommand: true`). Desktop runs the same args via `run_skills_cli`. Shared UI must not import `@tauri-apps/*`; only `index.desktop.ts` may.
+
+### Spawning the skills CLI
+
+Never spawn `npx` from the webview. A Finder-launched `.app` inherits
+`PATH=/usr/bin:/bin:/usr/sbin:/sbin`, so a bare `npx` fails with `ENOENT`, and the
+shell scope pins the command name at config time so it cannot carry a resolved
+path. `src-tauri/src/node_runtime.rs` resolves an absolute `npx` once at startup
+(PATH, then nvm/fnm/Volta/asdf, `~/.local/bin`, Homebrew, system) and
+`run_skills_cli` spawns it with that runtime's `bin` dir prepended to the child's
+`PATH` — `npx` is a `#!/usr/bin/env node` shebang script, so the absolute path
+alone is not enough. When nothing resolves, the command returns a
+`node_runtime_not_found` error that the UI turns into a localized message via
+`isNodeRuntimeMissing`.
 
 ### CatalogPort
 

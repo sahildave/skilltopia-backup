@@ -44,6 +44,7 @@ export type {
   SkillEnrichment,
   SkillEnrichmentRequired,
   SkillPageSnapshot,
+  SkillsCliOutput,
   SkillsShSkill,
   UniversalScanInfo,
 } from './bindings';

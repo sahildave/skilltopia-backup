@@ -9,7 +9,10 @@ baselineChecks:
 # Most scripts here run through `infisical run`, so a lane may need env wiring
 # linked or copied in before checks pass. Left empty until that is confirmed.
 worktreeSetup:
-  link: [node_modules, src-tauri/target]
+  # src-tauri/target is deliberately NOT linked: a shared cargo target dir is
+  # destroyed if any single lane runs `cargo clean`, which killed the runner
+  # mid-integration on this epic's first attempt.
+  link: [node_modules]
   copy: []
   run: []
 

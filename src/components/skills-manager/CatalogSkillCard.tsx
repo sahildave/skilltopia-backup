@@ -24,7 +24,12 @@ import { useState, type SyntheticEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { isCatalogSkillInstalled } from './catalog-installed-match';
-import { isInstallCancelled, isNodeRuntimeMissing, isPermissionError } from './library-errors';
+import {
+  isInstallCancelled,
+  isNodeRuntimeMissing,
+  isPermissionError,
+  isUnsupportedSkillSource,
+} from './library-errors';
 import { SkillDetailBody } from './SkillDetailDialog';
 import { SkillProviderBadges } from './SkillProviderBadges';
 import { SkillSurfaceCard } from './SkillSurfaceCard';
@@ -99,7 +104,11 @@ export function SkillInstallMenu({
     } catch (error) {
       if (isInstallCancelled(error)) return;
       const message = error instanceof Error ? error.message : String(error);
-      if (isNodeRuntimeMissing(message)) {
+      if (isUnsupportedSkillSource(error)) {
+        toast.error(t('skills.install.unsupportedSource', { name: skill.name }), {
+          description: t('skills.install.unsupportedSourceDetail'),
+        });
+      } else if (isNodeRuntimeMissing(message)) {
         toast.error(t('skills.install.nodeMissing'), {
           description: t('skills.install.nodeMissingDetail'),
         });

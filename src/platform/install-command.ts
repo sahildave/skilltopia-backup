@@ -29,17 +29,33 @@ export class InstallCancelledError extends Error {
   }
 }
 
+/**
+ * A catalog entry published from a website rather than a git repository.
+ *
+ * skills.sh ids come in two shapes: `owner/repo/skill` for GitHub, and
+ * `domain.com/skill` for a "well-known" site (see `skillPageUrl` in
+ * `api/_lib/skills-catalog.ts`). Acquisition clones git, so the second shape
+ * has nothing to clone and cannot be installed — a real gap, not a bad id.
+ */
+export class UnsupportedSkillSourceError extends Error {
+  constructor(readonly host: string) {
+    super(`Skill is published from ${host}, which cannot be installed yet`);
+    this.name = 'UnsupportedSkillSourceError';
+  }
+}
+
 export function parseSkillInstallTarget(skillId: string): {
   source: string;
   skillName: string;
 } {
   const parts = skillId.split('/').filter(Boolean);
-  if (parts.length < 3) {
-    throw new Error(`Invalid skill id for install (expected owner/repo/skill): ${skillId}`);
+  const host = parts[0];
+  if (parts.length === 2 && host) {
+    throw new UnsupportedSkillSourceError(host);
   }
 
   const skillName = parts[parts.length - 1];
-  if (!skillName) {
+  if (parts.length < 3 || !skillName) {
     throw new Error(`Invalid skill id for install (expected owner/repo/skill): ${skillId}`);
   }
   const source = parts.slice(0, -1).join('/');

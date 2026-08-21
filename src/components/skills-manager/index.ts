@@ -6,4 +6,4 @@ export { SkillsDashboardView } from './SkillsDashboardView';
 export { ProjectsView } from './ProjectsView';
 export { PlaceholderGrid } from './PlaceholderGrid';
 export { readGlobalSkills } from './read-global-skills';
-export { isPermissionError } from './library-errors';
+export { isNodeRuntimeMissing, isPermissionError } from './library-errors';

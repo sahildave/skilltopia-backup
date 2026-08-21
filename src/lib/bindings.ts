@@ -144,6 +144,18 @@ async updateQuickPaneShortcut(shortcut: string | null) : Promise<Result<null, st
 }
 },
 /**
+ * Run `npx <args>` with the resolved Node runtime on the child's `PATH`.
+ * Returns the exit code and output; a non-zero exit is the caller's to interpret.
+ */
+async runSkillsCli(args: string[], cwd: string | null) : Promise<Result<SkillsCliOutput, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("run_skills_cli", { args, cwd }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Fetches the skills leaderboard (default: all-time, page 0, up to 500).
  */
 async fetchSkillsLeaderboard(view: string | null, page: number | null, perPage: number | null) : Promise<Result<SkillsShSkill[], string>> {
@@ -339,6 +351,7 @@ export type SkillDetailData = { skillId: string; pageSnapshot?: SkillPageSnapsho
 export type SkillEnrichment = { skillId: string; contentHash: string; required: SkillEnrichmentRequired; optional: JsonValue; estimatedReadTimeMinutes: number }
 export type SkillEnrichmentRequired = { primaryGoal: string; requires: string[]; estimatedComplexity: string; bestFor: string[] }
 export type SkillPageSnapshot = { summary?: string | null; topics?: string[] | null; repository?: string | null; source?: string | null; stars?: number | null; firstSeen?: string | null; installCommand?: string | null; related?: JsonValue | null; weeklyInstalls?: number[] | null; skillMdPreview?: string | null }
+export type SkillsCliOutput = { code: number; stdout: string; stderr: string }
 export type SkillsShSkill = { id: string; slug: string; name: string; source: string; installs: number; sourceType: string; installUrl?: string | null; url: string; isDuplicate?: boolean | null }
 export type UniversalScanInfo = { skillsDir: string; skillsDirExists: boolean; skillCount: number }
 

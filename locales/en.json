@@ -281,6 +281,8 @@
   "skills.install.success": "Installed {{name}}",
   "skills.install.failed": "Couldn't install {{name}}",
   "skills.install.permissionError": "Install blocked by permissions or shell scope. Check npx access and try again.",
+  "skills.install.nodeMissing": "Node.js not found",
+  "skills.install.nodeMissingDetail": "Installing and uninstalling skills needs Node.js, which provides npx. Install it from nodejs.org, then reopen the app.",
   "skills.install.copyAction": "Install",
   "skills.install.copyGlobal": "Copy global install command",
   "skills.install.copyProject": "Copy project install command",

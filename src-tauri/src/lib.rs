@@ -6,6 +6,7 @@
 
 mod bindings;
 mod commands;
+mod node_runtime;
 mod provider_scan;
 mod types;
 mod utils;
@@ -109,6 +110,13 @@ pub fn run() {
                 "App handle initialized for package: {}",
                 app.package_info().name
             );
+
+            // Resolve the Node runtime once, here, so every later spawn reuses it and a
+            // missing install shows up in the startup log rather than mid-install.
+            match node_runtime::cached(&node_runtime::NodeLookup::from_environment()) {
+                Ok(runtime) => log::info!("Resolved Node runtime: {}", runtime.npx.display()),
+                Err(error) => log::warn!("No Node runtime found: {error}"),
+            }
 
             // Set up global shortcut plugin (without any shortcuts - we register them separately)
             #[cfg(desktop)]

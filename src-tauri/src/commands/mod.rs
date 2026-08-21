@@ -8,4 +8,5 @@ pub mod preferences;
 pub mod provider_scan;
 pub mod quick_pane;
 pub mod recovery;
+pub mod skills_cli;
 pub mod skills_sh;

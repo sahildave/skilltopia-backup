@@ -17,7 +17,7 @@ use super::plugin_manifest::read_installed_plugins;
 use super::types::{
     InstalledScanSnapshot, ProjectInfo, ProviderRegistrySourceMeta, ScanWarning, ScanWarningCode,
     ScannedProvider, ScannedSkill, ScannedSkillPath, SkillOrigin, UniversalScanInfo,
-    PROJECT_AGENTS_PROVIDER_ID, UNIVERSAL_PROVIDER_ID,
+    CLAUDE_CODE_PROVIDER_ID, PROJECT_AGENTS_PROVIDER_ID, UNIVERSAL_PROVIDER_ID,
 };
 
 #[derive(Debug, Clone)]
@@ -302,6 +302,12 @@ fn merge_global_skill(
 /// Fold every skill shipped by the active plugin installs into the same map the
 /// provider directories filled. A skill present in both places gains a second
 /// origin rather than a second entry.
+///
+/// Plugin skills are tagged with the Claude Code provider id because that agent
+/// really does load them; without it the sidebar row for Claude Code would hide
+/// the skills it invokes. They keep a `ClaudePlugin` origin, never a
+/// `ProviderDirectory` one — the tag says who can invoke it, the origin says
+/// where it came from.
 fn merge_plugin_skills(
     map: &mut BTreeMap<String, ScannedSkill>,
     warnings: &mut Vec<ScanWarning>,
@@ -328,7 +334,7 @@ fn merge_plugin_skills(
                 skill.name,
                 skill.description,
                 uninstall_name,
-                None,
+                Some(CLAUDE_CODE_PROVIDER_ID),
                 SkillOrigin::ClaudePlugin {
                     plugin: install.plugin.clone(),
                     marketplace: install.marketplace.clone().unwrap_or_default(),
@@ -480,16 +486,33 @@ pub fn scan_installed(ctx: &ScanContext) -> Result<InstalledScanSnapshot, String
         });
     }
 
+    // Plugin skills join after the provider directories so a skill found in both
+    // keeps its provider-directory record and merely gains a plugin origin.
+    merge_plugin_skills(&mut skills_map, &mut warnings, &ctx.probe.home);
+
+    // A plugin is not a skills dir, so the directory walk above never counted it.
+    // Claude Code loads plugin skills all the same, so its count is every skill
+    // tagged with it — deduped, so a skill in both places is still counted once.
+    if let Some(claude) = providers
+        .iter_mut()
+        .find(|provider| provider.id == CLAUDE_CODE_PROVIDER_ID)
+    {
+        claude.skill_count = skills_map
+            .values()
+            .filter(|skill| {
+                skill
+                    .provider_ids
+                    .iter()
+                    .any(|id| id == CLAUDE_CODE_PROVIDER_ID)
+            })
+            .count() as u32;
+    }
+
     providers.sort_by(|a, b| {
         b.skill_count
             .cmp(&a.skill_count)
             .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
     });
-
-    // Plugin skills join after the provider directories so a skill found in both
-    // keeps its provider-directory record and merely gains a plugin origin.
-    // Deliberately outside the per-provider counts: a plugin is not a skills dir.
-    merge_plugin_skills(&mut skills_map, &mut warnings, &ctx.probe.home);
 
     let skills: Vec<ScannedSkill> = skills_map.into_values().collect();
 
@@ -1347,7 +1370,9 @@ mod tests {
             }]
         );
         assert_eq!(skill.uninstall_name, "ponytail");
-        assert!(skill.provider_ids.is_empty());
+        // Tagged for Claude Code, which loads it, without gaining a
+        // ProviderDirectory origin — it still came from a plugin.
+        assert_eq!(skill.provider_ids, vec!["claude-code".to_string()]);
         assert_eq!(skill.paths.len(), 1);
         assert!(skill.paths[0].path.ends_with("skills/ponytail"));
     }
@@ -1403,13 +1428,41 @@ mod tests {
             ]
         );
         assert_eq!(skill.paths.len(), 2);
-        // The provider directory still owns its own count.
+        // Counted once, not twice, despite living in both places.
         let claude = snapshot
             .providers
             .iter()
             .find(|p| p.id == "claude-code")
             .expect("claude-code");
         assert_eq!(claude.skill_count, 1);
+    }
+
+    #[test]
+    fn claude_code_counts_and_lists_the_plugin_skills_it_loads() {
+        let home = temp_home("plugin-provider-count");
+        write_skill(&home.join(".claude/skills"), "own", "own", "From Claude");
+        write_plugin(&home, "ponytail@official", Some("1.2.0"), &["shipped"]);
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+
+        let shipped = snapshot
+            .skills
+            .iter()
+            .find(|s| s.name == "shipped")
+            .expect("plugin skill in the snapshot");
+        assert_eq!(shipped.provider_ids, vec!["claude-code".to_string()]);
+        // Tagged for the agent that loads it, but still a plugin by origin.
+        assert!(matches!(
+            shipped.origins.as_slice(),
+            [SkillOrigin::ClaudePlugin { .. }]
+        ));
+
+        let claude = snapshot
+            .providers
+            .iter()
+            .find(|p| p.id == "claude-code")
+            .expect("claude-code");
+        assert_eq!(claude.skill_count, 2, "its own dir plus the plugin skill");
     }
 
     #[test]

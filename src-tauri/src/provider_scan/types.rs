@@ -10,6 +10,10 @@ pub const UNIVERSAL_PROVIDER_ID: &str = "universal";
 /// Not Universal — that label is reserved for `$HOME/.agents/skills`.
 pub const PROJECT_AGENTS_PROVIDER_ID: &str = "project-agents";
 
+/// Registry id of the agent that loads `~/.claude/plugins`, so plugin-delivered
+/// skills are attributed to it.
+pub const CLAUDE_CODE_PROVIDER_ID: &str = "claude-code";
+
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ProviderRegistrySourceMeta {

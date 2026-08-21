@@ -13,8 +13,8 @@ use super::paths::{
 };
 use super::types::{
     InstalledScanSnapshot, ProjectInfo, ProviderRegistrySourceMeta, ScanWarning, ScanWarningCode,
-    ScannedProvider, ScannedSkill, ScannedSkillPath, UniversalScanInfo, PROJECT_AGENTS_PROVIDER_ID,
-    UNIVERSAL_PROVIDER_ID,
+    ScannedProvider, ScannedSkill, ScannedSkillPath, SkillOrigin, UniversalScanInfo,
+    PROJECT_AGENTS_PROVIDER_ID, UNIVERSAL_PROVIDER_ID,
 };
 
 #[derive(Debug, Clone)]
@@ -243,9 +243,15 @@ fn merge_skill(
             .as_ref()
             .map(|p| normalize_path_for_serialization(p)),
     };
+    let origin = SkillOrigin::ProviderDirectory {
+        provider_id: provider_id.to_string(),
+    };
     if let Some(existing) = map.get_mut(&skill_key) {
         if !existing.provider_ids.iter().any(|id| id == provider_id) {
             existing.provider_ids.push(provider_id.to_string());
+        }
+        if !existing.origins.contains(&origin) {
+            existing.origins.push(origin);
         }
         if !existing.paths.iter().any(|p| p.path == skill_path.path) {
             existing.paths.push(skill_path);
@@ -259,6 +265,7 @@ fn merge_skill(
                 description,
                 scope: "global".into(),
                 provider_ids: vec![provider_id.to_string()],
+                origins: vec![origin],
                 paths: vec![skill_path],
             },
         );
@@ -341,6 +348,9 @@ pub fn scan_installed(ctx: &ScanContext) -> Result<InstalledScanSnapshot, String
                     && !skill.provider_ids.iter().any(|id| id == &provider.id)
                 {
                     skill.provider_ids.push(provider.id.clone());
+                    skill.origins.push(SkillOrigin::ProviderDirectory {
+                        provider_id: provider.id.clone(),
+                    });
                 }
             }
         } else if let Some(ref dir) = skills_dir {
@@ -650,9 +660,15 @@ fn merge_project_skill(
             .map(|p| normalize_path_for_serialization(p)),
     };
     let key = format!("project:{name}");
+    let origin = SkillOrigin::ProviderDirectory {
+        provider_id: provider_id.to_string(),
+    };
     if let Some(existing) = map.get_mut(&key) {
         if !existing.provider_ids.iter().any(|id| id == provider_id) {
             existing.provider_ids.push(provider_id.to_string());
+        }
+        if !existing.origins.contains(&origin) {
+            existing.origins.push(origin);
         }
         if !existing.paths.iter().any(|p| p.path == skill_path.path) {
             existing.paths.push(skill_path);
@@ -672,6 +688,7 @@ fn merge_project_skill(
                 description,
                 scope: "project".into(),
                 provider_ids: vec![provider_id.to_string()],
+                origins: vec![origin],
                 paths: vec![skill_path],
             },
         );
@@ -903,6 +920,18 @@ mod tests {
             .contains(&UNIVERSAL_PROVIDER_ID.to_string()));
         assert!(find.provider_ids.contains(&"claude-code".to_string()));
         assert_eq!(find.paths.len(), 2);
+        // One provider-directory origin per directory the skill was found in.
+        assert_eq!(
+            find.origins,
+            vec![
+                SkillOrigin::ProviderDirectory {
+                    provider_id: UNIVERSAL_PROVIDER_ID.to_string(),
+                },
+                SkillOrigin::ProviderDirectory {
+                    provider_id: "claude-code".to_string(),
+                },
+            ]
+        );
 
         let review = snapshot
             .skills
@@ -910,6 +939,12 @@ mod tests {
             .find(|s| s.name == "code-review")
             .expect("code-review");
         assert_eq!(review.provider_ids, vec!["claude-code".to_string()]);
+        assert_eq!(
+            review.origins,
+            vec![SkillOrigin::ProviderDirectory {
+                provider_id: "claude-code".to_string(),
+            }]
+        );
     }
 
     /// The six registry providers whose `globalSkillsDir` is the Universal root.

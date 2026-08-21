@@ -55,6 +55,7 @@ describe('filterSkillsForSelection', () => {
           description: 'Baseline UI skill',
           scope: 'global',
           providerIds: [UNIVERSAL_PROVIDER_ID],
+          origins: [{ kind: 'providerDirectory' as const, providerId: UNIVERSAL_PROVIDER_ID }],
           paths: [{ path: '/Users/mock/.agents/skills/baseline-ui' }],
         },
         {
@@ -63,6 +64,7 @@ describe('filterSkillsForSelection', () => {
           description: 'Codex-local skill',
           scope: 'global',
           providerIds: ['codex'],
+          origins: [{ kind: 'providerDirectory' as const, providerId: 'codex' }],
           paths: [{ path: '/Users/mock/.codex/skills/hatch-pet' }],
         },
         {
@@ -71,6 +73,7 @@ describe('filterSkillsForSelection', () => {
           description: 'Symlinked into Codex',
           scope: 'global',
           providerIds: ['codex'],
+          origins: [{ kind: 'providerDirectory' as const, providerId: 'codex' }],
           paths: [
             {
               path: '/Users/mock/.codex/skills/apple-design',
@@ -184,6 +187,10 @@ describe('providerBadgesForSkill', () => {
       description: 'Multi provider skill',
       scope: 'global' as const,
       providerIds: ['claude-code', 'cursor'],
+      origins: [
+        { kind: 'providerDirectory' as const, providerId: 'claude-code' },
+        { kind: 'providerDirectory' as const, providerId: 'cursor' },
+      ],
       paths: [
         { path: '/Users/mock/.claude/skills/multi' },
         { path: '/Users/mock/.cursor/skills/multi' },
@@ -225,6 +232,11 @@ describe('providerBadgesForSkill', () => {
       description: 'Shared dir skill',
       scope: 'global' as const,
       providerIds: [UNIVERSAL_PROVIDER_ID, 'cline', 'claude-code'],
+      origins: [
+        { kind: 'providerDirectory' as const, providerId: UNIVERSAL_PROVIDER_ID },
+        { kind: 'providerDirectory' as const, providerId: 'cline' },
+        { kind: 'providerDirectory' as const, providerId: 'claude-code' },
+      ],
       paths: [
         { path: '/Users/mock/.agents/skills/shared' },
         { path: '/Users/mock/.agents/skills/shared' },
@@ -268,6 +280,7 @@ describe('providerBadgesForSkill', () => {
       description: 'Project skill',
       scope: 'project' as const,
       providerIds: [PROJECT_AGENTS_PROVIDER_ID],
+      origins: [{ kind: 'providerDirectory' as const, providerId: PROJECT_AGENTS_PROVIDER_ID }],
       paths: [{ path: '/Users/mock/code/app/.agents/skills/local-skill' }],
     };
     const snapshot = {
@@ -309,6 +322,10 @@ describe('providerBadgesForSkill', () => {
       description: 'Project skill',
       scope: 'project' as const,
       providerIds: [PROJECT_AGENTS_PROVIDER_ID, 'claude-code'],
+      origins: [
+        { kind: 'providerDirectory' as const, providerId: PROJECT_AGENTS_PROVIDER_ID },
+        { kind: 'providerDirectory' as const, providerId: 'claude-code' },
+      ],
       paths: [
         { path: '/Users/mock/code/app/.agents/skills/local-skill' },
         { path: '/Users/mock/code/app/.claude/skills/local-skill' },
@@ -356,6 +373,7 @@ describe('providerBadgesForSkill', () => {
       description: 'Claude project skill',
       scope: 'project' as const,
       providerIds: ['claude-code'],
+      origins: [{ kind: 'providerDirectory' as const, providerId: 'claude-code' }],
       paths: [{ path: '/Users/mock/code/app/.claude/skills/claude-only' }],
     };
     const snapshot = {
@@ -425,6 +443,7 @@ describe('buildCopyProviderDialogModel', () => {
           description: 'Other',
           scope: 'global' as const,
           providerIds: ['claude-code'],
+          origins: [{ kind: 'providerDirectory' as const, providerId: 'claude-code' }],
           paths: [{ path: '/Users/mock/.claude/skills/other-skill' }],
         },
       ],
@@ -469,6 +488,11 @@ describe('buildCopyProviderDialogModel', () => {
       description: 'Shared',
       scope: 'global' as const,
       providerIds: [UNIVERSAL_PROVIDER_ID, 'cline', 'claude-code'],
+      origins: [
+        { kind: 'providerDirectory' as const, providerId: UNIVERSAL_PROVIDER_ID },
+        { kind: 'providerDirectory' as const, providerId: 'cline' },
+        { kind: 'providerDirectory' as const, providerId: 'claude-code' },
+      ],
       paths: [
         { path: '/Users/mock/.agents/skills/shared' },
         { path: '/Users/mock/.claude/skills/shared' },

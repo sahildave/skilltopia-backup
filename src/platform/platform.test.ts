@@ -48,13 +48,13 @@ describe('PlatformPort mock', () => {
         { id: 'vercel-labs/agent-skills/find-skills', name: 'Find Skills' },
         'global',
       ),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({ results: [] });
   });
 
   it('accepts mocked uninstall without throwing', async () => {
-    await expect(
-      mockPlatform.uninstall('find-skills', { agentScope: 'all' }),
-    ).resolves.toBeUndefined();
+    await expect(mockPlatform.uninstall('find-skills', { agentScope: 'all' })).resolves.toEqual({
+      results: [],
+    });
   });
 
   it('reports copied results for each requested provider', async () => {

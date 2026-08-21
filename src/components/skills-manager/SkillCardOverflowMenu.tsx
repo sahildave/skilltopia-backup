@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { CopyProvidersDialog } from './CopyProvidersDialog';
 import { uninstallAgentScopeFromFilter, type ProviderFilterId } from './installed-skills-model';
 import { isNodeRuntimeMissing, isPermissionError } from './library-errors';
+import { summarizeTargetResults } from './target-results';
 export function SkillCardOverflowMenu({
   skill,
   snapshot,
@@ -53,16 +54,38 @@ export function SkillCardOverflowMenu({
   const handleUninstall = async () => {
     setUninstalling(true);
     try {
-      await platform.uninstall(skill.uninstallName, {
-        agentScope: uninstallAgentScopeFromFilter(providerFilter),
-        providerIds: skill.providerIds,
-      });
-      toast.success(
-        t(
-          copiesCommand ? 'skills.installed.uninstallCopied' : 'skills.installed.uninstallSuccess',
-          { name: skill.name },
-        ),
+      const outcome = summarizeTargetResults(
+        await platform.uninstall(skill.uninstallName, {
+          agentScope: uninstallAgentScopeFromFilter(providerFilter),
+          providerIds: skill.providerIds,
+        }),
       );
+      const issues = outcome.issues
+        ? { description: t('skills.install.issuesDescription', { providers: outcome.issues }) }
+        : undefined;
+
+      if (outcome.unsettled === 0) {
+        toast.success(
+          t(
+            copiesCommand
+              ? 'skills.installed.uninstallCopied'
+              : 'skills.installed.uninstallSuccess',
+            { name: skill.name },
+          ),
+        );
+      } else if (outcome.settled > 0) {
+        toast.warning(
+          t('skills.installed.uninstallPartial', {
+            name: skill.name,
+            settled: outcome.settled,
+            failed: outcome.unsettled,
+          }),
+          issues,
+        );
+      } else {
+        toast.error(t('skills.installed.uninstallFailed', { name: skill.name }), issues);
+      }
+
       setOpen(false);
       setConfirming(false);
       await rescan();

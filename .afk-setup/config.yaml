@@ -26,7 +26,7 @@ maxParallel: 5
 #   package.json: [scripts]
 
 agent:
-  timeoutMs: 900000
+  timeoutMs: 2400000
   runtime: herdr
   # model: claude-opus-5
   # reasoningEffort: medium

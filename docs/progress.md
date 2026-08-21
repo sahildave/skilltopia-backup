@@ -1,12 +1,11 @@
-# Progress — Skill lifecycle rearchitecture: in-process install, copy and uninstall
+# Progress — Plugin-delivered skills: enumerate, attribute, and protect
 
 | ID | Task | Status | Dependencies |
 | --- | --- | --- | --- |
-| 2 | Resolve an absolute Node/npx path so the packaged .app can spawn it | passed | - |
-| 3 | Reconcile the universal skills directory: registry.json vs paths.rs | passed | - |
-| 4 | Path classifier: report what is at a skill target, without acting on it | passed | - |
-| 5 | In-process skill acquisition with a content-addressed cache | passed | - |
-| 6 | In-process projection: install, copy and uninstall without subprocesses | passed | 3, 4, 5 |
-| 7 | Port the desktop platform adapter off npx to typed commands | passed | 6 |
-| 8 | Acceptance: verify the skill lifecycle in a packaged .app | awaiting_acceptance | 2, 7 |
+| 10 | Skill provenance: an origin field on the scan snapshot | ready_to_integrate | - |
+| 11 | Read installed_plugins.json and resolve active plugin installs | passed | - |
+| 12 | Enumerate the skills shipped by one plugin install path | running | - |
+| 13 | Merge plugin skills into the installed scan snapshot | pending | 10, 11, 12 |
+| 14 | Enforce plugin skills as read-only, and show their origin | pending | 13 |
+| 15 | Cache the installed scan and invalidate on filesystem change | pending | 13 |
 

@@ -5,6 +5,10 @@ mod frontmatter;
 mod install;
 mod path_entry;
 mod paths;
+/// Seam F: reads the Claude plugin manifest. Seam H joins it into the scan;
+/// until then nothing calls it, hence the allow.
+#[allow(dead_code)]
+mod plugin_manifest;
 mod projection;
 mod scan;
 mod types;

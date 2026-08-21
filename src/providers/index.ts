@@ -6,6 +6,7 @@ import {
   getUniversalProviders,
   getVisibleUniversalProviders,
   isUniversalProvider,
+  universalSkillsDirRelative,
 } from './classification';
 import type { ProviderRegistry } from './types';
 import { PROVIDER_REGISTRY_SOURCE_URL } from './types';
@@ -22,6 +23,7 @@ export {
   getUniversalProviders,
   getVisibleUniversalProviders,
   isUniversalProvider,
+  universalSkillsDirRelative,
 };
 
 export type {

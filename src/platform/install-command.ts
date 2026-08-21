@@ -5,6 +5,7 @@ import type {
   UninstallOptions,
 } from './types';
 import { PROJECT_AGENTS_PROVIDER_ID, UNIVERSAL_PROVIDER_ID } from './types';
+import { providerRegistry, universalSkillsDirRelative } from '@/providers';
 
 /** Non-universal detected providers to pass as `-a` flags to `skills add`. */
 export interface InstallAgentTargets {
@@ -127,7 +128,7 @@ function buildUniversalCleanupCommand(skillName: string): string {
   ) {
     throw new Error('Skill folder name must be a single path segment');
   }
-  return `rm -rf ~/.agents/skills/${shellQuoteArg(skillName)}`;
+  return `rm -rf ~/${universalSkillsDirRelative(providerRegistry)}/${shellQuoteArg(skillName)}`;
 }
 
 function uninstallProviderIds(options: UninstallOptions): string[] {

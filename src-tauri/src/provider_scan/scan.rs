@@ -270,7 +270,7 @@ pub fn scan_installed(ctx: &ScanContext) -> Result<InstalledScanSnapshot, String
     let mut skills_map: BTreeMap<String, ScannedSkill> = BTreeMap::new();
     let mut warnings: Vec<ScanWarning> = Vec::new();
 
-    let universal_dir = universal_skills_dir(&ctx.probe);
+    let universal_dir = universal_skills_dir(&registry, &ctx.probe)?;
     let universal_exists = universal_dir.is_dir();
     let mut universal_count = 0u32;
 
@@ -683,10 +683,10 @@ pub fn resolve_provider_skills_dir(
     provider_id: &str,
     ctx: &ScanContext,
 ) -> Result<Option<PathBuf>, String> {
-    if provider_id == UNIVERSAL_PROVIDER_ID {
-        return Ok(Some(universal_skills_dir(&ctx.probe)));
-    }
     let registry = load_registry()?;
+    if provider_id == UNIVERSAL_PROVIDER_ID {
+        return Ok(Some(universal_skills_dir(&registry, &ctx.probe)?));
+    }
     let Some(provider) = registry.providers.iter().find(|p| p.id == provider_id) else {
         return Ok(None);
     };
@@ -716,7 +716,7 @@ pub(crate) fn validate_skill_dir_name(uninstall_name: &str) -> Result<(), String
 pub fn delete_universal_skill_dir(uninstall_name: &str, ctx: &ScanContext) -> Result<bool, String> {
     validate_skill_dir_name(uninstall_name)?;
 
-    let universal_dir = universal_skills_dir(&ctx.probe);
+    let universal_dir = universal_skills_dir(&load_registry()?, &ctx.probe)?;
     let target = universal_dir.join(uninstall_name);
     let metadata = match fs::symlink_metadata(&target) {
         Ok(metadata) => metadata,
@@ -910,6 +910,55 @@ mod tests {
             .find(|s| s.name == "code-review")
             .expect("code-review");
         assert_eq!(review.provider_ids, vec!["claude-code".to_string()]);
+    }
+
+    /// The six registry providers whose `globalSkillsDir` is the Universal root.
+    /// They must be attributed to the Universal scan, never re-scanned.
+    #[test]
+    fn attributes_universal_sharing_providers_without_rescanning() {
+        let home = temp_home("shared-universal");
+        let universal = home.join(".agents/skills");
+        write_skill(&universal, "shared-skill", "shared-skill", "Shared");
+
+        // Detection markers, one per provider (zed probes configHome, not $HOME).
+        for marker in [".cline", ".dexto", ".kimi-code", ".loaf", ".warp"] {
+            fs::create_dir_all(home.join(marker)).unwrap();
+        }
+        fs::create_dir_all(home.join(".config/zed")).unwrap();
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        let universal_dir = normalize_path_for_serialization(&universal);
+        assert_eq!(snapshot.universal.skill_count, 1);
+
+        let skill = snapshot
+            .skills
+            .iter()
+            .find(|s| s.name == "shared-skill")
+            .expect("shared-skill");
+        // One path, not six: the shared tree was walked exactly once.
+        assert_eq!(skill.paths.len(), 1);
+
+        for id in ["cline", "dexto", "kimi-code-cli", "loaf", "warp", "zed"] {
+            let provider = snapshot
+                .providers
+                .iter()
+                .find(|p| p.id == id)
+                .unwrap_or_else(|| panic!("{id} missing from snapshot"));
+            assert!(provider.detected, "{id} should be detected");
+            assert_eq!(provider.skills_dir.as_deref(), Some(universal_dir.as_str()));
+            assert_eq!(provider.skill_count, 1, "{id} should reuse Universal count");
+            assert!(
+                skill.provider_ids.iter().any(|p| p == id),
+                "{id} should be attributed to the Universal skill"
+            );
+            assert!(
+                !snapshot
+                    .warnings
+                    .iter()
+                    .any(|w| w.provider_id.as_deref() == Some(id)),
+                "{id} should inherit Universal warnings, not raise its own"
+            );
+        }
     }
 
     #[test]

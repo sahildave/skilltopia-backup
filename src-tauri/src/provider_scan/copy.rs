@@ -135,10 +135,9 @@ fn collect_source_candidates(
     ctx: &ScanContext,
 ) -> Result<Vec<SourceCandidate>, String> {
     let mut candidates = Vec::new();
-    let universal_dir = universal_skills_dir(&ctx.probe);
-    push_candidate(&mut candidates, &universal_dir.join(uninstall_name), true);
-
     let registry = load_registry()?;
+    let universal_dir = universal_skills_dir(&registry, &ctx.probe)?;
+    push_candidate(&mut candidates, &universal_dir.join(uninstall_name), true);
     for provider in &registry.providers {
         let Some(skills_dir) = resolve_global_skills_dir(&provider.global_skills_dir, &ctx.probe)
         else {

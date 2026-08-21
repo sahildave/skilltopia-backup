@@ -329,7 +329,8 @@ export function filterSkillSectionsByQuery(
 
 /**
  * Apply the Installed Skills toolbar view after provider/sidebar filtering.
- * Provider = real folders in a provider-specific directory.
+ * Provider = real folders in a provider-specific directory, plus skills a
+ * plugin ships (a real folder in the plugin's own tree, no provider id).
  * Available = Universal skills and/or provider entries that resolve through a
  * symlink (shared slash commands an agent can use).
  */
@@ -345,6 +346,8 @@ export function filterSkillSectionsByView(
     const hasUniversalPath = skill.providerIds.includes(UNIVERSAL_PROVIDER_ID);
     const hasSymlink = skill.paths.some((entry) => Boolean(entry.originalPath));
     if (view === 'available') return hasUniversalPath || hasSymlink;
+
+    if (skill.origins.some((origin) => origin.kind === 'claudePlugin')) return true;
 
     return skill.paths.some(
       (entry) =>

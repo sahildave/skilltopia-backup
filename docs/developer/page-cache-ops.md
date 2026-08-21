@@ -11,10 +11,10 @@ Do these before local scrape or GHA will succeed.
 ### 1. Supabase migration
 
 Apply all files under `supabase/migrations/` to the **dev** (and later **prod**)
-project, including `20260720160027_skill_page_cache.sql` and
-`20260721030000_skill_source_column.sql`:
+project, including `20260720160027_skill_page_cache.sql`,
+`20260721030000_skill_source_column.sql` and `20260821120000_skill_delisted.sql`:
 
-- `skill_metadata`: `page_snapshot`, `audits`, `audits_fetched_at`, `page_scraped_at`, `source`
+- `skill_metadata`: `page_snapshot`, `audits`, `audits_fetched_at`, `page_scraped_at`, `source`, `delisted_at`
 - table `skill_install_snapshots` (`skill_id`, `date`, `installs`)
 - `source` holds external non-GitHub origins; host-like values previously in
   `repository` are moved there by the migration

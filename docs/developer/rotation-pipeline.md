@@ -15,6 +15,14 @@ constraint, not throughput. Uncapped, a fresh corpus queues ~1,500 skills and
 runs for well over an hour, every day. A capped run logs how many it deferred
 and returns the count as `dropped`.
 
+**Delisted skills.** When skills.sh answers **404** for a skill's detail, the
+run stamps `skill_metadata.delisted_at` and drops it from both the queue and the
+oldest slot. Without that, a deleted skill keeps an empty `content_hash`
+forever, is retried every run, and holds the ingest exit code at 1. The
+tombstone is sticky by design — clear `delisted_at` by hand if a skill really
+comes back, since a re-sighting would just 404 again. Runs report the count as
+`delisted`; only genuine failures land in `failed`.
+
 ## What it does
 
 1. Load list slices for slot sources (`all-time` / `hot` / `trending`).

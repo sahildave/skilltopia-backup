@@ -117,6 +117,18 @@ function isRetryable(status: number): boolean {
   return status === 429 || status >= 500;
 }
 
+/**
+ * Carries the upstream status so callers can tell "gone for good" (404) from
+ * "try again tomorrow" without matching on the message string.
+ */
+export type SkillsShRequestError = Error & { status: number };
+
+export function skillsShErrorStatus(error: unknown): number | undefined {
+  if (typeof error !== 'object' || error === null || !('status' in error)) return undefined;
+  const status = (error as { status: unknown }).status;
+  return typeof status === 'number' ? status : undefined;
+}
+
 export async function fetchJson(url: string): Promise<unknown> {
   for (let attempt = 0; ; attempt += 1) {
     const canRetry = attempt < RETRY_DELAYS_MS.length;
@@ -131,7 +143,11 @@ export async function fetchJson(url: string): Promise<unknown> {
       if (!canRetry) throw networkError;
     }
     if (status !== undefined && (!canRetry || !isRetryable(status))) {
-      throw new Error(`skills.sh request failed: ${status}`);
+      const error: SkillsShRequestError = Object.assign(
+        new Error(`skills.sh request failed: ${status}`),
+        { status },
+      );
+      throw error;
     }
     await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
   }

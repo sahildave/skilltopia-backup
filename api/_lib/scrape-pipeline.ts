@@ -7,6 +7,7 @@ import {
   fetchSkillAudits,
   fetchSkillDetail,
   skillPageUrl,
+  skillsShErrorStatus,
   type SkillDetail,
 } from './skills-catalog.js';
 import {
@@ -48,6 +49,8 @@ export type ScrapeRunResult = {
   skipped: number;
   /** Ids dropped up front because `page_snapshot` already exists (`skipCached`). */
   cachedSkipped: number;
+  /** Ids tombstoned this run because skills.sh 404'd their detail. */
+  delisted: number;
   failed: Array<{ skillId: string; message: string }>;
   aborted?: boolean;
 };
@@ -176,6 +179,7 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
     scraped: 0,
     skipped: 0,
     cachedSkipped: 0,
+    delisted: 0,
     failed: [],
   };
 
@@ -214,8 +218,19 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
     const step = `[${index + 1}/${skillIds.length}] ${skillId}`;
     result.attempted += 1;
     try {
-      log(`${step}: fetching detail…`, 'step');
-      const detail = await loadDetail(skillId);
+      let detail: SkillDetail;
+      try {
+        log(`${step}: fetching detail…`, 'step');
+        detail = await loadDetail(skillId);
+      } catch (error) {
+        // A 404 means the skill is gone upstream, not that the run went wrong.
+        // Tombstone it so it leaves the queue instead of failing every run.
+        if (skillsShErrorStatus(error) !== 404) throw error;
+        await options.repository.markSkillDelisted(skillId, scrapeDate.toISOString());
+        result.delisted += 1;
+        log(`${step}: delisted upstream (404) — removed from rotation`, 'warn');
+        continue;
+      }
       if (!detail.hash) {
         result.skipped += 1;
         log(`${step}: skipped (null hash)`, 'warn');
@@ -310,7 +325,7 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
   }
 
   log(
-    `done attempted=${result.attempted} scraped=${result.scraped} skipped=${result.skipped} cachedSkipped=${result.cachedSkipped} failed=${result.failed.length}${result.aborted ? ' aborted=1' : ''}`,
+    `done attempted=${result.attempted} scraped=${result.scraped} skipped=${result.skipped} cachedSkipped=${result.cachedSkipped} delisted=${result.delisted} failed=${result.failed.length}${result.aborted ? ' aborted=1' : ''}`,
     result.failed.length > 0 || result.aborted ? 'warn' : 'ok',
   );
   return result;

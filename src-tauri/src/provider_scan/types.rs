@@ -59,6 +59,24 @@ pub struct ScannedSkillPath {
     pub original_path: Option<String>,
 }
 
+/// Where a scanned skill came from. A skill can have several origins at once —
+/// the same skill may sit in `~/.agents/skills` and also ship inside a plugin.
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum SkillOrigin {
+    /// Found directly in a provider (or Universal / project) skills directory.
+    ProviderDirectory {
+        #[serde(rename = "providerId")]
+        provider_id: String,
+    },
+    /// Delivered by a Claude Code plugin.
+    ClaudePlugin {
+        plugin: String,
+        marketplace: String,
+        version: String,
+    },
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ScannedSkill {
@@ -67,6 +85,7 @@ pub struct ScannedSkill {
     pub description: String,
     pub scope: String,
     pub provider_ids: Vec<String>,
+    pub origins: Vec<SkillOrigin>,
     pub paths: Vec<ScannedSkillPath>,
 }
 

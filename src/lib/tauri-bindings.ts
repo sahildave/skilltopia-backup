@@ -43,6 +43,7 @@ export type {
   SkillDetailData,
   SkillEnrichment,
   SkillEnrichmentRequired,
+  SkillOrigin,
   SkillPageSnapshot,
   SkillProjectionResult,
   SkillTargetResult,

@@ -51,10 +51,12 @@ export const platform: PlatformPort = {
 
   async install(_skill, _scope) {
     // Mock install succeeds without touching disk.
+    return { results: [] };
   },
 
   async uninstall(_skillName, _options) {
     // Mock uninstall succeeds without touching disk.
+    return { results: [] };
   },
 
   async copySkillToProviders(_uninstallName, providerIds) {

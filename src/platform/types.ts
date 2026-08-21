@@ -102,6 +102,25 @@ export interface UninstallOptions {
   providerIds?: string[];
 }
 
+/** Outcome of projecting one skill into (or out of) one target. */
+export type SkillTargetStatus =
+  | 'written'
+  | 'already_present'
+  | 'conflict'
+  | 'removed'
+  | 'absent'
+  | 'failed';
+
+export interface SkillTargetResult {
+  providerId: string;
+  status: SkillTargetStatus;
+  message?: string;
+}
+
+export interface SkillTargetsResult {
+  results: SkillTargetResult[];
+}
+
 export type CopyProviderStatus = 'copied' | 'conflict' | 'failed';
 
 export interface CopyProviderResult {
@@ -137,8 +156,13 @@ export interface PlatformPort {
   revealPath(path: string): Promise<boolean>;
   listInstalled(): Promise<SkillEntry[]>;
   listProviders(): Promise<SkillProvider[]>;
-  install(skill: InstallableSkill, scope: InstallScope): Promise<void>;
-  uninstall(skillName: string, options: UninstallOptions): Promise<void>;
+  /**
+   * Install one skill. Returns independent per-target outcomes so the caller can
+   * report partial success; only a whole-operation failure rejects.
+   */
+  install(skill: InstallableSkill, scope: InstallScope): Promise<SkillTargetsResult>;
+  /** Uninstall one skill. Per-target outcomes as with {@link install}. */
+  uninstall(skillName: string, options: UninstallOptions): Promise<SkillTargetsResult>;
   /**
    * Symlink one installed skill into each selected provider skills folder.
    * Returns independent per-provider outcomes; does not rescan.

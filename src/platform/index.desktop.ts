@@ -24,6 +24,7 @@ import type {
   PlatformPort,
   SkillEntry,
   SkillProvider,
+  SkillTargetsResult,
   UninstallOptions,
 } from './types';
 
@@ -95,26 +96,29 @@ async function pickProjectDirectory(): Promise<string> {
 }
 
 /**
- * Report the targets that did not work out, after every other target has been
- * dealt with. Nothing here aborts the fan-out — that was the old loop's bug,
+ * Hand the per-target outcomes to the caller rather than collapsing them into a
+ * thrown string. Nothing here aborts the fan-out — that was the old loop's bug,
  * where the first stale provider left every later one installed and skipped the
  * Universal cleanup entirely.
  */
-function throwOnUnhandledTargets(result: SkillProjectionResult): void {
-  const unhandled = result.results.filter(
-    (entry) => entry.status === 'failed' || entry.status === 'conflict',
-  );
-  if (unhandled.length === 0) return;
-  throw new Error(
-    unhandled.map((entry) => `${entry.providerId}: ${entry.message ?? entry.status}`).join('\n'),
-  );
+function normalizeProjection(result: SkillProjectionResult): SkillTargetsResult {
+  return {
+    results: result.results.map((entry) => ({
+      providerId: entry.providerId,
+      status: entry.status,
+      message: entry.message ?? undefined,
+    })),
+  };
 }
 
-async function installSkillToDisk(skill: InstallableSkill, scope: InstallScope): Promise<void> {
+async function installSkillToDisk(
+  skill: InstallableSkill,
+  scope: InstallScope,
+): Promise<SkillTargetsResult> {
   const projectPath = scope === 'project' ? await pickProjectDirectory() : null;
   const snapshot = await ensureScan();
   const { source, skillName } = parseSkillInstallTarget(skill.id);
-  throwOnUnhandledTargets(
+  return normalizeProjection(
     unwrapResult(
       await commands.installSkill(
         source,
@@ -126,8 +130,11 @@ async function installSkillToDisk(skill: InstallableSkill, scope: InstallScope):
   );
 }
 
-async function uninstallSkillFromDisk(skillName: string, options: UninstallOptions): Promise<void> {
-  throwOnUnhandledTargets(
+async function uninstallSkillFromDisk(
+  skillName: string,
+  options: UninstallOptions,
+): Promise<SkillTargetsResult> {
+  return normalizeProjection(
     unwrapResult(await commands.uninstallSkill(skillName, uninstallTargetIds(options))),
   );
 }

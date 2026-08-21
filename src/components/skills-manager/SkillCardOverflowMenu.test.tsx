@@ -29,6 +29,7 @@ describe('SkillCardOverflowMenu', () => {
   beforeEach(() => {
     platformMock.hasLocalLibrary = true;
     platformMock.copiesInstallCommand = false;
+    platformMock.uninstall.mockResolvedValue({ results: [] });
   });
 
   it('shows Copy to other providers when the platform has a local library', async () => {

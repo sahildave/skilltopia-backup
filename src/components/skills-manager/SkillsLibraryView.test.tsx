@@ -64,7 +64,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     scanMock.scanInstalled.mockResolvedValue(MOCK_INSTALLED_SCAN);
     scanMock.getInstalledScan.mockResolvedValue(MOCK_INSTALLED_SCAN);
     scanMock.revealProviderSkillsDir.mockResolvedValue(true);
-    scanMock.uninstall.mockResolvedValue(undefined);
+    scanMock.uninstall.mockResolvedValue({ results: [] });
     scanMock.copySkillToProviders.mockResolvedValue({
       results: [{ providerId: 'cursor', status: 'copied' }],
     });

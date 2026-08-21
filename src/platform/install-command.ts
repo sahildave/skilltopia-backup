@@ -46,8 +46,8 @@ export function parseSkillInstallTarget(skillId: string): {
   return { source, skillName };
 }
 
-/** Args for `npx` — non-interactive skills CLI install. */
-export function buildSkillsAddArgs(
+/** Args for the pasteable `npx` install command. */
+function buildSkillsAddArgs(
   skill: InstallableSkill,
   scope: InstallScope,
   targets: InstallAgentTargets = { providerIds: [] },
@@ -82,8 +82,8 @@ export function uninstallTargetIds(options: UninstallOptions): string[] {
   return [...providerIds, UNIVERSAL_PROVIDER_ID];
 }
 
-/** Args for `npx` — non-interactive skills CLI remove. */
-export function buildSkillsRemoveArgs(skillName: string, options: UninstallOptions): string[] {
+/** Args for the pasteable `npx` remove command. */
+function buildSkillsRemoveArgs(skillName: string, options: UninstallOptions): string[] {
   const args = ['--yes', 'skills', 'remove', skillName, '-g', '-y'];
   if (options.agentScope === 'all') {
     const providerIds = uninstallProviderIds(options);

@@ -29,6 +29,7 @@ import { SkillDetailBody } from './SkillDetailDialog';
 import { SkillProviderBadges } from './SkillProviderBadges';
 import { SkillSurfaceCard } from './SkillSurfaceCard';
 import { SkillSurfaceListRow } from './SkillSurfaceListRow';
+import { summarizeTargetResults } from './target-results';
 import type { InstallScope } from './types';
 
 const MORPH_TRANSITION = { stiffness: 26.7, damping: 4.1, mass: 0.2 } as const;
@@ -59,20 +60,40 @@ export function SkillInstallMenu({
   const handleInstall = async (scope: InstallScope) => {
     setInstalling(true);
     try {
-      await platform.install(
-        {
-          id: skill.id,
-          name: skill.name,
-          installUrl: skill.installUrl,
-        },
-        scope,
+      const outcome = summarizeTargetResults(
+        await platform.install(
+          {
+            id: skill.id,
+            name: skill.name,
+            installUrl: skill.installUrl,
+          },
+          scope,
+        ),
       );
-      toast.success(
-        t(copiesCommand ? 'skills.install.copied' : 'skills.install.success', {
-          name: skill.name,
-        }),
-      );
-      if (platform.hasLocalLibrary) {
+      const issues = outcome.issues
+        ? { description: t('skills.install.issuesDescription', { providers: outcome.issues }) }
+        : undefined;
+
+      if (outcome.unsettled === 0) {
+        toast.success(
+          t(copiesCommand ? 'skills.install.copied' : 'skills.install.success', {
+            name: skill.name,
+          }),
+        );
+      } else if (outcome.settled > 0) {
+        toast.warning(
+          t('skills.install.partial', {
+            name: skill.name,
+            settled: outcome.settled,
+            failed: outcome.unsettled,
+          }),
+          issues,
+        );
+      } else {
+        toast.error(t('skills.install.failed', { name: skill.name }), issues);
+      }
+
+      if (platform.hasLocalLibrary && outcome.settled > 0) {
         void useInstalledScanStore.getState().rescan();
       }
     } catch (error) {

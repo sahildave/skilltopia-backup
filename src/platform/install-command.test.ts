@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MOCK_INSTALLED_SCAN } from './fixtures';
 import {
-  buildSkillsAddArgs,
   buildSkillsInstallCommand,
-  buildSkillsRemoveArgs,
   buildSkillsRemoveCommand,
   installAgentTargetsFromScan,
   parseSkillInstallTarget,
@@ -51,55 +49,6 @@ describe('installAgentTargetsFromScan', () => {
   });
 });
 
-describe('buildSkillsAddArgs', () => {
-  const skill = {
-    id: 'vercel-labs/agent-skills/find-skills',
-    name: 'Find Skills',
-  };
-
-  it('builds a non-interactive global universal install without -a', () => {
-    expect(buildSkillsAddArgs(skill, 'global')).toEqual([
-      '--yes',
-      'skills',
-      'add',
-      'vercel-labs/agent-skills',
-      '--skill',
-      'find-skills',
-      '-y',
-      '-g',
-    ]);
-  });
-
-  it('builds a non-interactive global install for detected providers', () => {
-    expect(buildSkillsAddArgs(skill, 'global', { providerIds: ['claude-code'] })).toEqual([
-      '--yes',
-      'skills',
-      'add',
-      'vercel-labs/agent-skills',
-      '--skill',
-      'find-skills',
-      '-y',
-      '-a',
-      'claude-code',
-      '-g',
-    ]);
-  });
-
-  it('builds a non-interactive project install without -g', () => {
-    expect(buildSkillsAddArgs(skill, 'project', { providerIds: ['claude-code'] })).toEqual([
-      '--yes',
-      'skills',
-      'add',
-      'vercel-labs/agent-skills',
-      '--skill',
-      'find-skills',
-      '-y',
-      '-a',
-      'claude-code',
-    ]);
-  });
-});
-
 describe('uninstallTargetIds', () => {
   it('appends the universal cleanup after the providers', () => {
     expect(
@@ -128,69 +77,6 @@ describe('uninstallTargetIds', () => {
 
   it('targets universal alone', () => {
     expect(uninstallTargetIds({ agentScope: 'universal' })).toEqual(['universal']);
-  });
-});
-
-describe('buildSkillsRemoveArgs', () => {
-  it('builds a non-interactive global remove for all agents', () => {
-    expect(buildSkillsRemoveArgs('find-skills', { agentScope: 'all' })).toEqual([
-      '--yes',
-      'skills',
-      'remove',
-      'find-skills',
-      '-g',
-      '-y',
-      '-a',
-      '*',
-    ]);
-  });
-
-  it('builds a non-interactive global remove for all agents using providerIds', () => {
-    expect(
-      buildSkillsRemoveArgs('find-skills', {
-        agentScope: 'all',
-        providerIds: ['claude-code', 'cursor'],
-      }),
-    ).toEqual([
-      '--yes',
-      'skills',
-      'remove',
-      'find-skills',
-      '-g',
-      '-y',
-      '-a',
-      'claude-code',
-      '-a',
-      'cursor',
-    ]);
-  });
-
-  it('excludes the synthetic universal provider from all-agent remove args', () => {
-    expect(
-      buildSkillsRemoveArgs('find-skills', {
-        agentScope: 'all',
-        providerIds: ['universal', 'claude-code'],
-      }),
-    ).toEqual(['--yes', 'skills', 'remove', 'find-skills', '-g', '-y', '-a', 'claude-code']);
-  });
-
-  it('builds a non-interactive global remove for one provider', () => {
-    expect(
-      buildSkillsRemoveArgs('find-skills', {
-        agentScope: { providerId: 'claude-code' },
-      }),
-    ).toEqual(['--yes', 'skills', 'remove', 'find-skills', '-g', '-y', '-a', 'claude-code']);
-  });
-
-  it('builds a non-interactive universal remove without -a', () => {
-    expect(buildSkillsRemoveArgs('find-skills', { agentScope: 'universal' })).toEqual([
-      '--yes',
-      'skills',
-      'remove',
-      'find-skills',
-      '-g',
-      '-y',
-    ]);
   });
 });
 

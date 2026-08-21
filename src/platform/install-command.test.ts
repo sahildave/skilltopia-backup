@@ -7,7 +7,9 @@ import {
   buildSkillsRemoveCommand,
   installAgentTargetsFromScan,
   parseSkillInstallTarget,
+  uninstallTargetIds,
 } from './install-command';
+import { providerRegistry } from '@/providers';
 
 describe('parseSkillInstallTarget', () => {
   it('splits owner/repo/skill into source and skill name', () => {
@@ -95,6 +97,37 @@ describe('buildSkillsAddArgs', () => {
       '-a',
       'claude-code',
     ]);
+  });
+});
+
+describe('uninstallTargetIds', () => {
+  it('appends the universal cleanup after the providers', () => {
+    expect(
+      uninstallTargetIds({ agentScope: 'all', providerIds: ['claude-code', 'cursor'] }),
+    ).toEqual(['claude-code', 'cursor', 'universal']);
+  });
+
+  it('drops the synthetic provider ids that own no skills directory', () => {
+    expect(
+      uninstallTargetIds({
+        agentScope: 'all',
+        providerIds: ['universal', 'project-agents', 'claude-code'],
+      }),
+    ).toEqual(['claude-code', 'universal']);
+  });
+
+  it('fans out over the whole registry when no provider list is known', () => {
+    const targets = uninstallTargetIds({ agentScope: 'all' });
+    expect(targets.length).toBe(providerRegistry.providers.length);
+    expect(targets.at(-1)).toBe('universal');
+  });
+
+  it('targets one provider without the universal cleanup', () => {
+    expect(uninstallTargetIds({ agentScope: { providerId: 'codex' } })).toEqual(['codex']);
+  });
+
+  it('targets universal alone', () => {
+    expect(uninstallTargetIds({ agentScope: 'universal' })).toEqual(['universal']);
   });
 });
 

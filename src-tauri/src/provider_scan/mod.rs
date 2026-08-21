@@ -2,15 +2,15 @@
 
 mod copy;
 mod frontmatter;
-/// Seam B foundation. Ships ahead of its caller (Seam D makes install
-/// authoritative), so nothing in the tree reads these verdicts yet.
-#[allow(dead_code)]
+mod install;
 mod path_entry;
 mod paths;
+mod projection;
 mod scan;
 mod types;
 
 pub use copy::{copy_skill_to_providers, CopySkillToProvidersResult};
+pub use install::{install_skill, uninstall_skill, SkillProjectionResult};
 pub use scan::{
     delete_universal_skill_dir, list_projects, resolve_provider_skills_dir, reveal_skills_dir,
     scan_installed, scan_project, ScanContext,

@@ -65,21 +65,38 @@ direct global skills directory. Shared UI must not import `@tauri-apps/*`.
 
 ### Desktop skill install paths
 
-Desktop `platform.install` runs `npx skills add` through the Rust `run_skills_cli`
-command. Conventions:
+Desktop `platform.install` / `platform.uninstall` run **in Rust, in-process**
+(`install_skill` / `uninstall_skill`). No subprocess is spawned to write or
+remove a projection: the old `npx skills remove` loop cost ~1.4 s per provider,
+sequentially, which is where the ~60 s uninstall came from.
 
-| Scope     | CLI flags                                                       | Typical on-disk location                                          |
-| --------- | --------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `global`  | `-g -y` plus `-a <id>` per detected non-universal provider only | Universal (`~/.agents/skills`) and symlinks for detected agents   |
-| `project` | `-y` plus `-a <id>` per detected non-universal provider only    | `<chosen-project>/.agents/skills` and detected agent project dirs |
+| Scope     | What is written                                                                           |
+| --------- | ----------------------------------------------------------------------------------------- |
+| `global`  | A copy in Universal (`~/.agents/skills/<name>`), a symlink in each detected provider root |
+| `project` | The same shape under the chosen project (`<project>/.agents/skills/<name>`)               |
 
-Desktop install reads the cached provider scan and never passes `-a '*'`, so undetected registry agents do not get new folders. Universal agents (Cursor, Codex, etc.) read from `~/.agents/skills` and do not need an explicit `-a` flag. Web `install` copies a universal-only command (no scan available).
+Universal holds a **copy** (the acquisition cache is app-owned and may be
+pruned); providers hold **symlinks** at that copy, so editing one bundle updates
+every agent. Desktop install reads the cached provider scan, so undetected
+registry agents do not get new folders. Universal agents (Cursor, Codex, …) read
+`~/.agents/skills` directly and are reported as `already_present`.
 
-Skill ids are `owner/repo/skill` → CLI source `owner/repo` + `--skill skill`. Web `install` copies a pasteable `npx skills add …` command (`copiesInstallCommand: true`). Desktop runs the same args via `run_skills_cli`. Shared UI must not import `@tauri-apps/*`; only `index.desktop.ts` may.
+Every write goes through `provider_scan/projection.rs`, which owns three rules:
+install is authoritative (a stale or dangling link is repaired, never reported as
+a conflict); a host root that resolves onto the source's own root is never
+written through (the six providers that declare `~/.agents/skills`, plus folder
+symlinks onto it); and per-target outcomes are independent, so one failing
+provider never skips the Universal cleanup.
+
+Skill ids are `owner/repo/skill` → source `owner/repo` + skill `skill`. Web
+`install` copies a pasteable `npx skills add …` command
+(`copiesInstallCommand: true`); only the web path still speaks CLI args. Shared
+UI must not import `@tauri-apps/*`; only `index.desktop.ts` may.
 
 ### Spawning the skills CLI
 
-Never spawn `npx` from the webview. A Finder-launched `.app` inherits
+Install and uninstall no longer go through the CLI, but `run_skills_cli` is still
+the only sanctioned way to reach it. Never spawn `npx` from the webview. A Finder-launched `.app` inherits
 `PATH=/usr/bin:/bin:/usr/sbin:/sbin`, so a bare `npx` fails with `ENOENT`, and the
 shell scope pins the command name at config time so it cannot carry a resolved
 path. `src-tauri/src/node_runtime.rs` resolves an absolute `npx` once at startup

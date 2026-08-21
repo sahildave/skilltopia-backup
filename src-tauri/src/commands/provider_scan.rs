@@ -5,16 +5,18 @@ use tauri::{AppHandle, Manager};
 use crate::provider_scan::{
     copy_skill_to_providers as copy_skill_to_providers_impl, delete_universal_skill_dir,
     install_skill as install_skill_impl, list_projects as list_projects_impl,
-    resolve_provider_skills_dir, reveal_skills_dir, scan_installed, scan_project,
+    resolve_provider_skills_dir, reveal_skills_dir, scan_installed_cached, scan_project,
     uninstall_skill as uninstall_skill_impl, CopySkillToProvidersResult, InstalledScanSnapshot,
     ProjectInfo, ScanContext, SkillProjectionResult,
 };
 
 /// Scan global provider + Universal skill directories into one normalized snapshot.
+/// Served from cache while a stat-only fingerprint of those directories is
+/// unchanged, so the Installed tab's rescan-per-activation is not a full walk.
 #[tauri::command]
 #[specta::specta]
 pub fn scan_installed_skills() -> Result<InstalledScanSnapshot, String> {
-    scan_installed(&ScanContext::from_environment())
+    scan_installed_cached(&ScanContext::from_environment())
 }
 
 /// Enumerate project directories at depth one or two below an explicitly selected root.

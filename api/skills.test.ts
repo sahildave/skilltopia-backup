@@ -17,6 +17,7 @@ import { GET as getSkillAudits } from './skills/audit.js';
 import { GET as getSkillDetail } from './skills/detail.js';
 import { GET as getSkillPageCacheBatch } from './skills/page-cache.js';
 import { GET as searchSkills } from './skills/search.js';
+import { GET as getSkillSeed } from './skills/seed.js';
 
 describe('skills proxy routes', () => {
   beforeEach(() => {
@@ -39,6 +40,27 @@ describe('skills proxy routes', () => {
     });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(getVercelOidcToken).not.toHaveBeenCalled();
+  });
+
+  it('seeds with the app OIDC token, never the batch ingest token', async () => {
+    process.env.VERCEL_OIDC_TOKEN_SECONDARY = 'batch-secret';
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ data: [{ id: 'owner/repo/skill', slug: 'skill' }] }), {
+        status: 200,
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    createSupabaseRepositoryFromEnv.mockReturnValue({
+      getSkillMetadata: vi.fn().mockResolvedValue([]),
+    });
+
+    const response = await getSkillSeed(new Request('https://proxy.test/api/skills/seed'));
+
+    expect(response.status).toBe(200);
+    expect(getVercelOidcToken).toHaveBeenCalled();
+    const headers = new Headers(fetchMock.mock.calls[0]![1].headers);
+    expect(headers.get('Authorization')).toBe('Bearer upstream-secret');
+    delete process.env.VERCEL_OIDC_TOKEN_SECONDARY;
   });
 
   it('rejects unsupported methods', async () => {

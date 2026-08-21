@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchAllLeaderboard,
+  createCatalogFetcher,
   fetchJson,
   fetchLeaderboard,
   fetchLeaderboardPage,
@@ -282,6 +283,21 @@ describe('fetchJson retries', () => {
 
     await settle(expect(fetchJson('https://skills.sh/x')).rejects.toThrow('503'));
     expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('createCatalogFetcher sends the caller token and shares the retry loop', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(500))
+      .mockResolvedValueOnce(jsonResponse(200));
+    vi.stubGlobal('fetch', fetchMock);
+    const fetcher = createCatalogFetcher(async () => 'app-token');
+
+    await settle(expect(fetcher('https://skills.sh/x')).resolves.toEqual({ data: [] }));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const headers = new Headers(fetchMock.mock.calls[0]![1].headers);
+    expect(headers.get('Authorization')).toBe('Bearer app-token');
   });
 
   it('retries a network error', async () => {

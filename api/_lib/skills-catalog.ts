@@ -129,13 +129,13 @@ export function skillsShErrorStatus(error: unknown): number | undefined {
   return typeof status === 'number' ? status : undefined;
 }
 
-export async function fetchJson(url: string): Promise<unknown> {
+async function fetchCatalogJson(url: string, auth: HeadersInit): Promise<unknown> {
   for (let attempt = 0; ; attempt += 1) {
     const canRetry = attempt < RETRY_DELAYS_MS.length;
     let status: number | undefined;
     try {
       const response = await fetch(url, {
-        headers: { Accept: 'application/json', ...authHeaders() },
+        headers: { Accept: 'application/json', ...auth },
       });
       if (response.ok) return await response.json();
       status = response.status;
@@ -151,6 +151,21 @@ export async function fetchJson(url: string): Promise<unknown> {
     }
     await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
   }
+}
+
+/** Batch/ingest catalog reads (scrape, rotation, enrichment). */
+export function fetchJson(url: string): Promise<unknown> {
+  return fetchCatalogJson(url, authHeaders());
+}
+
+/**
+ * Catalog reads on behalf of a user request. Same retry and error shape as
+ * `fetchJson`, but the caller supplies the token — user-facing routes run on
+ * the app Vercel project, which has no batch token and must spend its own
+ * OIDC budget. See `resolveBatchOidcToken` for why the two stay separate.
+ */
+export function createCatalogFetcher(resolveToken: () => Promise<string>): FetchCatalog {
+  return async (url) => fetchCatalogJson(url, { Authorization: `Bearer ${await resolveToken()}` });
 }
 
 export async function fetchLeaderboardPage(

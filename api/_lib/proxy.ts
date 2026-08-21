@@ -1,7 +1,15 @@
 import { getVercelOidcToken } from '@vercel/oidc';
 import { clientIp, PROXY_RATE_LIMIT, proxyRateLimit } from './rate-limit.js';
+import { createCatalogFetcher } from './skills-catalog.js';
 
 const SKILLS_API_BASE = 'https://skills.sh/api/v1';
+
+/**
+ * Catalog fetcher for user-facing routes. Routes that need parsed catalog data
+ * rather than a passthrough response (e.g. seed) must use this, not the batch
+ * `fetchJson` — the app project has no batch token, so batch auth 401s here.
+ */
+export const fetchAppCatalogJson = createCatalogFetcher(getVercelOidcToken);
 
 export async function proxySkillsRequest(
   path: string,

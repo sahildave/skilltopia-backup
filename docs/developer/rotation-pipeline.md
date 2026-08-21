@@ -4,8 +4,16 @@ Operator checklist: [page-cache-ops.md](./page-cache-ops.md).
 
 Daily detail/scrape rotation after the list pass. Slot mix (deduped by
 `skill_id`): **20 top + 10 hot + 10 trending + 160 oldest** `page_scraped_at`
-(nulls first), then **always append** new list members (empty `content_hash`)
-even beyond 200.
+(nulls first), then **append** new list members (empty `content_hash`) beyond
+200, up to a per-run cap.
+
+**Cap: `ROTATION_MAX`, default 500.** The slot mix always fits; the cap only
+trims queued backlog, which drains over following days. At roughly 3.2s per
+skill (detail, scrape, backfill, 1s throttle) that keeps a run near **27
+minutes** — GitHub Actions minutes on a private repo are the binding
+constraint, not throughput. Uncapped, a fresh corpus queues ~1,500 skills and
+runs for well over an hour, every day. A capped run logs how many it deferred
+and returns the count as `dropped`.
 
 ## What it does
 

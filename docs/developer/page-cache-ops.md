@@ -113,6 +113,51 @@ npm run list-snapshots:local
 npm run rotate:local
 ```
 
+`npm run ingest:daily` is exactly what the scheduled workflow runs
+(`node --import tsx/esm scripts/ingest-daily.mjs`). The only difference is
+where the OIDC token comes from: CI mints a fresh one per run, locally you
+supply one from Infisical `dev`. Everything else — same script, same Supabase,
+same upstream — so a local run writes to the **same** tables as the cron.
+
+#### Refreshing the local ingest token
+
+Local batch runs read `VERCEL_OIDC_TOKEN_SECONDARY` from Infisical `dev`.
+Vercel OIDC tokens last **12 hours**, so an untouched one is always stale.
+The symptom is `skills.sh request failed: 401` on the first list page.
+
+Mint a new one from the ingest project (needs the partner account's
+`VERCEL_TOKEN`, or `vercel login` as that account):
+
+```bash
+infisical secrets set VERCEL_OIDC_TOKEN_SECONDARY="$(vercel project token skills-explorer \
+  --scope indhujas-projects --token "$VERCEL_TOKEN" --format=json --yes \
+  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=s.slice(s.indexOf("{"),s.lastIndexOf("}")+1);process.stdout.write(JSON.parse(j).token)})')" --env=dev
+```
+
+The brace-slice parse is not decoration: `vercel project token` pretty-prints
+JSON across several lines, so a naive last-line parse gets `}` and throws.
+
+#### Reading a token instead of guessing
+
+Decoding the payload tells you which account issued it and when it dies,
+which beats re-minting blind:
+
+```bash
+infisical secrets get VERCEL_OIDC_TOKEN_SECONDARY --env=dev --plain --silent \
+  | cut -d. -f2 | base64 -d 2>/dev/null | python3 -m json.tool | grep -E '"(iss|exp)"'
+```
+
+`iss` must end in the **ingest** account (`.../indhujas-projects`). If it names
+the app account, batch work is spending the user-facing 600/min budget.
+
+#### When a local run fails, it is usually one of three things
+
+| Symptom                                   | Cause                                                                                    |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `skills.sh request failed: 401`           | Stale or app-scoped `VERCEL_OIDC_TOKEN_SECONDARY`. Re-mint as above.                     |
+| `Supabase repository error: fetch failed` | Supabase project **paused** — the subdomain stops resolving (NXDOMAIN). Resume it.       |
+| `skills.sh request failed: 429`/`5xx`     | Upstream throttle or blip. `fetchJson` retries twice; raise `THROTTLE_MS` if persistent. |
+
 ### Full corpus sweep (after ~100 looks good)
 
 ```bash

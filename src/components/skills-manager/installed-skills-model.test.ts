@@ -14,9 +14,24 @@ import {
   filterSkillSectionsByQuery,
   filterSkillSectionsByView,
   filterSkillsForSelection,
+  isPluginManagedSkill,
+  pluginOriginLabel,
+  pluginOriginsForSkill,
   providerBadgesForSkill,
   warningRevealProviderId,
 } from './installed-skills-model';
+
+const PLUGIN_SKILL: (typeof MOCK_INSTALLED_SCAN)['skills'][number] = {
+  name: 'ponytail',
+  uninstallName: 'ponytail',
+  description: 'Laziest solution that works',
+  scope: 'global',
+  providerIds: [],
+  origins: [
+    { kind: 'claudePlugin', plugin: 'ponytail', marketplace: 'official', version: '1.2.0' },
+  ],
+  paths: [{ path: '/Users/mock/.claude/plugins/cache/ponytail/skills/ponytail' }],
+};
 
 describe('filterSkillsForSelection', () => {
   it('returns all skills alphabetically for All Agents', () => {
@@ -692,5 +707,63 @@ describe('contentWarningsForSelection', () => {
     expect(missingDir).toBeDefined();
     if (!missingDir) return;
     expect(warningRevealProviderId(missingDir)).toBe('claude-code');
+  });
+});
+
+describe('plugin origin', () => {
+  it('badges a plugin-delivered skill after its directory badges', () => {
+    const badges = providerBadgesForSkill(PLUGIN_SKILL, MOCK_INSTALLED_SCAN);
+    expect(badges).toEqual([
+      { kind: 'plugin', plugin: 'ponytail', marketplace: 'official', version: '1.2.0' },
+    ]);
+  });
+
+  it('keeps directory badges and appends the plugin one when a skill has both', () => {
+    const shared = MOCK_INSTALLED_SCAN.skills.find((s) => s.name === 'find-skills');
+    expect(shared).toBeDefined();
+    if (!shared) return;
+
+    const badges = providerBadgesForSkill(
+      { ...shared, origins: [...shared.origins, ...PLUGIN_SKILL.origins] },
+      MOCK_INSTALLED_SCAN,
+    );
+    expect(badges.map((b) => b.kind)).toEqual(['universal', 'providers', 'plugin']);
+  });
+
+  it('dedupes repeated origins from the same plugin', () => {
+    expect(
+      pluginOriginsForSkill({
+        ...PLUGIN_SKILL,
+        origins: [...PLUGIN_SKILL.origins, ...PLUGIN_SKILL.origins],
+      }),
+    ).toHaveLength(1);
+  });
+
+  it('labels a plugin with its marketplace, and without one when unknown', () => {
+    expect(pluginOriginLabel({ plugin: 'ponytail', marketplace: 'official' })).toBe(
+      'ponytail@official',
+    );
+    expect(pluginOriginLabel({ plugin: 'ponytail', marketplace: '' })).toBe('ponytail');
+  });
+
+  it('treats a plugin-only skill as unmanageable, but not one the user also owns', () => {
+    expect(isPluginManagedSkill(PLUGIN_SKILL)).toBe(true);
+
+    const alsoInADirectory = {
+      ...PLUGIN_SKILL,
+      origins: [
+        ...PLUGIN_SKILL.origins,
+        { kind: 'providerDirectory' as const, providerId: UNIVERSAL_PROVIDER_ID },
+      ],
+    };
+    expect(isPluginManagedSkill(alsoInADirectory)).toBe(false);
+  });
+
+  it('leaves directory-only skills alone', () => {
+    const shared = MOCK_INSTALLED_SCAN.skills.find((s) => s.name === 'find-skills');
+    expect(shared).toBeDefined();
+    if (!shared) return;
+    expect(isPluginManagedSkill(shared)).toBe(false);
+    expect(pluginOriginsForSkill(shared)).toEqual([]);
   });
 });

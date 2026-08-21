@@ -10,6 +10,7 @@ use std::path::{Path, PathBuf};
 use crate::utils::platform::normalize_path_for_serialization;
 
 use super::frontmatter::{parse_skill_md, sanitize_metadata};
+use super::plugin_manifest::read_installed_plugins;
 
 /// Declared identity from `.claude-plugin/plugin.json`. Every field is optional:
 /// an absent or malformed manifest degrades to `PluginManifest::default()`.
@@ -114,6 +115,19 @@ pub fn read_plugin_bundle(install_path: &Path) -> PluginBundle {
         manifest: read_plugin_manifest(install_path),
         skills: read_plugin_skills(install_path),
     }
+}
+
+/// Every skill directory the *active* plugin installs under `home` ship.
+///
+/// The manifest, not a `cache/**` glob, decides what is active — the cache
+/// retains garbage-collected versions that would otherwise read as live.
+pub(crate) fn active_plugin_skill_dirs(home: &Path) -> Vec<PathBuf> {
+    let plugins_dir = home.join(".claude").join("plugins");
+    read_installed_plugins(&plugins_dir)
+        .installs
+        .into_iter()
+        .flat_map(|install| skill_dirs(&install.install_path.join("skills")))
+        .collect()
 }
 
 #[cfg(test)]

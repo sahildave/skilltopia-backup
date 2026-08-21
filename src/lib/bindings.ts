@@ -334,7 +334,11 @@ quick_pane_shortcut: string | null;
  */
 language: string | null }
 export type CopyProviderResult = { providerId: string; status: CopyProviderStatus; message?: string | null }
-export type CopyProviderStatus = "copied" | "conflict" | "failed"
+export type CopyProviderStatus = "copied" | "conflict" | 
+/**
+ * The destination is inside the read-only Claude plugin cache.
+ */
+"refused" | "failed"
 export type CopySkillToProvidersResult = { results: CopyProviderResult[] }
 export type InstalledScanSnapshot = { scannedAt: string; source: ProviderRegistrySourceMeta; universal: UniversalScanInfo; providers: ScannedProvider[]; skills: ScannedSkill[]; warnings: ScanWarning[] }
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
@@ -409,7 +413,11 @@ export type SkillTargetStatus =
 /**
  * Something we will not delete is in the way.
  */
-"conflict" | "removed" | "absent" | "failed"
+"conflict" | "removed" | "absent" | 
+/**
+ * The destination is inside the read-only Claude plugin cache.
+ */
+"refused" | "failed"
 export type SkillsCliOutput = { code: number; stdout: string; stderr: string }
 export type SkillsShSkill = { id: string; slug: string; name: string; source: string; installs: number; sourceType: string; installUrl?: string | null; url: string; isDuplicate?: boolean | null }
 export type UniversalScanInfo = { skillsDir: string; skillsDirExists: boolean; skillCount: number }

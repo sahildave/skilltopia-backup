@@ -14,6 +14,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use super::paths::{load_registry, resolve_global_skills_dir, universal_skills_dir};
+use super::plugin::active_plugin_skill_dirs;
+use super::plugin_guard::PluginGuard;
 use super::projection::{
     project_skill, ForeignDirPolicy, ProjectionMode, ProjectionStatus, ProjectionTarget,
 };
@@ -25,6 +27,8 @@ use super::types::UNIVERSAL_PROVIDER_ID;
 pub enum CopyProviderStatus {
     Copied,
     Conflict,
+    /// The destination is inside the read-only Claude plugin cache.
+    Refused,
     Failed,
 }
 
@@ -49,6 +53,10 @@ enum SourceKind {
     Universal,
     RealDir,
     SymlinkTarget,
+    /// Shipped by a plugin. Last resort: a copy the user manages themselves is
+    /// always the better source, but a plugin skill is still a legitimate one —
+    /// reading the cache is allowed, only writing to it is not.
+    Plugin,
 }
 
 #[derive(Debug, Clone)]
@@ -73,6 +81,7 @@ pub fn copy_skill_to_providers(
     }
 
     let source = resolve_copy_source(uninstall_name, ctx)?;
+    let guard = PluginGuard::for_context(ctx);
     let mut results = Vec::with_capacity(provider_ids.len());
     let mut seen = BTreeSet::new();
 
@@ -85,6 +94,7 @@ pub fn copy_skill_to_providers(
             provider_id,
             &source,
             ctx,
+            &guard,
         ));
     }
 
@@ -105,7 +115,10 @@ fn resolve_copy_source(uninstall_name: &str, ctx: &ScanContext) -> Result<PathBu
     if let Some(path) = first_unique_root(&candidates, SourceKind::RealDir)? {
         return Ok(path);
     }
-    first_unique_root(&candidates, SourceKind::SymlinkTarget)?.ok_or_else(|| {
+    if let Some(path) = first_unique_root(&candidates, SourceKind::SymlinkTarget)? {
+        return Ok(path);
+    }
+    first_unique_root(&candidates, SourceKind::Plugin)?.ok_or_else(|| {
         format!(
             "Skill '{uninstall_name}' was not found in Universal or any provider skills directory"
         )
@@ -132,6 +145,7 @@ fn first_unique_root(
                 SourceKind::Universal => "Universal",
                 SourceKind::RealDir => "real directory",
                 SourceKind::SymlinkTarget => "symlink target",
+                SourceKind::Plugin => "plugin",
             }
         ));
     }
@@ -156,6 +170,21 @@ fn collect_source_candidates(
             continue;
         }
         push_candidate(&mut candidates, &skills_dir.join(uninstall_name), false);
+    }
+
+    // Copying *from* a plugin is the supported way to bring a plugin skill into
+    // a provider directory you own, so plugin skills have to be findable here.
+    for dir in active_plugin_skill_dirs(&ctx.probe.home) {
+        if dir.file_name().and_then(|name| name.to_str()) != Some(uninstall_name) {
+            continue;
+        }
+        if !dir.join("SKILL.md").is_file() {
+            continue;
+        }
+        candidates.push(SourceCandidate {
+            kind: SourceKind::Plugin,
+            content_root: dir,
+        });
     }
 
     Ok(candidates)
@@ -188,6 +217,7 @@ fn copy_to_one_provider(
     provider_id: &str,
     source: &Path,
     ctx: &ScanContext,
+    guard: &PluginGuard,
 ) -> CopyProviderResult {
     if provider_id == UNIVERSAL_PROVIDER_ID {
         return CopyProviderResult {
@@ -225,6 +255,7 @@ fn copy_to_one_provider(
         ProjectionMode::Symlink,
         ForeignDirPolicy::Refuse,
         None,
+        guard,
     )
     .remove(0);
 
@@ -236,6 +267,8 @@ fn copy_to_one_provider(
                 CopyProviderStatus::Copied
             }
             ProjectionStatus::Conflict => CopyProviderStatus::Conflict,
+            // A destination inside the plugin cache. Refused, not attempted.
+            ProjectionStatus::Refused => CopyProviderStatus::Refused,
             _ => CopyProviderStatus::Failed,
         },
         message: outcome.message,

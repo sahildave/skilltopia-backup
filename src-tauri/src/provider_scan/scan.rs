@@ -12,6 +12,7 @@ use super::paths::{
     GlobalSkillsDir, ProbeContext, RegistryFile,
 };
 use super::plugin::read_plugin_bundle;
+use super::plugin_guard::PluginGuard;
 use super::plugin_manifest::read_installed_plugins;
 use super::types::{
     InstalledScanSnapshot, ProjectInfo, ProviderRegistrySourceMeta, ScanWarning, ScanWarningCode,
@@ -810,6 +811,9 @@ pub fn delete_universal_skill_dir(uninstall_name: &str, ctx: &ScanContext) -> Re
 
     let universal_dir = universal_skills_dir(&load_registry()?, &ctx.probe)?;
     let target = universal_dir.join(uninstall_name);
+    // A Universal root that resolves into the plugin cache would make this a
+    // delete against content we do not own.
+    PluginGuard::for_context(ctx).refuse_write(&target)?;
     let metadata = match fs::symlink_metadata(&target) {
         Ok(metadata) => metadata,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),

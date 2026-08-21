@@ -27,6 +27,7 @@ use crate::skill_acquire::acquire_skill;
 use crate::utils::platform::normalize_path_for_serialization;
 
 use super::paths::{load_registry, resolve_global_skills_dir, universal_skills_dir};
+use super::plugin_guard::{PluginGuard, PLUGIN_MANAGED_CODE};
 use super::projection::{
     project_skill, reverse_project_skill, ForeignDirPolicy, ProjectionMode, ProjectionOutcome,
     ProjectionStatus, ProjectionTarget,
@@ -54,6 +55,8 @@ pub enum SkillTargetStatus {
     Conflict,
     Removed,
     Absent,
+    /// The destination is inside the read-only Claude plugin cache.
+    Refused,
     Failed,
 }
 
@@ -98,6 +101,7 @@ pub fn install_skill(
     })?;
     validate_bundle(&bundle, skill_name)?;
 
+    let guard = PluginGuard::for_context(ctx);
     let universal_root = universal_root_for(project_path, ctx)?;
     let universal_target = ProjectionTarget {
         id: UNIVERSAL_PROVIDER_ID.to_string(),
@@ -110,6 +114,7 @@ pub fn install_skill(
         ProjectionMode::Copy,
         ForeignDirPolicy::Replace,
         project_path,
+        &guard,
     );
     let mut results: Vec<SkillTargetResult> = universal.iter().map(to_result).collect();
 
@@ -134,6 +139,7 @@ pub fn install_skill(
             ProjectionMode::Symlink,
             ForeignDirPolicy::Replace,
             project_path,
+            &guard,
         )
         .iter()
         .map(to_result),
@@ -151,6 +157,11 @@ pub fn install_skill(
 /// `universal` is an ordinary id here, so a caller that wants the Universal
 /// cleanup puts it in the list — and gets its outcome back independently of
 /// whether any provider ahead of it failed.
+///
+/// A skill that exists *only* because a plugin ships it is refused outright:
+/// there is nothing here to remove and its real home is the plugin cache. A
+/// skill that also sits in a provider directory still uninstalls from there —
+/// the plugin copy is simply left alone.
 pub fn uninstall_skill(
     uninstall_name: &str,
     target_ids: &[String],
@@ -158,9 +169,14 @@ pub fn uninstall_skill(
 ) -> Result<SkillProjectionResult, String> {
     validate_skill_dir_name(uninstall_name)?;
 
+    let guard = PluginGuard::for_context(ctx);
     let targets = provider_targets(target_ids, None, ctx)?;
+    if let Some(message) = plugin_only_refusal(uninstall_name, &targets.resolved, ctx, &guard) {
+        return Err(message);
+    }
+
     let mut results: Vec<SkillTargetResult> =
-        reverse_project_skill(uninstall_name, &targets.resolved)
+        reverse_project_skill(uninstall_name, &targets.resolved, &guard)
             .iter()
             .map(to_result)
             .collect();
@@ -170,6 +186,33 @@ pub fn uninstall_skill(
         results,
         cache_hit: false,
     })
+}
+
+/// The refusal for a skill the user can see but cannot remove: no requested
+/// target holds it, and a plugin does. Naming the plugin is the point — a bare
+/// "nothing to remove" would read as a bug.
+fn plugin_only_refusal(
+    uninstall_name: &str,
+    targets: &[ProjectionTarget],
+    ctx: &ScanContext,
+    guard: &PluginGuard,
+) -> Option<String> {
+    // `lstat`, not `exists`: a dangling projection link is still ours to clean.
+    let removable = targets
+        .iter()
+        .any(|target| std::fs::symlink_metadata(target.root.join(uninstall_name)).is_ok());
+    if removable {
+        return None;
+    }
+
+    let plugin = super::plugin::active_plugin_skill_dirs(&ctx.probe.home)
+        .into_iter()
+        .find(|dir| dir.file_name().and_then(|name| name.to_str()) == Some(uninstall_name))
+        .and_then(|dir| guard.owning_plugin(&dir))?;
+
+    Some(format!(
+        "{PLUGIN_MANAGED_CODE}: '{uninstall_name}' is delivered by the Claude plugin '{plugin}'. Remove it with the plugin, not from here."
+    ))
 }
 
 struct ResolvedTargets {
@@ -264,6 +307,7 @@ fn to_result(outcome: &ProjectionOutcome) -> SkillTargetResult {
             ProjectionStatus::Conflict => SkillTargetStatus::Conflict,
             ProjectionStatus::Removed => SkillTargetStatus::Removed,
             ProjectionStatus::Absent => SkillTargetStatus::Absent,
+            ProjectionStatus::Refused => SkillTargetStatus::Refused,
             ProjectionStatus::Failed => SkillTargetStatus::Failed,
         },
         message: outcome.message.clone(),

@@ -6,6 +6,7 @@ mod install;
 mod path_entry;
 mod paths;
 mod plugin;
+mod plugin_guard;
 mod plugin_manifest;
 mod projection;
 mod scan;

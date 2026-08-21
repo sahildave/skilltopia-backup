@@ -118,6 +118,8 @@ export type SkillTargetStatus =
   | 'conflict'
   | 'removed'
   | 'absent'
+  /** The destination is inside the read-only Claude plugin cache. */
+  | 'refused'
   | 'failed';
 
 export interface SkillTargetResult {
@@ -130,7 +132,12 @@ export interface SkillTargetsResult {
   results: SkillTargetResult[];
 }
 
-export type CopyProviderStatus = 'copied' | 'conflict' | 'failed';
+export type CopyProviderStatus =
+  | 'copied'
+  | 'conflict'
+  /** The destination is inside the read-only Claude plugin cache. */
+  | 'refused'
+  | 'failed';
 
 export interface CopyProviderResult {
   providerId: string;

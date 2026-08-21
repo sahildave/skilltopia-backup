@@ -42,6 +42,7 @@ use std::path::{Path, PathBuf};
 use crate::utils::platform::normalize_path_for_serialization;
 
 use super::path_entry::{inspect_skill_path_entry, DirIdentity, SkillPathEntry};
+use super::plugin_guard::PluginGuard;
 
 /// How the bundle is written into a skills root.
 ///
@@ -86,6 +87,10 @@ pub(crate) enum ProjectionStatus {
     Removed,
     /// Nothing was there to remove.
     Absent,
+    /// The destination is owned by something we must not write to — today, the
+    /// read-only Claude plugin cache. Distinct from `Conflict`, which is a
+    /// directory in the way, and from `Failed`, which is an I/O error.
+    Refused,
     Failed,
 }
 
@@ -110,7 +115,8 @@ impl ProjectionOutcome {
 ///
 /// `source` is the bundle directory itself; its parent is the canonical root the
 /// alias guard compares against. `project_root`, when given, is the project the
-/// targets must stay inside.
+/// targets must stay inside. `guard` refuses any destination inside the
+/// read-only Claude plugin cache.
 pub(crate) fn project_skill(
     source: &Path,
     name: &str,
@@ -118,6 +124,7 @@ pub(crate) fn project_skill(
     mode: ProjectionMode,
     foreign: ForeignDirPolicy,
     project_root: Option<&Path>,
+    guard: &PluginGuard,
 ) -> Vec<ProjectionOutcome> {
     let canonical_root = source.parent().unwrap_or(source).to_path_buf();
     targets
@@ -131,6 +138,7 @@ pub(crate) fn project_skill(
                 mode,
                 foreign,
                 project_root,
+                guard,
             )
         })
         .collect()
@@ -145,7 +153,14 @@ fn project_one(
     mode: ProjectionMode,
     foreign: ForeignDirPolicy,
     project_root: Option<&Path>,
+    guard: &PluginGuard,
 ) -> ProjectionOutcome {
+    // Before every other check: nothing below may remove or create anything, so
+    // a plugin-owned destination has to be turned away first.
+    if let Err(message) = guard.refuse_write(&target.root.join(name)) {
+        return ProjectionOutcome::new(&target.id, ProjectionStatus::Refused, Some(message));
+    }
+
     if let Some(project_root) = project_root {
         if root_escapes_project(project_root, &target.root) {
             return ProjectionOutcome::new(
@@ -239,11 +254,19 @@ fn project_one(
 pub(crate) fn reverse_project_skill(
     name: &str,
     targets: &[ProjectionTarget],
+    guard: &PluginGuard,
 ) -> Vec<ProjectionOutcome> {
     targets
         .iter()
         .map(|target| {
             let dest = target.root.join(name);
+            if let Err(message) = guard.refuse_write(&dest) {
+                return ProjectionOutcome::new(
+                    &target.id,
+                    ProjectionStatus::Refused,
+                    Some(message),
+                );
+            }
             // `lstat`, not `exists`: a dangling projection link is exactly the
             // orphan this has to clean up, and `exists` follows it and calls it
             // absent.
@@ -418,6 +441,12 @@ mod tests {
         fs::write(dir.join("reference/notes.md"), "notes\n").unwrap();
     }
 
+    /// A guard for a home with no plugins installed, so these tests exercise
+    /// projection itself. The plugin refusal has its own tests.
+    fn no_plugins() -> PluginGuard {
+        PluginGuard::for_home(&temp_root("no-plugins"))
+    }
+
     fn target(id: &str, root: &Path) -> ProjectionTarget {
         ProjectionTarget {
             id: id.to_string(),
@@ -437,6 +466,7 @@ mod tests {
             ProjectionMode::Symlink,
             foreign,
             None,
+            &no_plugins(),
         )
     }
 
@@ -615,6 +645,7 @@ mod tests {
             ProjectionMode::Copy,
             ForeignDirPolicy::Replace,
             None,
+            &no_plugins(),
         );
 
         assert_eq!(outcomes[0].status, ProjectionStatus::Written);
@@ -647,6 +678,7 @@ mod tests {
             ProjectionMode::Copy,
             ForeignDirPolicy::Replace,
             None,
+            &no_plugins(),
         );
 
         fs::remove_dir_all(&real).unwrap();
@@ -673,6 +705,7 @@ mod tests {
             ProjectionMode::Symlink,
             ForeignDirPolicy::Replace,
             Some(&project),
+            &no_plugins(),
         );
 
         assert_eq!(outcomes[0].status, ProjectionStatus::Conflict);
@@ -690,7 +723,7 @@ mod tests {
         symlink(&vanished, host.join("demo")).unwrap();
         fs::remove_dir_all(&vanished).unwrap();
 
-        let outcomes = reverse_project_skill("demo", &[target("codex", &host)]);
+        let outcomes = reverse_project_skill("demo", &[target("codex", &host)], &no_plugins());
 
         assert_eq!(outcomes[0].status, ProjectionStatus::Removed);
         assert!(fs::symlink_metadata(host.join("demo")).is_err());
@@ -701,7 +734,7 @@ mod tests {
         let root = temp_root("reverse-absent");
         let host = root.join(".codex/skills");
 
-        let outcomes = reverse_project_skill("demo", &[target("codex", &host)]);
+        let outcomes = reverse_project_skill("demo", &[target("codex", &host)], &no_plugins());
 
         assert_eq!(outcomes[0].status, ProjectionStatus::Absent);
     }
@@ -712,7 +745,7 @@ mod tests {
         let host = root.join(".codex/skills");
         write_bundle(&host.join("demo"), "Installed");
 
-        let outcomes = reverse_project_skill("demo", &[target("codex", &host)]);
+        let outcomes = reverse_project_skill("demo", &[target("codex", &host)], &no_plugins());
 
         assert_eq!(outcomes[0].status, ProjectionStatus::Removed);
         assert!(!host.join("demo").exists());
@@ -735,6 +768,7 @@ mod tests {
         let outcomes = reverse_project_skill(
             "demo",
             &[target("locked", &locked), target("universal", &universal)],
+            &no_plugins(),
         );
 
         assert_eq!(outcomes[0].status, ProjectionStatus::Failed);

@@ -8,5 +8,5 @@
 | 5 | In-process skill acquisition with a content-addressed cache | passed | - |
 | 6 | In-process projection: install, copy and uninstall without subprocesses | passed | 3, 4, 5 |
 | 7 | Port the desktop platform adapter off npx to typed commands | passed | 6 |
-| 8 | Acceptance: verify the skill lifecycle in a packaged .app | pending | 2, 7 |
+| 8 | Acceptance: verify the skill lifecycle in a packaged .app | awaiting_acceptance | 2, 7 |
 

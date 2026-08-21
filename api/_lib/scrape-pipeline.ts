@@ -208,6 +208,23 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
     log(`skipCached: ${result.cachedSkipped} already cached · ${skillIds.length} remaining`, 'ok');
   }
 
+  /** False means the run was aborted mid-wait and the caller should stop. */
+  async function throttleAfter(index: number, step: string): Promise<boolean> {
+    if (throttleMs <= 0 || index >= skillIds.length - 1) return true;
+    log(`${step}: throttling ${throttleMs}ms…`, 'step');
+    try {
+      await sleep(throttleMs, signal);
+      return true;
+    } catch (error) {
+      if (isAbortError(error) || signal?.aborted) {
+        result.aborted = true;
+        log('aborted during throttle', 'warn');
+        return false;
+      }
+      throw error;
+    }
+  }
+
   for (const [index, skillId] of skillIds.entries()) {
     if (signal?.aborted) {
       result.aborted = true;
@@ -229,6 +246,9 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
         await options.repository.markSkillDelisted(skillId, scrapeDate.toISOString());
         result.delisted += 1;
         log(`${step}: delisted upstream (404) — removed from rotation`, 'warn');
+        // Still pay the throttle: a block of dead skills must not burst the
+        // OIDC budget just because none of them reached the scrape step.
+        if (!(await throttleAfter(index, step))) break;
         continue;
       }
       if (!detail.hash) {
@@ -309,19 +329,7 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
       log(`${step}: failed — ${message}`, 'error');
     }
 
-    if (throttleMs > 0 && index < skillIds.length - 1) {
-      log(`${step}: throttling ${throttleMs}ms…`, 'step');
-      try {
-        await sleep(throttleMs, signal);
-      } catch (error) {
-        if (isAbortError(error) || signal?.aborted) {
-          result.aborted = true;
-          log('aborted during throttle', 'warn');
-          break;
-        }
-        throw error;
-      }
-    }
+    if (!(await throttleAfter(index, step))) break;
   }
 
   log(

@@ -79,6 +79,28 @@ describe('scrape pipeline', () => {
     expect(repository.upsertSkillMetadata).not.toHaveBeenCalled();
   });
 
+  it('throttles after a delisted skill so dead ids cannot burst the budget', async () => {
+    const repository = repositoryStub();
+    const sleep = vi.fn().mockResolvedValue(undefined);
+    const gone = Object.assign(new Error('skills.sh request failed: 404'), { status: 404 });
+
+    await expect(
+      runScrapePipeline({
+        repository: repository as never,
+        skillIds: ['gone/one', 'gone/two'],
+        throttleMs: 1000,
+        loadDetail: async () => {
+          throw gone;
+        },
+        fetchPageHtml: vi.fn(),
+        sleep,
+      }),
+    ).resolves.toMatchObject({ attempted: 2, delisted: 2 });
+
+    expect(sleep).toHaveBeenCalledTimes(1);
+    expect(sleep).toHaveBeenCalledWith(1000, undefined);
+  });
+
   it('still fails the run when a detail fetch errors for a non-404 reason', async () => {
     const repository = repositoryStub();
 

@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { CopyProvidersDialog } from './CopyProvidersDialog';
 import { uninstallAgentScopeFromFilter, type ProviderFilterId } from './installed-skills-model';
-import { isPermissionError } from './library-errors';
+import { isNodeRuntimeMissing, isPermissionError } from './library-errors';
 export function SkillCardOverflowMenu({
   skill,
   snapshot,
@@ -68,7 +68,11 @@ export function SkillCardOverflowMenu({
       await rescan();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (isPermissionError(message)) {
+      if (isNodeRuntimeMissing(message)) {
+        toast.error(t('skills.install.nodeMissing'), {
+          description: t('skills.install.nodeMissingDetail'),
+        });
+      } else if (isPermissionError(message)) {
         toast.error(t('skills.install.permissionError'), {
           description: message,
         });

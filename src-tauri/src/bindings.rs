@@ -2,7 +2,7 @@ use tauri_specta::{collect_commands, Builder};
 
 pub fn generate_bindings() -> Builder<tauri::Wry> {
     use crate::commands::{
-        notifications, preferences, provider_scan, quick_pane, recovery, skills_sh,
+        notifications, preferences, provider_scan, quick_pane, recovery, skills_cli, skills_sh,
     };
 
     Builder::<tauri::Wry>::new().commands(collect_commands![
@@ -18,6 +18,7 @@ pub fn generate_bindings() -> Builder<tauri::Wry> {
         quick_pane::toggle_quick_pane,
         quick_pane::get_default_quick_pane_shortcut,
         quick_pane::update_quick_pane_shortcut,
+        skills_cli::run_skills_cli,
         skills_sh::fetch_skills_leaderboard,
         skills_sh::search_skills,
         skills_sh::fetch_skill_detail,

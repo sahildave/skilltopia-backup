@@ -1,11 +1,11 @@
 import { open } from '@tauri-apps/plugin-dialog';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { Command } from '@tauri-apps/plugin-shell';
 import i18n from '@/i18n/config';
 import {
   commands,
   unwrapResult,
   type InstalledScanSnapshot as RustInstalledScanSnapshot,
+  type SkillsCliOutput,
 } from '@/lib/tauri-bindings';
 import {
   buildSkillsAddArgs,
@@ -81,6 +81,27 @@ async function refreshScan(): Promise<InstalledScanSnapshot> {
   return snapshot;
 }
 
+/**
+ * Run the skills CLI through Rust. The webview can't spawn it directly: a
+ * Finder-launched bundle inherits a PATH with no Node on it, and the shell scope
+ * pins the command name at config time so it can't carry a resolved path.
+ */
+async function runSkillsCli(args: string[], cwd?: string): Promise<void> {
+  const output: SkillsCliOutput = unwrapResult(await commands.runSkillsCli(args, cwd ?? null));
+  if (output.code !== 0) {
+    throw new Error(cliFailureDetail(output));
+  }
+}
+
+function cliFailureDetail(output: SkillsCliOutput): string {
+  return (
+    [output.stderr, output.stdout]
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .join('\n') || `exit ${String(output.code)}`
+  );
+}
+
 async function pickProjectDirectory(): Promise<string> {
   const selected = await open({
     directory: true,
@@ -99,15 +120,7 @@ async function installSkillToDisk(skill: InstallableSkill, scope: InstallScope):
   const cwd = scope === 'project' ? await pickProjectDirectory() : undefined;
   const snapshot = await ensureScan();
   const args = buildSkillsAddArgs(skill, scope, installAgentTargetsFromScan(snapshot));
-  const output = await Command.create('npx', args, cwd ? { cwd } : undefined).execute();
-
-  if (output.code !== 0) {
-    const detail = [output.stderr, output.stdout]
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .join('\n');
-    throw new Error(detail || `Skill install failed (exit ${String(output.code ?? 'unknown')})`);
-  }
+  await runSkillsCli(args, cwd);
 }
 
 async function uninstallSkillFromDisk(skillName: string, options: UninstallOptions): Promise<void> {
@@ -120,32 +133,14 @@ async function uninstallSkillFromDisk(skillName: string, options: UninstallOptio
       const args = buildSkillsRemoveArgs(skillName, {
         agentScope: { providerId },
       });
-      const output = await Command.create('npx', args).execute();
-      if (output.code !== 0) {
-        const detail = [output.stderr, output.stdout]
-          .map((part) => part.trim())
-          .filter(Boolean)
-          .join('\n');
-        throw new Error(
-          detail ||
-            `Skill uninstall failed for ${providerId} (exit ${String(output.code ?? 'unknown')})`,
-        );
-      }
+      await runSkillsCli(args);
     }
     unwrapResult(await commands.deleteUniversalSkill(skillName));
     return;
   }
 
   const args = buildSkillsRemoveArgs(skillName, options);
-  const output = await Command.create('npx', args).execute();
-
-  if (output.code !== 0) {
-    const detail = [output.stderr, output.stdout]
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .join('\n');
-    throw new Error(detail || `Skill uninstall failed (exit ${String(output.code ?? 'unknown')})`);
-  }
+  await runSkillsCli(args);
 
   if (options.agentScope === 'all') {
     unwrapResult(await commands.deleteUniversalSkill(skillName));

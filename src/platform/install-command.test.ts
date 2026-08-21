@@ -6,6 +6,7 @@ import {
   installAgentTargetsFromScan,
   parseSkillInstallTarget,
   uninstallTargetIds,
+  UnsupportedSkillSourceError,
 } from './install-command';
 import { providerRegistry } from '@/providers';
 
@@ -18,7 +19,14 @@ describe('parseSkillInstallTarget', () => {
   });
 
   it('rejects ids that are not owner/repo/skill', () => {
-    expect(() => parseSkillInstallTarget('vercel-labs/agent-skills')).toThrow(/Invalid skill id/);
+    expect(() => parseSkillInstallTarget('find-skills')).toThrow(/Invalid skill id/);
+  });
+
+  it('names the host when a skill is published from a website, not a repository', () => {
+    expect(() => parseSkillInstallTarget('uizze.com/anti-ui-slop')).toThrow(
+      UnsupportedSkillSourceError,
+    );
+    expect(() => parseSkillInstallTarget('uizze.com/anti-ui-slop')).toThrow(/uizze\.com/);
   });
 });
 

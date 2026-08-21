@@ -20,3 +20,8 @@ export function isNodeRuntimeMissing(message: string): boolean {
 export function isInstallCancelled(error: unknown): boolean {
   return error instanceof Error && error.name === 'InstallCancelledError';
 }
+
+/** A skill published from a website, which acquisition cannot clone. */
+export function isUnsupportedSkillSource(error: unknown): boolean {
+  return error instanceof Error && error.name === 'UnsupportedSkillSourceError';
+}

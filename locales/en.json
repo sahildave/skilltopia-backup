@@ -281,6 +281,8 @@
   "skills.install.pickProject": "Choose project folder for skill install",
   "skills.install.success": "Installed {{name}}",
   "skills.install.failed": "Couldn't install {{name}}",
+  "skills.install.unsupportedSource": "Can't install {{name}} yet",
+  "skills.install.unsupportedSourceDetail": "This skill is published on a website rather than a GitHub repository, and installing from those sources is not supported yet. Open it on skills.sh to copy it manually.",
   "skills.install.partial": "Installed {{name}} for {{settled}} agents; {{failed}} had issues",
   "skills.install.issuesDescription": "Issues: {{providers}}",
   "skills.install.permissionError": "Install blocked by permissions or shell scope. Check npx access and try again.",

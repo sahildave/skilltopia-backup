@@ -2,9 +2,7 @@
 //!
 //! Read-only. The plugin cache belongs to Claude Code; we never write into it.
 //!
-//! Seam G of the plugin-provenance work. Nothing consumes it until the plugin
-//! scan (Seam F) lands, hence the module-wide dead-code allowance.
-#![allow(dead_code)]
+//! Seam G of the plugin-provenance work; the scan (Seam H) joins it in.
 
 use std::fs;
 use std::path::{Path, PathBuf};

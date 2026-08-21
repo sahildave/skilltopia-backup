@@ -103,6 +103,33 @@ describe('filterSkillsForSelection', () => {
     expect(providerOnly).toEqual(['hatch-pet']);
   });
 
+  it('counts and lists plugin-delivered skills alongside directory skills', () => {
+    const snapshot: typeof MOCK_INSTALLED_SCAN = {
+      ...MOCK_INSTALLED_SCAN,
+      skills: [
+        ...MOCK_INSTALLED_SCAN.skills,
+        {
+          name: 'ponytail',
+          uninstallName: 'ponytail',
+          description: 'Laziest solution that works',
+          scope: 'global',
+          providerIds: [],
+          origins: [
+            { kind: 'claudePlugin', plugin: 'ponytail', marketplace: 'official', version: '1.2.0' },
+          ],
+          paths: [{ path: '/Users/mock/.claude/plugins/cache/ponytail/skills/ponytail' }],
+        },
+      ],
+    };
+
+    const { primary } = filterSkillsForSelection(snapshot, ALL_AGENTS_FILTER_ID);
+    expect(primary.map((s) => s.name)).toContain('ponytail');
+    expect(buildProviderSidebarModel(snapshot).allAgentsCount).toBe(4);
+    expect(
+      filterSkillSectionsByView({ primary }, snapshot, 'provider').primary.map((s) => s.name),
+    ).toContain('ponytail');
+  });
+
   it('keeps same-name skills as one card with merged provider tags', () => {
     const skill = MOCK_INSTALLED_SCAN.skills.find((s) => s.name === 'find-skills');
     expect(skill?.providerIds).toEqual([UNIVERSAL_PROVIDER_ID, 'claude-code']);

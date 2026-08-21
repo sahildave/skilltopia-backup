@@ -7,6 +7,10 @@
 mod bindings;
 mod commands;
 mod provider_scan;
+/// Seam C foundation. Ships ahead of its caller (Seam D projects a bundle into
+/// provider directories), so nothing in the tree acquires through it yet.
+#[allow(dead_code)]
+mod skill_acquire;
 mod types;
 mod utils;
 

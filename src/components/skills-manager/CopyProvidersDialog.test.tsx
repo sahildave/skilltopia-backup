@@ -81,6 +81,7 @@ function snapshotWithAvailableProviders(): {
           description: 'Other',
           scope: 'global',
           providerIds: ['claude-code'],
+          origins: [{ kind: 'providerDirectory', providerId: 'claude-code' }],
           paths: [{ path: '/Users/mock/.claude/skills/other-skill' }],
         },
         {
@@ -89,6 +90,7 @@ function snapshotWithAvailableProviders(): {
           description: 'Another',
           scope: 'global',
           providerIds: ['codex'],
+          origins: [{ kind: 'providerDirectory', providerId: 'codex' }],
           paths: [{ path: '/Users/mock/.codex/skills/another-skill' }],
         },
       ],

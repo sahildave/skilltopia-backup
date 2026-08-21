@@ -1,3 +1,10 @@
+// Skill provenance is declared once in Rust (`provider_scan::types::SkillOrigin`)
+// and reaches TypeScript through `npm run rust:bindings`. Re-exported here so
+// shared UI keeps importing only from `@platform`.
+import type { SkillOrigin } from '@/lib/bindings';
+
+export type { SkillOrigin };
+
 export type InstallScope = 'global' | 'project';
 
 export interface SkillEntry {
@@ -70,6 +77,8 @@ export interface ScannedSkill {
   scope: InstallScope;
   /** Provider ids plus {@link UNIVERSAL_PROVIDER_ID} or {@link PROJECT_AGENTS_PROVIDER_ID}. */
   providerIds: string[];
+  /** Where this skill came from; a skill can have more than one origin. */
+  origins: SkillOrigin[];
   /** Source paths (all copies after dedupe). */
   paths: ScannedSkillPath[];
 }
@@ -109,6 +118,8 @@ export type SkillTargetStatus =
   | 'conflict'
   | 'removed'
   | 'absent'
+  /** The destination is inside the read-only Claude plugin cache. */
+  | 'refused'
   | 'failed';
 
 export interface SkillTargetResult {
@@ -121,7 +132,12 @@ export interface SkillTargetsResult {
   results: SkillTargetResult[];
 }
 
-export type CopyProviderStatus = 'copied' | 'conflict' | 'failed';
+export type CopyProviderStatus =
+  | 'copied'
+  | 'conflict'
+  /** The destination is inside the read-only Claude plugin cache. */
+  | 'refused'
+  | 'failed';
 
 export interface CopyProviderResult {
   providerId: string;

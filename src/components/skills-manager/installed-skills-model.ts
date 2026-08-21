@@ -58,6 +58,8 @@ export type SkillProviderBadge =
   | { kind: 'universal' }
   | { kind: 'project' }
   | { kind: 'location'; label: string }
+  /** Shipped by a Claude plugin, which owns it — read-only to this app. */
+  | { kind: 'plugin'; plugin: string; marketplace: string; version: string }
   | { kind: 'providers'; count: number; names: string[] };
 
 export interface CopyProviderOption {
@@ -157,18 +159,24 @@ function projectLocationBadges(
   return badges;
 }
 
+function pluginBadges(skill: ScannedSkill): SkillProviderBadge[] {
+  return pluginOriginsForSkill(skill).map((origin) => ({ kind: 'plugin' as const, ...origin }));
+}
+
 /**
  * Card/list badges:
  * - Global: optional `Universal`, plus aggregated `n Providers`
  * - Project: `Project` for `.agents/skills`, plus short folder labels (`.claude`) —
  *   never Universal or global provider counts
+ * - Either scope: one badge per plugin that ships the skill, last, so the
+ *   origin the user cannot change reads as an annotation on the rest.
  */
 export function providerBadgesForSkill(
   skill: ScannedSkill,
   snapshot: InstalledScanSnapshot,
 ): SkillProviderBadge[] {
   if (skill.scope === 'project') {
-    return projectLocationBadges(skill, snapshot);
+    return [...projectLocationBadges(skill, snapshot), ...pluginBadges(skill)];
   }
 
   const badges: SkillProviderBadge[] = [];
@@ -179,7 +187,43 @@ export function providerBadgesForSkill(
   if (names.length > 0) {
     badges.push({ kind: 'providers', count: names.length, names });
   }
-  return badges;
+  return [...badges, ...pluginBadges(skill)];
+}
+
+/** Plugin origins, deduped by plugin + marketplace and sorted for stable badges. */
+export function pluginOriginsForSkill(
+  skill: ScannedSkill,
+): { plugin: string; marketplace: string; version: string }[] {
+  const byKey = new Map<string, { plugin: string; marketplace: string; version: string }>();
+  for (const origin of skill.origins) {
+    if (origin.kind !== 'claudePlugin') continue;
+    const key = `${origin.plugin}@${origin.marketplace}`;
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        plugin: origin.plugin,
+        marketplace: origin.marketplace,
+        version: origin.version,
+      });
+    }
+  }
+  return [...byKey.values()].sort((a, b) => a.plugin.localeCompare(b.plugin));
+}
+
+/**
+ * True when a plugin is the *only* reason this skill is here. The plugin cache
+ * is read-only, so there is nothing for an uninstall to remove — Rust refuses
+ * it, and the UI should not offer it. A skill that also sits in a directory the
+ * user owns is still uninstallable from there.
+ */
+export function isPluginManagedSkill(skill: ScannedSkill): boolean {
+  return (
+    skill.origins.length > 0 && skill.origins.every((origin) => origin.kind === 'claudePlugin')
+  );
+}
+
+/** `<plugin>@<marketplace>`, or the bare plugin name when unknown. */
+export function pluginOriginLabel(origin: { plugin: string; marketplace: string }): string {
+  return origin.marketplace ? `${origin.plugin}@${origin.marketplace}` : origin.plugin;
 }
 
 function toCopyOption(item: ProviderSidebarItem): CopyProviderOption {
@@ -329,7 +373,8 @@ export function filterSkillSectionsByQuery(
 
 /**
  * Apply the Installed Skills toolbar view after provider/sidebar filtering.
- * Provider = real folders in a provider-specific directory.
+ * Provider = real folders in a provider-specific directory, plus skills a
+ * plugin ships (a real folder in the plugin's own tree, no provider id).
  * Available = Universal skills and/or provider entries that resolve through a
  * symlink (shared slash commands an agent can use).
  */
@@ -345,6 +390,8 @@ export function filterSkillSectionsByView(
     const hasUniversalPath = skill.providerIds.includes(UNIVERSAL_PROVIDER_ID);
     const hasSymlink = skill.paths.some((entry) => Boolean(entry.originalPath));
     if (view === 'available') return hasUniversalPath || hasSymlink;
+
+    if (skill.origins.some((origin) => origin.kind === 'claudePlugin')) return true;
 
     return skill.paths.some(
       (entry) =>

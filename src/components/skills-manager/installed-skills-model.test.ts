@@ -14,9 +14,24 @@ import {
   filterSkillSectionsByQuery,
   filterSkillSectionsByView,
   filterSkillsForSelection,
+  isPluginManagedSkill,
+  pluginOriginLabel,
+  pluginOriginsForSkill,
   providerBadgesForSkill,
   warningRevealProviderId,
 } from './installed-skills-model';
+
+const PLUGIN_SKILL: (typeof MOCK_INSTALLED_SCAN)['skills'][number] = {
+  name: 'ponytail',
+  uninstallName: 'ponytail',
+  description: 'Laziest solution that works',
+  scope: 'global',
+  providerIds: [],
+  origins: [
+    { kind: 'claudePlugin', plugin: 'ponytail', marketplace: 'official', version: '1.2.0' },
+  ],
+  paths: [{ path: '/Users/mock/.claude/plugins/cache/ponytail/skills/ponytail' }],
+};
 
 describe('filterSkillsForSelection', () => {
   it('returns all skills alphabetically for All Agents', () => {
@@ -55,6 +70,7 @@ describe('filterSkillsForSelection', () => {
           description: 'Baseline UI skill',
           scope: 'global',
           providerIds: [UNIVERSAL_PROVIDER_ID],
+          origins: [{ kind: 'providerDirectory' as const, providerId: UNIVERSAL_PROVIDER_ID }],
           paths: [{ path: '/Users/mock/.agents/skills/baseline-ui' }],
         },
         {
@@ -63,6 +79,7 @@ describe('filterSkillsForSelection', () => {
           description: 'Codex-local skill',
           scope: 'global',
           providerIds: ['codex'],
+          origins: [{ kind: 'providerDirectory' as const, providerId: 'codex' }],
           paths: [{ path: '/Users/mock/.codex/skills/hatch-pet' }],
         },
         {
@@ -71,6 +88,7 @@ describe('filterSkillsForSelection', () => {
           description: 'Symlinked into Codex',
           scope: 'global',
           providerIds: ['codex'],
+          origins: [{ kind: 'providerDirectory' as const, providerId: 'codex' }],
           paths: [
             {
               path: '/Users/mock/.codex/skills/apple-design',
@@ -98,6 +116,33 @@ describe('filterSkillsForSelection', () => {
       (s) => s.name,
     );
     expect(providerOnly).toEqual(['hatch-pet']);
+  });
+
+  it('counts and lists plugin-delivered skills alongside directory skills', () => {
+    const snapshot: typeof MOCK_INSTALLED_SCAN = {
+      ...MOCK_INSTALLED_SCAN,
+      skills: [
+        ...MOCK_INSTALLED_SCAN.skills,
+        {
+          name: 'ponytail',
+          uninstallName: 'ponytail',
+          description: 'Laziest solution that works',
+          scope: 'global',
+          providerIds: [],
+          origins: [
+            { kind: 'claudePlugin', plugin: 'ponytail', marketplace: 'official', version: '1.2.0' },
+          ],
+          paths: [{ path: '/Users/mock/.claude/plugins/cache/ponytail/skills/ponytail' }],
+        },
+      ],
+    };
+
+    const { primary } = filterSkillsForSelection(snapshot, ALL_AGENTS_FILTER_ID);
+    expect(primary.map((s) => s.name)).toContain('ponytail');
+    expect(buildProviderSidebarModel(snapshot).allAgentsCount).toBe(4);
+    expect(
+      filterSkillSectionsByView({ primary }, snapshot, 'provider').primary.map((s) => s.name),
+    ).toContain('ponytail');
   });
 
   it('keeps same-name skills as one card with merged provider tags', () => {
@@ -184,6 +229,10 @@ describe('providerBadgesForSkill', () => {
       description: 'Multi provider skill',
       scope: 'global' as const,
       providerIds: ['claude-code', 'cursor'],
+      origins: [
+        { kind: 'providerDirectory' as const, providerId: 'claude-code' },
+        { kind: 'providerDirectory' as const, providerId: 'cursor' },
+      ],
       paths: [
         { path: '/Users/mock/.claude/skills/multi' },
         { path: '/Users/mock/.cursor/skills/multi' },
@@ -225,6 +274,11 @@ describe('providerBadgesForSkill', () => {
       description: 'Shared dir skill',
       scope: 'global' as const,
       providerIds: [UNIVERSAL_PROVIDER_ID, 'cline', 'claude-code'],
+      origins: [
+        { kind: 'providerDirectory' as const, providerId: UNIVERSAL_PROVIDER_ID },
+        { kind: 'providerDirectory' as const, providerId: 'cline' },
+        { kind: 'providerDirectory' as const, providerId: 'claude-code' },
+      ],
       paths: [
         { path: '/Users/mock/.agents/skills/shared' },
         { path: '/Users/mock/.agents/skills/shared' },
@@ -268,6 +322,7 @@ describe('providerBadgesForSkill', () => {
       description: 'Project skill',
       scope: 'project' as const,
       providerIds: [PROJECT_AGENTS_PROVIDER_ID],
+      origins: [{ kind: 'providerDirectory' as const, providerId: PROJECT_AGENTS_PROVIDER_ID }],
       paths: [{ path: '/Users/mock/code/app/.agents/skills/local-skill' }],
     };
     const snapshot = {
@@ -309,6 +364,10 @@ describe('providerBadgesForSkill', () => {
       description: 'Project skill',
       scope: 'project' as const,
       providerIds: [PROJECT_AGENTS_PROVIDER_ID, 'claude-code'],
+      origins: [
+        { kind: 'providerDirectory' as const, providerId: PROJECT_AGENTS_PROVIDER_ID },
+        { kind: 'providerDirectory' as const, providerId: 'claude-code' },
+      ],
       paths: [
         { path: '/Users/mock/code/app/.agents/skills/local-skill' },
         { path: '/Users/mock/code/app/.claude/skills/local-skill' },
@@ -356,6 +415,7 @@ describe('providerBadgesForSkill', () => {
       description: 'Claude project skill',
       scope: 'project' as const,
       providerIds: ['claude-code'],
+      origins: [{ kind: 'providerDirectory' as const, providerId: 'claude-code' }],
       paths: [{ path: '/Users/mock/code/app/.claude/skills/claude-only' }],
     };
     const snapshot = {
@@ -425,6 +485,7 @@ describe('buildCopyProviderDialogModel', () => {
           description: 'Other',
           scope: 'global' as const,
           providerIds: ['claude-code'],
+          origins: [{ kind: 'providerDirectory' as const, providerId: 'claude-code' }],
           paths: [{ path: '/Users/mock/.claude/skills/other-skill' }],
         },
       ],
@@ -469,6 +530,11 @@ describe('buildCopyProviderDialogModel', () => {
       description: 'Shared',
       scope: 'global' as const,
       providerIds: [UNIVERSAL_PROVIDER_ID, 'cline', 'claude-code'],
+      origins: [
+        { kind: 'providerDirectory' as const, providerId: UNIVERSAL_PROVIDER_ID },
+        { kind: 'providerDirectory' as const, providerId: 'cline' },
+        { kind: 'providerDirectory' as const, providerId: 'claude-code' },
+      ],
       paths: [
         { path: '/Users/mock/.agents/skills/shared' },
         { path: '/Users/mock/.claude/skills/shared' },
@@ -641,5 +707,63 @@ describe('contentWarningsForSelection', () => {
     expect(missingDir).toBeDefined();
     if (!missingDir) return;
     expect(warningRevealProviderId(missingDir)).toBe('claude-code');
+  });
+});
+
+describe('plugin origin', () => {
+  it('badges a plugin-delivered skill after its directory badges', () => {
+    const badges = providerBadgesForSkill(PLUGIN_SKILL, MOCK_INSTALLED_SCAN);
+    expect(badges).toEqual([
+      { kind: 'plugin', plugin: 'ponytail', marketplace: 'official', version: '1.2.0' },
+    ]);
+  });
+
+  it('keeps directory badges and appends the plugin one when a skill has both', () => {
+    const shared = MOCK_INSTALLED_SCAN.skills.find((s) => s.name === 'find-skills');
+    expect(shared).toBeDefined();
+    if (!shared) return;
+
+    const badges = providerBadgesForSkill(
+      { ...shared, origins: [...shared.origins, ...PLUGIN_SKILL.origins] },
+      MOCK_INSTALLED_SCAN,
+    );
+    expect(badges.map((b) => b.kind)).toEqual(['universal', 'providers', 'plugin']);
+  });
+
+  it('dedupes repeated origins from the same plugin', () => {
+    expect(
+      pluginOriginsForSkill({
+        ...PLUGIN_SKILL,
+        origins: [...PLUGIN_SKILL.origins, ...PLUGIN_SKILL.origins],
+      }),
+    ).toHaveLength(1);
+  });
+
+  it('labels a plugin with its marketplace, and without one when unknown', () => {
+    expect(pluginOriginLabel({ plugin: 'ponytail', marketplace: 'official' })).toBe(
+      'ponytail@official',
+    );
+    expect(pluginOriginLabel({ plugin: 'ponytail', marketplace: '' })).toBe('ponytail');
+  });
+
+  it('treats a plugin-only skill as unmanageable, but not one the user also owns', () => {
+    expect(isPluginManagedSkill(PLUGIN_SKILL)).toBe(true);
+
+    const alsoInADirectory = {
+      ...PLUGIN_SKILL,
+      origins: [
+        ...PLUGIN_SKILL.origins,
+        { kind: 'providerDirectory' as const, providerId: UNIVERSAL_PROVIDER_ID },
+      ],
+    };
+    expect(isPluginManagedSkill(alsoInADirectory)).toBe(false);
+  });
+
+  it('leaves directory-only skills alone', () => {
+    const shared = MOCK_INSTALLED_SCAN.skills.find((s) => s.name === 'find-skills');
+    expect(shared).toBeDefined();
+    if (!shared) return;
+    expect(isPluginManagedSkill(shared)).toBe(false);
+    expect(pluginOriginsForSkill(shared)).toEqual([]);
   });
 });

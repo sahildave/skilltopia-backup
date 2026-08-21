@@ -11,10 +11,13 @@ use super::paths::{
     evaluate_detection, load_registry, resolve_global_skills_dir, universal_skills_dir,
     GlobalSkillsDir, ProbeContext, RegistryFile,
 };
+use super::plugin::read_plugin_bundle;
+use super::plugin_guard::PluginGuard;
+use super::plugin_manifest::read_installed_plugins;
 use super::types::{
     InstalledScanSnapshot, ProjectInfo, ProviderRegistrySourceMeta, ScanWarning, ScanWarningCode,
-    ScannedProvider, ScannedSkill, ScannedSkillPath, UniversalScanInfo, PROJECT_AGENTS_PROVIDER_ID,
-    UNIVERSAL_PROVIDER_ID,
+    ScannedProvider, ScannedSkill, ScannedSkillPath, SkillOrigin, UniversalScanInfo,
+    CLAUDE_CODE_PROVIDER_ID, PROJECT_AGENTS_PROVIDER_ID, UNIVERSAL_PROVIDER_ID,
 };
 
 #[derive(Debug, Clone)]
@@ -235,7 +238,6 @@ fn merge_skill(
         .and_then(|value| value.to_str())
         .unwrap_or(&name)
         .to_string();
-    let skill_key = format!("global:{name}");
     let skill_path = ScannedSkillPath {
         path: normalize_path_for_serialization(&entry.entry_path),
         original_path: entry
@@ -243,9 +245,40 @@ fn merge_skill(
             .as_ref()
             .map(|p| normalize_path_for_serialization(p)),
     };
+    merge_global_skill(
+        map,
+        name,
+        description,
+        uninstall_name,
+        Some(provider_id),
+        SkillOrigin::ProviderDirectory {
+            provider_id: provider_id.to_string(),
+        },
+        skill_path,
+    );
+}
+
+/// One skill name, one entry — regardless of how many directories or plugins
+/// ship it. Every source folds into the same record, adding its provider id (if
+/// it has one), its origin and its path.
+fn merge_global_skill(
+    map: &mut BTreeMap<String, ScannedSkill>,
+    name: String,
+    description: String,
+    uninstall_name: String,
+    provider_id: Option<&str>,
+    origin: SkillOrigin,
+    skill_path: ScannedSkillPath,
+) {
+    let skill_key = format!("global:{name}");
     if let Some(existing) = map.get_mut(&skill_key) {
-        if !existing.provider_ids.iter().any(|id| id == provider_id) {
-            existing.provider_ids.push(provider_id.to_string());
+        if let Some(provider_id) = provider_id {
+            if !existing.provider_ids.iter().any(|id| id == provider_id) {
+                existing.provider_ids.push(provider_id.to_string());
+            }
+        }
+        if !existing.origins.contains(&origin) {
+            existing.origins.push(origin);
         }
         if !existing.paths.iter().any(|p| p.path == skill_path.path) {
             existing.paths.push(skill_path);
@@ -258,10 +291,61 @@ fn merge_skill(
                 uninstall_name,
                 description,
                 scope: "global".into(),
-                provider_ids: vec![provider_id.to_string()],
+                provider_ids: provider_id.map(str::to_string).into_iter().collect(),
+                origins: vec![origin],
                 paths: vec![skill_path],
             },
         );
+    }
+}
+
+/// Fold every skill shipped by the active plugin installs into the same map the
+/// provider directories filled. A skill present in both places gains a second
+/// origin rather than a second entry.
+///
+/// Plugin skills are tagged with the Claude Code provider id because that agent
+/// really does load them; without it the sidebar row for Claude Code would hide
+/// the skills it invokes. They keep a `ClaudePlugin` origin, never a
+/// `ProviderDirectory` one — the tag says who can invoke it, the origin says
+/// where it came from.
+fn merge_plugin_skills(
+    map: &mut BTreeMap<String, ScannedSkill>,
+    warnings: &mut Vec<ScanWarning>,
+    home: &Path,
+) {
+    let scan = read_installed_plugins(&home.join(".claude").join("plugins"));
+    warnings.extend(scan.warnings);
+
+    for install in scan.installs {
+        let bundle = read_plugin_bundle(&install.install_path);
+        let version = install
+            .version
+            .clone()
+            .or_else(|| bundle.manifest.version.clone())
+            .unwrap_or_default();
+        for skill in bundle.skills {
+            let uninstall_name = Path::new(&skill.path)
+                .file_name()
+                .and_then(|value| value.to_str())
+                .unwrap_or(&skill.name)
+                .to_string();
+            merge_global_skill(
+                map,
+                skill.name,
+                skill.description,
+                uninstall_name,
+                Some(CLAUDE_CODE_PROVIDER_ID),
+                SkillOrigin::ClaudePlugin {
+                    plugin: install.plugin.clone(),
+                    marketplace: install.marketplace.clone().unwrap_or_default(),
+                    version: version.clone(),
+                },
+                ScannedSkillPath {
+                    path: skill.path,
+                    original_path: None,
+                },
+            );
+        }
     }
 }
 
@@ -341,6 +425,9 @@ pub fn scan_installed(ctx: &ScanContext) -> Result<InstalledScanSnapshot, String
                     && !skill.provider_ids.iter().any(|id| id == &provider.id)
                 {
                     skill.provider_ids.push(provider.id.clone());
+                    skill.origins.push(SkillOrigin::ProviderDirectory {
+                        provider_id: provider.id.clone(),
+                    });
                 }
             }
         } else if let Some(ref dir) = skills_dir {
@@ -397,6 +484,28 @@ pub fn scan_installed(ctx: &ScanContext) -> Result<InstalledScanSnapshot, String
             skills_dir_exists,
             skill_count,
         });
+    }
+
+    // Plugin skills join after the provider directories so a skill found in both
+    // keeps its provider-directory record and merely gains a plugin origin.
+    merge_plugin_skills(&mut skills_map, &mut warnings, &ctx.probe.home);
+
+    // A plugin is not a skills dir, so the directory walk above never counted it.
+    // Claude Code loads plugin skills all the same, so its count is every skill
+    // tagged with it — deduped, so a skill in both places is still counted once.
+    if let Some(claude) = providers
+        .iter_mut()
+        .find(|provider| provider.id == CLAUDE_CODE_PROVIDER_ID)
+    {
+        claude.skill_count = skills_map
+            .values()
+            .filter(|skill| {
+                skill
+                    .provider_ids
+                    .iter()
+                    .any(|id| id == CLAUDE_CODE_PROVIDER_ID)
+            })
+            .count() as u32;
     }
 
     providers.sort_by(|a, b| {
@@ -650,9 +759,15 @@ fn merge_project_skill(
             .map(|p| normalize_path_for_serialization(p)),
     };
     let key = format!("project:{name}");
+    let origin = SkillOrigin::ProviderDirectory {
+        provider_id: provider_id.to_string(),
+    };
     if let Some(existing) = map.get_mut(&key) {
         if !existing.provider_ids.iter().any(|id| id == provider_id) {
             existing.provider_ids.push(provider_id.to_string());
+        }
+        if !existing.origins.contains(&origin) {
+            existing.origins.push(origin);
         }
         if !existing.paths.iter().any(|p| p.path == skill_path.path) {
             existing.paths.push(skill_path);
@@ -672,6 +787,7 @@ fn merge_project_skill(
                 description,
                 scope: "project".into(),
                 provider_ids: vec![provider_id.to_string()],
+                origins: vec![origin],
                 paths: vec![skill_path],
             },
         );
@@ -718,6 +834,9 @@ pub fn delete_universal_skill_dir(uninstall_name: &str, ctx: &ScanContext) -> Re
 
     let universal_dir = universal_skills_dir(&load_registry()?, &ctx.probe)?;
     let target = universal_dir.join(uninstall_name);
+    // A Universal root that resolves into the plugin cache would make this a
+    // delete against content we do not own.
+    PluginGuard::for_context(ctx).refuse_write(&target)?;
     let metadata = match fs::symlink_metadata(&target) {
         Ok(metadata) => metadata,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
@@ -903,6 +1022,18 @@ mod tests {
             .contains(&UNIVERSAL_PROVIDER_ID.to_string()));
         assert!(find.provider_ids.contains(&"claude-code".to_string()));
         assert_eq!(find.paths.len(), 2);
+        // One provider-directory origin per directory the skill was found in.
+        assert_eq!(
+            find.origins,
+            vec![
+                SkillOrigin::ProviderDirectory {
+                    provider_id: UNIVERSAL_PROVIDER_ID.to_string(),
+                },
+                SkillOrigin::ProviderDirectory {
+                    provider_id: "claude-code".to_string(),
+                },
+            ]
+        );
 
         let review = snapshot
             .skills
@@ -910,6 +1041,12 @@ mod tests {
             .find(|s| s.name == "code-review")
             .expect("code-review");
         assert_eq!(review.provider_ids, vec!["claude-code".to_string()]);
+        assert_eq!(
+            review.origins,
+            vec![SkillOrigin::ProviderDirectory {
+                provider_id: "claude-code".to_string(),
+            }]
+        );
     }
 
     /// The six registry providers whose `globalSkillsDir` is the Universal root.
@@ -1180,5 +1317,169 @@ mod tests {
         assert!(delete_universal_skill_dir("linked-skill", &scan_ctx(&home)).unwrap());
         assert!(!universal.join("linked-skill").exists());
         assert!(real.exists());
+    }
+
+    /// Install one plugin under `~/.claude/plugins` with the given skills and
+    /// register it in the manifest. Returns the install path.
+    fn write_plugin(home: &Path, key: &str, version: Option<&str>, skills: &[&str]) -> PathBuf {
+        let install = home
+            .join(".claude/plugins/cache")
+            .join(key.replace('/', "-"));
+        for skill in skills {
+            write_skill(&install.join("skills"), skill, skill, "From a plugin");
+        }
+        fs::create_dir_all(install.join(".claude-plugin")).unwrap();
+        fs::write(
+            install.join(".claude-plugin/plugin.json"),
+            r#"{"name":"manifest-name","version":"9.9.9"}"#,
+        )
+        .unwrap();
+
+        let version_field = version
+            .map(|v| format!(r#""version":"{v}","#))
+            .unwrap_or_default();
+        let manifest = format!(
+            r#"{{"version":2,"plugins":{{"{key}":[{{"scope":"user",{version_field}"installPath":"{}","lastUpdated":"2026-01-01T00:00:00.000Z"}}]}}}}"#,
+            install.to_string_lossy()
+        );
+        fs::write(
+            home.join(".claude/plugins/installed_plugins.json"),
+            manifest,
+        )
+        .unwrap();
+        install
+    }
+
+    #[test]
+    fn plugin_skills_join_the_snapshot_with_provenance() {
+        let home = temp_home("plugin-join");
+        write_plugin(&home, "ponytail@official", Some("1.2.0"), &["ponytail"]);
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        let skill = snapshot
+            .skills
+            .iter()
+            .find(|s| s.name == "ponytail")
+            .expect("plugin skill in snapshot");
+        assert_eq!(
+            skill.origins,
+            vec![SkillOrigin::ClaudePlugin {
+                plugin: "ponytail".into(),
+                marketplace: "official".into(),
+                version: "1.2.0".into(),
+            }]
+        );
+        assert_eq!(skill.uninstall_name, "ponytail");
+        // Tagged for Claude Code, which loads it, without gaining a
+        // ProviderDirectory origin — it still came from a plugin.
+        assert_eq!(skill.provider_ids, vec!["claude-code".to_string()]);
+        assert_eq!(skill.paths.len(), 1);
+        assert!(skill.paths[0].path.ends_with("skills/ponytail"));
+    }
+
+    #[test]
+    fn plugin_version_falls_back_to_the_plugin_manifest() {
+        let home = temp_home("plugin-version");
+        write_plugin(&home, "ponytail@official", None, &["ponytail"]);
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        let skill = snapshot
+            .skills
+            .iter()
+            .find(|s| s.name == "ponytail")
+            .unwrap();
+        assert_eq!(
+            skill.origins,
+            vec![SkillOrigin::ClaudePlugin {
+                plugin: "ponytail".into(),
+                marketplace: "official".into(),
+                version: "9.9.9".into(),
+            }]
+        );
+    }
+
+    #[test]
+    fn skill_in_both_a_provider_dir_and_a_plugin_appears_once() {
+        let home = temp_home("plugin-dedupe");
+        let claude_skills = home.join(".claude/skills");
+        write_skill(&claude_skills, "shared", "shared", "From Claude");
+        write_plugin(&home, "ponytail@official", Some("1.2.0"), &["shared"]);
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        let matches: Vec<&ScannedSkill> = snapshot
+            .skills
+            .iter()
+            .filter(|s| s.name == "shared")
+            .collect();
+        assert_eq!(matches.len(), 1, "one entry, two origins");
+        let skill = matches[0];
+        assert_eq!(skill.provider_ids, vec!["claude-code".to_string()]);
+        assert_eq!(
+            skill.origins,
+            vec![
+                SkillOrigin::ProviderDirectory {
+                    provider_id: "claude-code".into(),
+                },
+                SkillOrigin::ClaudePlugin {
+                    plugin: "ponytail".into(),
+                    marketplace: "official".into(),
+                    version: "1.2.0".into(),
+                },
+            ]
+        );
+        assert_eq!(skill.paths.len(), 2);
+        // Counted once, not twice, despite living in both places.
+        let claude = snapshot
+            .providers
+            .iter()
+            .find(|p| p.id == "claude-code")
+            .expect("claude-code");
+        assert_eq!(claude.skill_count, 1);
+    }
+
+    #[test]
+    fn claude_code_counts_and_lists_the_plugin_skills_it_loads() {
+        let home = temp_home("plugin-provider-count");
+        write_skill(&home.join(".claude/skills"), "own", "own", "From Claude");
+        write_plugin(&home, "ponytail@official", Some("1.2.0"), &["shipped"]);
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+
+        let shipped = snapshot
+            .skills
+            .iter()
+            .find(|s| s.name == "shipped")
+            .expect("plugin skill in the snapshot");
+        assert_eq!(shipped.provider_ids, vec!["claude-code".to_string()]);
+        // Tagged for the agent that loads it, but still a plugin by origin.
+        assert!(matches!(
+            shipped.origins.as_slice(),
+            [SkillOrigin::ClaudePlugin { .. }]
+        ));
+
+        let claude = snapshot
+            .providers
+            .iter()
+            .find(|p| p.id == "claude-code")
+            .expect("claude-code");
+        assert_eq!(claude.skill_count, 2, "its own dir plus the plugin skill");
+    }
+
+    #[test]
+    fn unreadable_plugin_manifest_warns_without_failing_the_scan() {
+        let home = temp_home("plugin-broken-manifest");
+        write_plugin(&home, "ponytail@official", Some("1.2.0"), &["ponytail"]);
+        fs::write(
+            home.join(".claude/plugins/installed_plugins.json"),
+            "{ not json",
+        )
+        .unwrap();
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        assert!(!snapshot.skills.iter().any(|s| s.name == "ponytail"));
+        assert!(snapshot
+            .warnings
+            .iter()
+            .any(|w| w.message.contains("installed_plugins.json")));
     }
 }

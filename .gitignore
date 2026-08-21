@@ -63,3 +63,6 @@ src-tauri/icons/ios/
 
 # AFK runner machine state (.afk-setup/ is committed on purpose; runs/ too)
 .afk/
+
+# AFK runner scratch report (runs/ IS committed on purpose; this is not)
+.afk-report.json

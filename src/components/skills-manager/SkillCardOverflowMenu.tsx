@@ -13,14 +13,20 @@ import { panelRowSlideVariants } from '@/lib/animation';
 import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { platform } from '@platform';
-import { Copy, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Copy, MoreHorizontal, Puzzle, Trash2 } from 'lucide-react';
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { CopyProvidersDialog } from './CopyProvidersDialog';
-import { uninstallAgentScopeFromFilter, type ProviderFilterId } from './installed-skills-model';
-import { isNodeRuntimeMissing, isPermissionError } from './library-errors';
+import {
+  isPluginManagedSkill,
+  pluginOriginLabel,
+  pluginOriginsForSkill,
+  uninstallAgentScopeFromFilter,
+  type ProviderFilterId,
+} from './installed-skills-model';
+import { isNodeRuntimeMissing, isPermissionError, isPluginManaged } from './library-errors';
 import { summarizeTargetResults } from './target-results';
 export function SkillCardOverflowMenu({
   skill,
@@ -43,6 +49,10 @@ export function SkillCardOverflowMenu({
   const canCopy = platform.hasLocalLibrary;
   const rescan = useInstalledScanStore((state) => state.rescan);
   const rowVariants = panelRowSlideVariants(Boolean(reduceMotion));
+  // The plugin cache is read-only, so Rust refuses this uninstall. Don't offer
+  // an action that can only fail — say who owns the skill instead.
+  const pluginManaged = isPluginManagedSkill(skill);
+  const owningPlugins = pluginOriginsForSkill(skill).map(pluginOriginLabel).join(', ');
 
   const closeMenu = useCallback(() => {
     setOpen(false);
@@ -91,7 +101,13 @@ export function SkillCardOverflowMenu({
       await rescan();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (isNodeRuntimeMissing(message)) {
+      if (isPluginManaged(message)) {
+        toast.error(t('skills.installed.uninstallPluginManaged', { name: skill.name }), {
+          description: t('skills.installed.uninstallPluginManagedDetail', {
+            plugin: owningPlugins || skill.name,
+          }),
+        });
+      } else if (isNodeRuntimeMissing(message)) {
         toast.error(t('skills.install.nodeMissing'), {
           description: t('skills.install.nodeMissingDetail'),
         });
@@ -146,62 +162,74 @@ export function SkillCardOverflowMenu({
                 />
               ) : null}
               <div className="relative mt-2 h-10 overflow-hidden border-t border-border pt-2">
-                <AnimatePresence custom={confirming} mode="popLayout" initial={false}>
-                  {!confirming ? (
-                    <motion.div
-                      key="delete"
-                      custom={confirming}
-                      variants={rowVariants}
-                      initial="initial"
-                      animate="animate"
-                      exit="exit"
-                      className="absolute inset-x-0 top-2"
-                    >
-                      <ActionMenuItem
-                        icon={<Trash2 aria-hidden />}
-                        label={t('skills.installed.uninstall')}
-                        destructive
-                        disabled={uninstalling}
-                        onClick={() => setConfirming(true)}
-                      />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="confirm"
-                      custom={confirming}
-                      variants={rowVariants}
-                      initial="initial"
-                      animate="animate"
-                      exit="exit"
-                      className="absolute inset-x-0 top-2 flex items-center gap-2"
-                    >
-                      <Button
-                        variant="destructive"
-                        disabled={uninstalling}
-                        size="sm"
-                        aria-label={t('skills.installed.uninstallYes')}
-                        onClick={() => void handleUninstall()}
-                        className="flex-1 disabled:cursor-not-allowed disabled:opacity-50"
+                {pluginManaged ? (
+                  <div className="absolute inset-x-0 top-2">
+                    <ActionMenuItem
+                      icon={<Puzzle aria-hidden />}
+                      label={t('skills.installed.uninstallPluginManagedItem', {
+                        plugin: owningPlugins,
+                      })}
+                      disabled
+                    />
+                  </div>
+                ) : (
+                  <AnimatePresence custom={confirming} mode="popLayout" initial={false}>
+                    {!confirming ? (
+                      <motion.div
+                        key="delete"
+                        custom={confirming}
+                        variants={rowVariants}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                        className="absolute inset-x-0 top-2"
                       >
-                        {uninstalling ? (
-                          <Spinner aria-hidden />
-                        ) : (
-                          t('skills.installed.uninstallYes')
-                        )}
-                      </Button>
+                        <ActionMenuItem
+                          icon={<Trash2 aria-hidden />}
+                          label={t('skills.installed.uninstall')}
+                          destructive
+                          disabled={uninstalling}
+                          onClick={() => setConfirming(true)}
+                        />
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="confirm"
+                        custom={confirming}
+                        variants={rowVariants}
+                        initial="initial"
+                        animate="animate"
+                        exit="exit"
+                        className="absolute inset-x-0 top-2 flex items-center gap-2"
+                      >
+                        <Button
+                          variant="destructive"
+                          disabled={uninstalling}
+                          size="sm"
+                          aria-label={t('skills.installed.uninstallYes')}
+                          onClick={() => void handleUninstall()}
+                          className="flex-1 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {uninstalling ? (
+                            <Spinner aria-hidden />
+                          ) : (
+                            t('skills.installed.uninstallYes')
+                          )}
+                        </Button>
 
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={uninstalling}
-                        onClick={() => setConfirming(false)}
-                        className="flex-1"
-                      >
-                        {t('skills.installed.uninstallCancel')}
-                      </Button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          disabled={uninstalling}
+                          onClick={() => setConfirming(false)}
+                          className="flex-1"
+                        >
+                          {t('skills.installed.uninstallCancel')}
+                        </Button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                )}
               </div>
             </ActionMenuContent>
           </LayoutGroup>

@@ -151,7 +151,7 @@ export function CopyProvidersDialog({
 
   const issueProviderNames = (results: CopyProviderResult[]): string =>
     results
-      .filter((r) => r.status === 'conflict' || r.status === 'failed')
+      .filter((r) => r.status !== 'copied')
       .map((r) => providerLabel(r.providerId))
       .join(', ');
 
@@ -163,9 +163,12 @@ export function CopyProvidersDialog({
       const copied = result.results.filter((r) => r.status === 'copied');
       const conflicts = result.results.filter((r) => r.status === 'conflict');
       const failed = result.results.filter((r) => r.status === 'failed');
+      // A destination that resolves inside the read-only Claude plugin cache.
+      // Rare, but it must read as "managed elsewhere", not as a bare failure.
+      const refused = result.results.filter((r) => r.status === 'refused');
       const issues = issueProviderNames(result.results);
 
-      if (copied.length > 0 && conflicts.length === 0 && failed.length === 0) {
+      if (copied.length > 0 && conflicts.length + failed.length + refused.length === 0) {
         toast.success(
           t('skills.installed.copySuccess', {
             name: skill.name,
@@ -177,12 +180,16 @@ export function CopyProvidersDialog({
           t('skills.installed.copyPartial', {
             name: skill.name,
             copied: copied.length,
-            failed: conflicts.length + failed.length,
+            failed: conflicts.length + failed.length + refused.length,
           }),
           issues
             ? { description: t('skills.installed.copyIssuesDescription', { providers: issues }) }
             : undefined,
         );
+      } else if (refused.length > 0 && conflicts.length + failed.length === 0) {
+        toast.error(t('skills.installed.copyFailed', { name: skill.name }), {
+          description: t('skills.installed.copyRefusedDescription', { providers: issues }),
+        });
       } else {
         toast.error(t('skills.installed.copyFailed', { name: skill.name }), {
           description: issues

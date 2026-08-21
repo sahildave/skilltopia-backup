@@ -1,8 +1,9 @@
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
+import { Puzzle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { providerBadgesForSkill } from './installed-skills-model';
+import { pluginOriginLabel, providerBadgesForSkill } from './installed-skills-model';
 
 export function SkillProviderBadges({
   skill,
@@ -30,6 +31,31 @@ export function SkillProviderBadges({
             <Badge key="project" variant="outline" size="sm">
               {t('skills.projects.agentsBadge')}
             </Badge>
+          );
+        }
+
+        if (badge.kind === 'plugin') {
+          const label = pluginOriginLabel(badge);
+          return (
+            <Tooltip key={`plugin-${label}`}>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant="secondary"
+                  tabIndex={0}
+                  size="sm"
+                  aria-label={t('skills.installed.pluginBadgeLabel', { plugin: label })}
+                >
+                  <Puzzle aria-hidden />
+                  {badge.plugin}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="whitespace-pre-line text-start">
+                {t('skills.installed.pluginBadgeTooltip', {
+                  plugin: label,
+                  version: badge.version || t('skills.installed.pluginVersionUnknown'),
+                })}
+              </TooltipContent>
+            </Tooltip>
           );
         }
 

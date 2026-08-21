@@ -76,16 +76,35 @@ jobs:
             echo "::error::VERCEL_TOKEN secret is not set; cannot mint an ingest OIDC token."
             exit 1
           fi
-          token=$(npx --yes vercel@latest project token "$VERCEL_INGEST_PROJECT" \
+          # Pinned: a CLI release that changes `project token` output would
+          # otherwise break the cron silently the next morning.
+          # Parse the last stdout line only, so a banner or update notice from
+          # the CLI cannot break JSON.parse.
+          token=$(npx --yes vercel@59.3.0 project token "$VERCEL_INGEST_PROJECT" \
             --scope "$VERCEL_INGEST_SCOPE" --token "$VERCEL_TOKEN" --format=json --yes \
-            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(JSON.parse(s).token))')
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const l=s.trim().split("\n").pop();process.stdout.write(JSON.parse(l).token)})')
           echo "::add-mask::$token"
           # Fail here with a clear message rather than mid-pipeline on a 401.
-          code=$(curl -s -o /dev/null -w '%{http_code}' \
-            -H 'Accept: application/json' -H "Authorization: Bearer $token" \
-            'https://skills.sh/api/v1/skills?view=all-time&page=0&per_page=1')
+          # Retry transient upstream failures: this runs once a day, so a single
+          # 429 or 5xx would otherwise cost a whole day of ingest.
+          for attempt in 1 2 3; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 \
+              -H 'Accept: application/json' -H "Authorization: Bearer $token" \
+              'https://skills.sh/api/v1/skills?view=all-time&page=0&per_page=1' || echo 000)
+            case "$code" in
+              200) break ;;
+              401 | 403)
+                echo "::error::skills.sh rejected the freshly minted OIDC token (HTTP $code). Check OIDC Federation on $VERCEL_INGEST_SCOPE/$VERCEL_INGEST_PROJECT."
+                exit 1
+                ;;
+              *)
+                echo "skills.sh pre-flight attempt $attempt failed (HTTP $code)."
+                [ "$attempt" = 3 ] || sleep $((attempt * 10))
+                ;;
+            esac
+          done
           if [ "$code" != "200" ]; then
-            echo "::error::skills.sh rejected the freshly minted OIDC token (HTTP $code)."
+            echo "::error::skills.sh pre-flight failed after 3 attempts (HTTP $code)."
             exit 1
           fi
           echo "VERCEL_OIDC_TOKEN_SECONDARY=$token" >> "$GITHUB_ENV"

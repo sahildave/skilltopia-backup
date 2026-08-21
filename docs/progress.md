@@ -3,7 +3,7 @@
 | ID | Task | Status | Dependencies |
 | --- | --- | --- | --- |
 | 2 | Resolve an absolute Node/npx path so the packaged .app can spawn it | passed | - |
-| 3 | Reconcile the universal skills directory: registry.json vs paths.rs | ready_to_integrate | - |
+| 3 | Reconcile the universal skills directory: registry.json vs paths.rs | passed | - |
 | 4 | Path classifier: report what is at a skill target, without acting on it | passed | - |
 | 5 | In-process skill acquisition with a content-addressed cache | running | - |
 | 6 | In-process projection: install, copy and uninstall without subprocesses | pending | 3, 4, 5 |

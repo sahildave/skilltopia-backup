@@ -64,23 +64,18 @@ describe('classifySkillOrigin', () => {
 });
 
 describe('resolveBatchOidcToken', () => {
-  it('prefers VERCEL_OIDC_TOKEN_SECONDARY when both are set', () => {
+  it('reads VERCEL_OIDC_TOKEN_SECONDARY', () => {
     vi.stubEnv('VERCEL_OIDC_TOKEN_SECONDARY', ' secondary-token ');
-    vi.stubEnv('VERCEL_OIDC_TOKEN', 'fallback-token');
     expect(resolveBatchOidcToken()).toBe('secondary-token');
   });
 
-  it('falls back to VERCEL_OIDC_TOKEN when secondary is unset or blank', () => {
+  it('never falls back to the app project VERCEL_OIDC_TOKEN', () => {
     vi.stubEnv('VERCEL_OIDC_TOKEN_SECONDARY', '  ');
-    vi.stubEnv('VERCEL_OIDC_TOKEN', ' fallback-token ');
-    expect(resolveBatchOidcToken()).toBe('fallback-token');
-
-    vi.unstubAllEnvs();
-    vi.stubEnv('VERCEL_OIDC_TOKEN', 'only-fallback');
-    expect(resolveBatchOidcToken()).toBe('only-fallback');
+    vi.stubEnv('VERCEL_OIDC_TOKEN', 'app-token');
+    expect(resolveBatchOidcToken()).toBeUndefined();
   });
 
-  it('returns undefined when neither token is set', () => {
+  it('returns undefined when the secondary token is not set', () => {
     expect(resolveBatchOidcToken()).toBeUndefined();
   });
 });

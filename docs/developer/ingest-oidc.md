@@ -36,18 +36,24 @@ or web bundle. OIDC tokens are minted per Vercel project (Federation setting).
 All scrape, list-snapshots, rotate, enrich, and GHA ingest traffic uses the
 **secondary** token. Primary never runs those jobs.
 
-1. Create a **separate** Vercel project (partner account is fine; can be a no-op
-   deploy). Enable **OIDC Federation** on that project only for batch work.
-2. Mint a short-lived OIDC token for that project (Vercel dashboard / linked
-   CLI) and store it as **`VERCEL_OIDC_TOKEN_SECONDARY`** in Infisical **`dev`**
-   (and in GitHub Actions secrets for ingest).
-3. Batch resolution in `api/_lib/skills-catalog.ts`: use
-   `VERCEL_OIDC_TOKEN_SECONDARY` when set; otherwise fall back to
-   `VERCEL_OIDC_TOKEN`. Do **not** reuse the app (primary) project’s token for
-   batch.
+1. Create the ingest project in the **partner Vercel account** (a no-op deploy
+   is enough). Enable **OIDC Federation** on that project only for batch work.
+2. OIDC tokens expire after 12 hours, so they cannot be stored as static CI
+   secrets — a daily cron would send an expired one and get a `401`.
+   - **GitHub Actions:** store the partner account's **`VERCEL_TOKEN`** (a
+     Vercel API token) and let `ingest.yml` mint a fresh OIDC token per run.
+     Leave `VERCEL_OIDC_TOKEN_SECONDARY` unset there; a stale value would sit
+     in front of the minted one and mask mint failures.
+   - **Local scripts:** store a hand-minted
+     **`VERCEL_OIDC_TOKEN_SECONDARY`** in Infisical **`dev`**, and re-mint it
+     when it expires.
+3. Batch resolution in `api/_lib/skills-catalog.ts` reads
+   `VERCEL_OIDC_TOKEN_SECONDARY` and nothing else. There is deliberately no
+   fallback to the app project’s `VERCEL_OIDC_TOKEN`: a stale copy would spend
+   the app’s budget and mask a missing ingest token.
 4. Local scripts (`npm run scrape:local`, `list-snapshots:local`,
    `rotate:local`, `ingest:daily`, `scrape:sweep`, `enrich:local`) expect
-   Infisical **`dev`** for Supabase plus secondary (or fallback) OIDC in the
+   Infisical **`dev`** for Supabase plus `VERCEL_OIDC_TOKEN_SECONDARY` in the
    environment via `infisical run`.
 
 ## Pacing

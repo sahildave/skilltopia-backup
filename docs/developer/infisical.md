@@ -133,7 +133,7 @@ the proxy.
 **Secondary (backend/batch):** mint an OIDC token from a **separate** ingest
 Vercel project (often a partner account) and store it as
 `VERCEL_OIDC_TOKEN_SECONDARY` in Infisical **`dev`**. Batch scripts prefer that
-value and fall back to `VERCEL_OIDC_TOKEN` only if secondary is unset. See
+value; there is no fallback to the app project's `VERCEL_OIDC_TOKEN`. See
 [ingest-oidc.md](./ingest-oidc.md) and [page-cache-ops.md](./page-cache-ops.md).
 
 ### `SKILLS_SH_TOKEN` — skip for daily work

@@ -43,11 +43,11 @@ concurrency:
 env:
   # Vercel project whose OIDC budget batch ingest spends. Not sensitive.
   #
-  # skills.sh meters per (team, project). This currently points at the app
-  # project, so batch ingest shares the app's budget. To restore the split
-  # described in docs/developer/ingest-oidc.md, create a no-op project in this
-  # scope with OIDC Federation enabled and name it here instead.
-  VERCEL_INGEST_SCOPE: sahil-daves-projects
+  # skills.sh meters per (team, project), so batch ingest runs on the partner
+  # (ingest) account and never touches the app account's budget. VERCEL_TOKEN
+  # must belong to this account — `vercel project token` cannot mint OIDC for
+  # a project it does not own. See docs/developer/ingest-oidc.md.
+  VERCEL_INGEST_SCOPE: indhujas-projects
   VERCEL_INGEST_PROJECT: skills-explorer
 
 jobs:

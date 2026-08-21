@@ -47,7 +47,7 @@ skills.sh budget. All of those jobs use the **secondary** token.
    **OIDC Federation**.
 2. Mint a short-lived OIDC token for **that** project and store it in Infisical
    **`dev`** as **`VERCEL_OIDC_TOKEN_SECONDARY`** (preferred). Optional fallback:
-   `VERCEL_OIDC_TOKEN` in Infisical/`env` if secondary is unset.
+   Batch reads `VERCEL_OIDC_TOKEN_SECONDARY` only — there is no fallback.
 3. Do **not** store long-lived skills.sh passwords; refresh the token when it
    expires.
 
@@ -63,9 +63,8 @@ On the GitHub repo, set secrets used by `.github/workflows/ingest.yml`
 | `SUPABASE_URL`                | Same Supabase project the app Backend uses                |
 | `SUPABASE_SERVICE_ROLE_KEY`   | Service role / secret key                                 |
 | `VERCEL_OIDC_TOKEN_SECONDARY` | Preferred: token minted for the **ingest** Vercel project |
-| `VERCEL_OIDC_TOKEN`           | Optional fallback when secondary is unset                 |
 
-Until secondary (or fallback) OIDC plus Supabase secrets are set, the daily cron
+Until secondary OIDC plus Supabase secrets are set, the daily cron
 and `workflow_dispatch` sweep will fail. Local scripts work with Infisical
 `VERCEL_OIDC_TOKEN_SECONDARY` (or `VERCEL_OIDC_TOKEN` fallback).
 
@@ -82,8 +81,8 @@ LLM keys are **not** required for scrape / list / rotate.
 
 All `*:local` / `ingest:daily` / `scrape:sweep` entries use
 `infisical run --env=dev`. Prefer **`VERCEL_OIDC_TOKEN_SECONDARY`** in Infisical
-`dev` (ingest/partner project). If unset, batch falls back to
-`VERCEL_OIDC_TOKEN`.
+`dev` (ingest/partner project). If unset, batch requests go out unauthenticated
+and skills.sh answers `401`.
 
 Progress logs → stderr; JSON summary → stdout.
 
@@ -150,8 +149,8 @@ Pipeline docs: [list-snapshots-pipeline.md](./list-snapshots-pipeline.md),
 
 1. Keep GHA **Ingest** enabled (`cron: 15 6 * * *` UTC = list + rotation).
 2. Refresh **`VERCEL_OIDC_TOKEN_SECONDARY`** (and optional
-   `VERCEL_OIDC_TOKEN` fallback) in GitHub / Infisical when the ingest token
-   expires (app deploy does not need these secrets).
+   in Infisical when the ingest token expires. GitHub Actions mints its own
+   per run from `VERCEL_TOKEN`; the app deploy needs neither.
 3. Re-run a sweep only when growing the corpus or after a large schema/parser
    change.
 4. App users never run these scripts — they read Supabase via

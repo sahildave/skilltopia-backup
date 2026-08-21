@@ -92,14 +92,13 @@ export function classifySkillOrigin(
  * such as scrape, list snapshots, rotation, enrichment, and GHA ingest should
  * use a secondary ingest project token so they cannot consume the app budget.
  *
- * `VERCEL_OIDC_TOKEN` remains as a fallback for older environments, but new
- * batch setups should provide `VERCEL_OIDC_TOKEN_SECONDARY`.
+ * Deliberately no `VERCEL_OIDC_TOKEN` fallback: that variable belongs to the
+ * app project (the Vercel CLI writes it into `.env.local`), so falling back to
+ * it would silently spend the app's budget on batch work — and a stale copy
+ * would mask a missing secondary token instead of failing.
  */
 export function resolveBatchOidcToken(): string | undefined {
-  const secondary = process.env.VERCEL_OIDC_TOKEN_SECONDARY?.trim();
-  if (secondary) return secondary;
-  const fallback = process.env.VERCEL_OIDC_TOKEN?.trim();
-  return fallback || undefined;
+  return process.env.VERCEL_OIDC_TOKEN_SECONDARY?.trim() || undefined;
 }
 
 function authHeaders(): HeadersInit {

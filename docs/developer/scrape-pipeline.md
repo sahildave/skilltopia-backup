@@ -50,9 +50,8 @@ budget. That keeps batch work from starving user-facing catalog traffic.
 
 Uses Infisical **`dev`** (Supabase service role) plus a skills.sh OIDC token.
 Batch jobs prefer `VERCEL_OIDC_TOKEN_SECONDARY` from the ingest Vercel project
-and fall back to `VERCEL_OIDC_TOKEN` only for older environments. Do not use the
-app Backend’s primary OIDC for scrape/enrich batch work; that would share the
-user-facing 600/min budget. See [infisical.md](./infisical.md),
+and nothing else — there is no fallback to the app project's
+`VERCEL_OIDC_TOKEN`, because that would share the user-facing 600/min budget. See [infisical.md](./infisical.md),
 [external-apis.md](./external-apis.md), and [ingest-oidc.md](./ingest-oidc.md).
 
 HTML page fetches are unauthenticated. GitHub skills use

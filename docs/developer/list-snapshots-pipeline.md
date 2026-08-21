@@ -28,8 +28,8 @@ npm run ingest:daily          # list + rotation
 ## Auth / secrets
 
 Same as scrape: Infisical **`dev`** (Supabase service role) + skills.sh OIDC
-(`VERCEL_OIDC_TOKEN`). Prefer an **ingest** Vercel project’s OIDC so you do not
-share the app Backend’s 600/min budget. See [ingest-oidc.md](./ingest-oidc.md),
+(`VERCEL_OIDC_TOKEN_SECONDARY`), minted from the **ingest** Vercel project so
+you do not share the app Backend’s 600/min budget. See [ingest-oidc.md](./ingest-oidc.md),
 [infisical.md](./infisical.md), and [external-apis.md](./external-apis.md).
 
 ```bash

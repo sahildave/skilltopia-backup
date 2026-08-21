@@ -78,11 +78,12 @@ jobs:
           fi
           # Pinned: a CLI release that changes `project token` output would
           # otherwise break the cron silently the next morning.
-          # Parse the last stdout line only, so a banner or update notice from
-          # the CLI cannot break JSON.parse.
+          # The CLI pretty-prints JSON across several lines, so slice from the
+          # first brace to the last: a banner or update notice on stdout cannot
+          # break JSON.parse, and neither can the multi-line formatting.
           token=$(npx --yes vercel@59.3.0 project token "$VERCEL_INGEST_PROJECT" \
             --scope "$VERCEL_INGEST_SCOPE" --token "$VERCEL_TOKEN" --format=json --yes \
-            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const l=s.trim().split("\n").pop();process.stdout.write(JSON.parse(l).token)})')
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=s.slice(s.indexOf("{"),s.lastIndexOf("}")+1);process.stdout.write(JSON.parse(j).token)})')
           echo "::add-mask::$token"
           # Fail here with a clear message rather than mid-pipeline on a 401.
           # Retry transient upstream failures: this runs once a day, so a single

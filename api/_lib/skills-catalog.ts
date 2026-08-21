@@ -106,12 +106,35 @@ function authHeaders(): HeadersInit {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-async function fetchJson(url: string): Promise<unknown> {
-  const response = await fetch(url, {
-    headers: { Accept: 'application/json', ...authHeaders() },
-  });
-  if (!response.ok) throw new Error(`skills.sh request failed: ${response.status}`);
-  return response.json();
+/**
+ * Backoff between upstream retries. Batch ingest runs once a day, so a single
+ * transient 5xx mid-pagination would otherwise cost a whole day of data.
+ */
+const RETRY_DELAYS_MS = [1_000, 3_000];
+
+/** 429 and 5xx are worth another go; 4xx (bad token, bad request) is not. */
+function isRetryable(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+
+export async function fetchJson(url: string): Promise<unknown> {
+  for (let attempt = 0; ; attempt += 1) {
+    const canRetry = attempt < RETRY_DELAYS_MS.length;
+    let status: number | undefined;
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: 'application/json', ...authHeaders() },
+      });
+      if (response.ok) return await response.json();
+      status = response.status;
+    } catch (networkError) {
+      if (!canRetry) throw networkError;
+    }
+    if (status !== undefined && (!canRetry || !isRetryable(status))) {
+      throw new Error(`skills.sh request failed: ${status}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
+  }
 }
 
 export async function fetchLeaderboardPage(

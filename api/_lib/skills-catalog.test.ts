@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchAllLeaderboard,
+  fetchJson,
   fetchLeaderboard,
   fetchLeaderboardPage,
   fetchSkillAudits,
@@ -218,5 +219,76 @@ describe('skills catalog client', () => {
     await expect(fetchAllLeaderboard('hot', 2, fetcher)).resolves.toHaveLength(3);
     expect(urls).toHaveLength(2);
     expect(urls[0]).toContain('view=hot');
+  });
+});
+
+describe('fetchJson retries', () => {
+  function jsonResponse(status: number) {
+    return { ok: status < 400, status, json: async () => ({ data: [] }) } as Response;
+  }
+
+  async function runWithTimers<T>(work: Promise<T>): Promise<T> {
+    const settled = work;
+    await vi.runAllTimersAsync();
+    return settled;
+  }
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('retries a 500 and succeeds', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(500))
+      .mockResolvedValueOnce(jsonResponse(200));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(runWithTimers(fetchJson('https://skills.sh/x'))).resolves.toEqual({ data: [] });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries a 429', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(429))
+      .mockResolvedValueOnce(jsonResponse(200));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(runWithTimers(fetchJson('https://skills.sh/x'))).resolves.toEqual({ data: [] });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry a 401 — a bad token will not fix itself', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(401));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(runWithTimers(fetchJson('https://skills.sh/x'))).rejects.toThrow('401');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives up after the last attempt and reports the status', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(503));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(runWithTimers(fetchJson('https://skills.sh/x'))).rejects.toThrow('503');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('retries a network error', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('ECONNRESET'))
+      .mockResolvedValueOnce(jsonResponse(200));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(runWithTimers(fetchJson('https://skills.sh/x'))).resolves.toEqual({ data: [] });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

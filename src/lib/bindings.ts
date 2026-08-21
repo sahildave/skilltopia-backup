@@ -279,6 +279,32 @@ async copySkillToProviders(uninstallName: string, providerIds: string[]) : Promi
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * Install one skill from `source` into Universal and the given providers.
+ * Spawns no subprocess; a source already in the cache installs without network.
+ * `project_path` selects project scope, `null` installs into the home roots.
+ */
+async installSkill(source: string, skillName: string, providerIds: string[], projectPath: string | null) : Promise<Result<SkillProjectionResult, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("install_skill", { source, skillName, providerIds, projectPath }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Remove one skill from each given target, `universal` included when the
+ * caller lists it. Outcomes are independent: a failing target never stops the
+ * rest, so the Universal cleanup always runs.
+ */
+async uninstallSkill(uninstallName: string, providerIds: string[]) : Promise<Result<SkillProjectionResult, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("uninstall_skill", { uninstallName, providerIds }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -351,6 +377,26 @@ export type SkillDetailData = { skillId: string; pageSnapshot?: SkillPageSnapsho
 export type SkillEnrichment = { skillId: string; contentHash: string; required: SkillEnrichmentRequired; optional: JsonValue; estimatedReadTimeMinutes: number }
 export type SkillEnrichmentRequired = { primaryGoal: string; requires: string[]; estimatedComplexity: string; bestFor: string[] }
 export type SkillPageSnapshot = { summary?: string | null; topics?: string[] | null; repository?: string | null; source?: string | null; stars?: number | null; firstSeen?: string | null; installCommand?: string | null; related?: JsonValue | null; weeklyInstalls?: number[] | null; skillMdPreview?: string | null }
+export type SkillProjectionResult = { results: SkillTargetResult[]; 
+/**
+ * Answered from the acquisition cache, with no network request. Always
+ * false for an uninstall.
+ */
+cacheHit: boolean }
+export type SkillTargetResult = { providerId: string; status: SkillTargetStatus; message?: string | null }
+export type SkillTargetStatus = 
+/**
+ * Linked or copied in.
+ */
+"written" | 
+/**
+ * Already correct — including a provider that shares the Universal root.
+ */
+"already_present" | 
+/**
+ * Something we will not delete is in the way.
+ */
+"conflict" | "removed" | "absent" | "failed"
 export type SkillsCliOutput = { code: number; stdout: string; stderr: string }
 export type SkillsShSkill = { id: string; slug: string; name: string; source: string; installs: number; sourceType: string; installUrl?: string | null; url: string; isDuplicate?: boolean | null }
 export type UniversalScanInfo = { skillsDir: string; skillsDirExists: boolean; skillCount: number }

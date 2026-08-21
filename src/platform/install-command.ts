@@ -63,6 +63,25 @@ export function buildSkillsAddArgs(
   return args;
 }
 
+/**
+ * Targets for the in-process uninstall, `universal` included as an ordinary id.
+ *
+ * An `all` scope with no known provider list means "wherever this landed", so it
+ * fans out over the whole registry — the equivalent of the CLI's `-a '*'`, which
+ * only cost real time back when each id was its own subprocess.
+ */
+export function uninstallTargetIds(options: UninstallOptions): string[] {
+  if (options.agentScope === 'universal') return [UNIVERSAL_PROVIDER_ID];
+  if (options.agentScope !== 'all') return [options.agentScope.providerId];
+
+  const providerIds = options.providerIds
+    ? uninstallProviderIds(options)
+    : providerRegistry.providers
+        .map((provider) => provider.id)
+        .filter((id) => id !== UNIVERSAL_PROVIDER_ID);
+  return [...providerIds, UNIVERSAL_PROVIDER_ID];
+}
+
 /** Args for `npx` — non-interactive skills CLI remove. */
 export function buildSkillsRemoveArgs(skillName: string, options: UninstallOptions): string[] {
   const args = ['--yes', 'skills', 'remove', skillName, '-g', '-y'];

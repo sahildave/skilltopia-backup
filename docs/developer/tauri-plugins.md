@@ -21,16 +21,16 @@ Guide to all Tauri plugins installed in this app, plus built-in features and gui
 
 ### System Integration
 
-| Plugin                | Purpose                                                                        | Frontend Package                       |
-| --------------------- | ------------------------------------------------------------------------------ | -------------------------------------- |
-| **opener**            | Open files/URLs with default apps                                              | `@tauri-apps/plugin-opener`            |
-| **clipboard-manager** | Clipboard read/write                                                           | `@tauri-apps/plugin-clipboard-manager` |
-| **notification**      | System notifications                                                           | `@tauri-apps/plugin-notification`      |
-| **process**           | Exit/restart app                                                               | `@tauri-apps/plugin-process`           |
-| **os**                | OS information                                                                 | `@tauri-apps/plugin-os`                |
-| **shell**             | Registered but unused from JS — skill install spawns via Rust `run_skills_cli` | `@tauri-apps/plugin-shell`             |
-| **global-shortcut**   | System-wide keyboard shortcuts                                                 | None (configured in Rust)              |
-| **updater**           | In-app updates                                                                 | `@tauri-apps/plugin-updater`           |
+| Plugin                | Purpose                                                                                                            | Frontend Package                       |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
+| **opener**            | Open files/URLs with default apps                                                                                  | `@tauri-apps/plugin-opener`            |
+| **clipboard-manager** | Clipboard read/write                                                                                               | `@tauri-apps/plugin-clipboard-manager` |
+| **notification**      | System notifications                                                                                               | `@tauri-apps/plugin-notification`      |
+| **process**           | Exit/restart app                                                                                                   | `@tauri-apps/plugin-process`           |
+| **os**                | OS information                                                                                                     | `@tauri-apps/plugin-os`                |
+| **shell**             | Registered but unused from JS — install/uninstall are in-process Rust; `run_skills_cli` remains for ad-hoc CLI use | `@tauri-apps/plugin-shell`             |
+| **global-shortcut**   | System-wide keyboard shortcuts                                                                                     | None (configured in Rust)              |
+| **updater**           | In-app updates                                                                                                     | `@tauri-apps/plugin-updater`           |
 
 ### Platform-Specific
 

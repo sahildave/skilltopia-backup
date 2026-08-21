@@ -5,16 +5,15 @@ import {
   commands,
   unwrapResult,
   type InstalledScanSnapshot as RustInstalledScanSnapshot,
-  type SkillsCliOutput,
+  type SkillProjectionResult,
 } from '@/lib/tauri-bindings';
 import {
-  buildSkillsAddArgs,
-  buildSkillsRemoveArgs,
   installAgentTargetsFromScan,
   InstallCancelledError,
+  parseSkillInstallTarget,
+  uninstallTargetIds,
 } from './install-command';
 import { skillEntriesFromScan, providersFromScan } from './scan-utils';
-import { PROJECT_AGENTS_PROVIDER_ID, UNIVERSAL_PROVIDER_ID } from './types';
 import type {
   CopyProviderResult,
   CopySkillToProvidersResult,
@@ -81,27 +80,6 @@ async function refreshScan(): Promise<InstalledScanSnapshot> {
   return snapshot;
 }
 
-/**
- * Run the skills CLI through Rust. The webview can't spawn it directly: a
- * Finder-launched bundle inherits a PATH with no Node on it, and the shell scope
- * pins the command name at config time so it can't carry a resolved path.
- */
-async function runSkillsCli(args: string[], cwd?: string): Promise<void> {
-  const output: SkillsCliOutput = unwrapResult(await commands.runSkillsCli(args, cwd ?? null));
-  if (output.code !== 0) {
-    throw new Error(cliFailureDetail(output));
-  }
-}
-
-function cliFailureDetail(output: SkillsCliOutput): string {
-  return (
-    [output.stderr, output.stdout]
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .join('\n') || `exit ${String(output.code)}`
-  );
-}
-
 async function pickProjectDirectory(): Promise<string> {
   const selected = await open({
     directory: true,
@@ -116,35 +94,42 @@ async function pickProjectDirectory(): Promise<string> {
   return selected;
 }
 
+/**
+ * Report the targets that did not work out, after every other target has been
+ * dealt with. Nothing here aborts the fan-out — that was the old loop's bug,
+ * where the first stale provider left every later one installed and skipped the
+ * Universal cleanup entirely.
+ */
+function throwOnUnhandledTargets(result: SkillProjectionResult): void {
+  const unhandled = result.results.filter(
+    (entry) => entry.status === 'failed' || entry.status === 'conflict',
+  );
+  if (unhandled.length === 0) return;
+  throw new Error(
+    unhandled.map((entry) => `${entry.providerId}: ${entry.message ?? entry.status}`).join('\n'),
+  );
+}
+
 async function installSkillToDisk(skill: InstallableSkill, scope: InstallScope): Promise<void> {
-  const cwd = scope === 'project' ? await pickProjectDirectory() : undefined;
+  const projectPath = scope === 'project' ? await pickProjectDirectory() : null;
   const snapshot = await ensureScan();
-  const args = buildSkillsAddArgs(skill, scope, installAgentTargetsFromScan(snapshot));
-  await runSkillsCli(args, cwd);
+  const { source, skillName } = parseSkillInstallTarget(skill.id);
+  throwOnUnhandledTargets(
+    unwrapResult(
+      await commands.installSkill(
+        source,
+        skillName,
+        installAgentTargetsFromScan(snapshot).providerIds,
+        projectPath,
+      ),
+    ),
+  );
 }
 
 async function uninstallSkillFromDisk(skillName: string, options: UninstallOptions): Promise<void> {
-  if (options.agentScope === 'all' && options.providerIds && options.providerIds.length > 0) {
-    const providerIds = options.providerIds.filter(
-      (providerId) =>
-        providerId !== UNIVERSAL_PROVIDER_ID && providerId !== PROJECT_AGENTS_PROVIDER_ID,
-    );
-    for (const providerId of providerIds) {
-      const args = buildSkillsRemoveArgs(skillName, {
-        agentScope: { providerId },
-      });
-      await runSkillsCli(args);
-    }
-    unwrapResult(await commands.deleteUniversalSkill(skillName));
-    return;
-  }
-
-  const args = buildSkillsRemoveArgs(skillName, options);
-  await runSkillsCli(args);
-
-  if (options.agentScope === 'all') {
-    unwrapResult(await commands.deleteUniversalSkill(skillName));
-  }
+  throwOnUnhandledTargets(
+    unwrapResult(await commands.uninstallSkill(skillName, uninstallTargetIds(options))),
+  );
 }
 
 export const platform: PlatformPort = {

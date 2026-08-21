@@ -1,10 +1,13 @@
 //! Tauri commands for installed-skill scanning and reveal.
 
+use tauri::{AppHandle, Manager};
+
 use crate::provider_scan::{
     copy_skill_to_providers as copy_skill_to_providers_impl, delete_universal_skill_dir,
-    list_projects as list_projects_impl, resolve_provider_skills_dir, reveal_skills_dir,
-    scan_installed, scan_project, CopySkillToProvidersResult, InstalledScanSnapshot, ProjectInfo,
-    ScanContext,
+    install_skill as install_skill_impl, list_projects as list_projects_impl,
+    resolve_provider_skills_dir, reveal_skills_dir, scan_installed, scan_project,
+    uninstall_skill as uninstall_skill_impl, CopySkillToProvidersResult, InstalledScanSnapshot,
+    ProjectInfo, ScanContext, SkillProjectionResult,
 };
 
 /// Scan global provider + Universal skill directories into one normalized snapshot.
@@ -71,6 +74,52 @@ pub fn copy_skill_to_providers(
     provider_ids: Vec<String>,
 ) -> Result<CopySkillToProvidersResult, String> {
     copy_skill_to_providers_impl(
+        &uninstall_name,
+        &provider_ids,
+        &ScanContext::from_environment(),
+    )
+}
+
+/// Where acquired skill sources are cached between installs.
+fn skill_cache_root(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+    app.path()
+        .app_cache_dir()
+        .map(|dir| dir.join("skill-sources"))
+        .map_err(|e| format!("Failed to resolve the app cache directory: {e}"))
+}
+
+/// Install one skill from `source` into Universal and the given providers.
+/// Spawns no subprocess; a source already in the cache installs without network.
+/// `project_path` selects project scope, `null` installs into the home roots.
+#[tauri::command]
+#[specta::specta]
+pub fn install_skill(
+    app: AppHandle,
+    source: String,
+    skill_name: String,
+    provider_ids: Vec<String>,
+    project_path: Option<String>,
+) -> Result<SkillProjectionResult, String> {
+    install_skill_impl(
+        &source,
+        &skill_name,
+        &provider_ids,
+        project_path.as_deref().map(std::path::Path::new),
+        &skill_cache_root(&app)?,
+        &ScanContext::from_environment(),
+    )
+}
+
+/// Remove one skill from each given target, `universal` included when the
+/// caller lists it. Outcomes are independent: a failing target never stops the
+/// rest, so the Universal cleanup always runs.
+#[tauri::command]
+#[specta::specta]
+pub fn uninstall_skill(
+    uninstall_name: String,
+    provider_ids: Vec<String>,
+) -> Result<SkillProjectionResult, String> {
+    uninstall_skill_impl(
         &uninstall_name,
         &provider_ids,
         &ScanContext::from_environment(),

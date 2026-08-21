@@ -1,4 +1,10 @@
 //! Copy an installed skill into provider skill folders via directory symlinks.
+//!
+//! A fan-out of a bundle the user already has, so it refuses to delete a
+//! *different* real directory at the destination — that is someone else's
+//! content, not a stale projection of ours. Every other prior entry, including
+//! a dangling link we wrote, is repaired rather than reported as a conflict.
+//! The writes themselves belong to `projection`.
 
 use crate::utils::platform::normalize_path_for_serialization;
 use serde::{Deserialize, Serialize};
@@ -8,6 +14,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use super::paths::{load_registry, resolve_global_skills_dir, universal_skills_dir};
+use super::projection::{
+    project_skill, ForeignDirPolicy, ProjectionMode, ProjectionStatus, ProjectionTarget,
+};
 use super::scan::{classify_skill_entry, validate_skill_dir_name, ScanContext};
 use super::types::UNIVERSAL_PROVIDER_ID;
 
@@ -206,78 +215,30 @@ fn copy_to_one_provider(
         }
     };
 
-    if let Err(message) = fs::create_dir_all(&skills_dir) {
-        return CopyProviderResult {
-            provider_id: provider_id.to_string(),
-            status: CopyProviderStatus::Failed,
-            message: Some(format!(
-                "Failed to create skills directory '{}': {message}",
-                normalize_path_for_serialization(&skills_dir)
-            )),
-        };
-    }
+    let outcome = project_skill(
+        source,
+        uninstall_name,
+        &[ProjectionTarget {
+            id: provider_id.to_string(),
+            root: skills_dir,
+        }],
+        ProjectionMode::Symlink,
+        ForeignDirPolicy::Refuse,
+        None,
+    )
+    .remove(0);
 
-    let target = skills_dir.join(uninstall_name);
-    if fs::symlink_metadata(&target).is_ok() {
-        return CopyProviderResult {
-            provider_id: provider_id.to_string(),
-            status: CopyProviderStatus::Conflict,
-            message: Some(format!(
-                "Path already exists: {}",
-                normalize_path_for_serialization(&target)
-            )),
-        };
-    }
-
-    match create_dir_symlink(source, &target) {
-        Ok(()) => CopyProviderResult {
-            provider_id: provider_id.to_string(),
-            status: CopyProviderStatus::Copied,
-            message: None,
+    CopyProviderResult {
+        provider_id: provider_id.to_string(),
+        status: match outcome.status {
+            // A provider sharing the source's own skills root already has it.
+            ProjectionStatus::Written | ProjectionStatus::AlreadyPresent => {
+                CopyProviderStatus::Copied
+            }
+            ProjectionStatus::Conflict => CopyProviderStatus::Conflict,
+            _ => CopyProviderStatus::Failed,
         },
-        Err(message) => CopyProviderResult {
-            provider_id: provider_id.to_string(),
-            status: CopyProviderStatus::Failed,
-            message: Some(message),
-        },
-    }
-}
-
-fn create_dir_symlink(source: &Path, target: &Path) -> Result<(), String> {
-    let absolute_source = if source.is_absolute() {
-        source.to_path_buf()
-    } else {
-        std::env::current_dir()
-            .map_err(|e| format!("Failed to resolve current directory: {e}"))?
-            .join(source)
-    };
-
-    #[cfg(unix)]
-    {
-        std::os::unix::fs::symlink(&absolute_source, target).map_err(|e| {
-            format!(
-                "Failed to create symlink '{}' → '{}': {e}",
-                normalize_path_for_serialization(target),
-                normalize_path_for_serialization(&absolute_source)
-            )
-        })
-    }
-
-    #[cfg(windows)]
-    {
-        std::os::windows::fs::symlink_dir(&absolute_source, target).map_err(|e| {
-            format!(
-                "Failed to create symlink '{}' → '{}': {e}",
-                normalize_path_for_serialization(target),
-                normalize_path_for_serialization(&absolute_source)
-            )
-        })
-    }
-
-    #[cfg(not(any(unix, windows)))]
-    {
-        let _ = (absolute_source, target);
-        Err("Directory symlinks are not supported on this platform".into())
+        message: outcome.message,
     }
 }
 
@@ -485,6 +446,32 @@ mod tests {
         assert_eq!(
             fs::read_to_string(claude_skills.join("find-skills/SKILL.md")).unwrap(),
             before
+        );
+    }
+
+    /// The other half of the conflict rule: a projection we wrote ourselves and
+    /// whose target has since gone is ours to repair, not a conflict to report.
+    #[test]
+    #[cfg(unix)]
+    fn repairs_a_dangling_link_rather_than_reporting_a_conflict() {
+        use std::os::unix::fs::symlink;
+
+        let home = temp_home("dangling");
+        let universal = home.join(".agents/skills");
+        write_skill(&universal, "find-skills", "find-skills", "Find skills");
+        let claude_skills = home.join(".claude/skills");
+        fs::create_dir_all(&claude_skills).unwrap();
+        fs::create_dir_all(home.join(".claude")).unwrap();
+        symlink(home.join("gone"), claude_skills.join("find-skills")).unwrap();
+
+        let result =
+            copy_skill_to_providers("find-skills", &["claude-code".into()], &scan_ctx(&home))
+                .unwrap();
+
+        assert_eq!(result.results[0].status, CopyProviderStatus::Copied);
+        assert_eq!(
+            fs::read_link(claude_skills.join("find-skills")).unwrap(),
+            universal.join("find-skills")
         );
     }
 

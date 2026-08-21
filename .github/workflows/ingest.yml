@@ -6,11 +6,14 @@ name: Ingest (list + rotation)
 # budget used by real web/desktop users. Manual dispatch supports a one-shot
 # full sweep toward MAX_ENRICHED.
 #
-# Secrets (ingest / secondary project — NOT the app Backend primary OIDC):
+# Secrets:
 #   SUPABASE_URL
 #   SUPABASE_SERVICE_ROLE_KEY
-#   VERCEL_OIDC_TOKEN_SECONDARY  # preferred: partner/ingest Vercel project OIDC
-#   VERCEL_OIDC_TOKEN            # optional fallback when secondary unset
+#   VERCEL_TOKEN  # Vercel API token; used to mint a fresh OIDC token per run
+#
+# Vercel OIDC tokens live 12 hours, so they cannot be stored as static GitHub
+# secrets for a daily cron. The "Mint ingest OIDC token" step below issues a
+# fresh one on every run via `vercel project token`.
 #
 # See docs/developer/ingest-oidc.md
 
@@ -37,6 +40,16 @@ concurrency:
   group: ingest-skills
   cancel-in-progress: false
 
+env:
+  # Vercel project whose OIDC budget batch ingest spends. Not sensitive.
+  #
+  # skills.sh meters per (team, project). This currently points at the app
+  # project, so batch ingest shares the app's budget. To restore the split
+  # described in docs/developer/ingest-oidc.md, create a no-op project in this
+  # scope with OIDC Federation enabled and name it here instead.
+  VERCEL_INGEST_SCOPE: sahil-daves-projects
+  VERCEL_INGEST_PROJECT: skills-explorer
+
 jobs:
   ingest:
     name: List + rotate (or sweep)
@@ -54,13 +67,34 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Mint ingest OIDC token
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${VERCEL_TOKEN:-}" ]; then
+            echo "::error::VERCEL_TOKEN secret is not set; cannot mint an ingest OIDC token."
+            exit 1
+          fi
+          token=$(npx --yes vercel@latest project token "$VERCEL_INGEST_PROJECT" \
+            --scope "$VERCEL_INGEST_SCOPE" --token "$VERCEL_TOKEN" --format=json --yes \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>process.stdout.write(JSON.parse(s).token))')
+          echo "::add-mask::$token"
+          # Fail here with a clear message rather than mid-pipeline on a 401.
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H 'Accept: application/json' -H "Authorization: Bearer $token" \
+            'https://skills.sh/api/v1/skills?view=all-time&page=0&per_page=1')
+          if [ "$code" != "200" ]; then
+            echo "::error::skills.sh rejected the freshly minted OIDC token (HTTP $code)."
+            exit 1
+          fi
+          echo "VERCEL_OIDC_TOKEN_SECONDARY=$token" >> "$GITHUB_ENV"
+
       - name: Daily list + rotation
         if: ${{ github.event_name == 'schedule' || inputs.mode == 'daily' }}
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          VERCEL_OIDC_TOKEN_SECONDARY: ${{ secrets.VERCEL_OIDC_TOKEN_SECONDARY }}
-          VERCEL_OIDC_TOKEN: ${{ secrets.VERCEL_OIDC_TOKEN }}
         run: node --import tsx/esm scripts/ingest-daily.mjs
 
       - name: Full scrape sweep
@@ -68,8 +102,6 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          VERCEL_OIDC_TOKEN_SECONDARY: ${{ secrets.VERCEL_OIDC_TOKEN_SECONDARY }}
-          VERCEL_OIDC_TOKEN: ${{ secrets.VERCEL_OIDC_TOKEN }}
           SCRAPE_SWEEP_MAX: ${{ inputs.max_enriched }}
           THROTTLE_MS: '250'
           SCRAPE_SKIP_CACHED: '1'

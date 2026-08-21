@@ -91,3 +91,54 @@ export const agents = {
     expect(regenerated.source.license).toBe('MIT');
   });
 });
+
+describe('derived *Home aliases', () => {
+  // Upstream declares one `const <x>Home = ...` per agent it onboards. The
+  // generator used to hardcode each name, so every new upstream agent broke the
+  // weekly sync workflow (grok did, from 2026-07-27 onward).
+  it('derives an envHome base for a *Home const the generator has never seen', () => {
+    const source = `
+const grokHome = process.env.GROK_HOME?.trim() || join(home, '.grok');
+
+export const agents = {
+  grok: {
+    name: 'grok',
+    displayName: 'Grok',
+    skillsDir: '.agents/skills',
+    globalSkillsDir: join(grokHome, 'skills'),
+    detectInstalled: async () => {
+      return existsSync(grokHome);
+    },
+  },
+};
+`;
+    const [provider] = parseAgentsSource(source) as { globalSkillsDir: unknown }[];
+    expect(provider?.globalSkillsDir).toEqual({
+      type: 'path',
+      path: { base: 'envHome', env: 'GROK_HOME', defaultPath: '.grok', path: 'skills' },
+    });
+  });
+
+  it('derives an optional env base for a bare process.env const', () => {
+    const source = `
+const zedAppDataHome = process.env.APPDATA?.trim();
+
+export const agents = {
+  zed: {
+    name: 'zed',
+    displayName: 'Zed',
+    skillsDir: '.agents/skills',
+    globalSkillsDir: join(zedAppDataHome, 'Zed/skills'),
+    detectInstalled: async () => {
+      return existsSync(join(home, '.zed'));
+    },
+  },
+};
+`;
+    const [provider] = parseAgentsSource(source) as { globalSkillsDir: unknown }[];
+    expect(provider?.globalSkillsDir).toEqual({
+      type: 'path',
+      path: { base: 'env', env: 'APPDATA', path: 'Zed/skills', optional: true },
+    });
+  });
+});

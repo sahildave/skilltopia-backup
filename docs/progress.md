@@ -6,6 +6,6 @@
 | 11 | Read installed_plugins.json and resolve active plugin installs | passed | - |
 | 12 | Enumerate the skills shipped by one plugin install path | passed | - |
 | 13 | Merge plugin skills into the installed scan snapshot | passed | 10, 11, 12 |
-| 14 | Enforce plugin skills as read-only, and show their origin | running | 13 |
+| 14 | Enforce plugin skills as read-only, and show their origin | passed | 13 |
 | 15 | Cache the installed scan and invalidate on filesystem change | passed | 13 |
 

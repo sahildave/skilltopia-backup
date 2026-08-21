@@ -119,36 +119,33 @@ where the OIDC token comes from: CI mints a fresh one per run, locally you
 supply one from Infisical `dev`. Everything else — same script, same Supabase,
 same upstream — so a local run writes to the **same** tables as the cron.
 
-#### Refreshing the local ingest token
+#### The local token is minted for you
 
-Local batch runs read `VERCEL_OIDC_TOKEN_SECONDARY` from Infisical `dev`.
-Vercel OIDC tokens last **12 hours**, so an untouched one is always stale.
-The symptom is `skills.sh request failed: 401` on the first list page.
+Local batch scripts route through `scripts/with-ingest-oidc.mjs`, which mints a
+fresh ingest OIDC token and passes it to the real script as
+`VERCEL_OIDC_TOKEN_SECONDARY`. Same approach as CI, same pinned CLI version, so
+local and CI cannot drift apart. Nothing stores the 12-hour token.
 
-Mint a new one from the ingest project (needs the partner account's
-`VERCEL_TOKEN`, or `vercel login` as that account):
+The one prerequisite is **`VERCEL_TOKEN`** — the _ingest account's_ Vercel API
+token — in Infisical `dev`:
 
 ```bash
-infisical secrets set VERCEL_OIDC_TOKEN_SECONDARY="$(vercel project token skills-explorer \
-  --scope indhujas-projects --token "$VERCEL_TOKEN" --format=json --yes \
-  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=s.slice(s.indexOf("{"),s.lastIndexOf("}")+1);process.stdout.write(JSON.parse(j).token)})')" --env=dev
+infisical secrets set VERCEL_TOKEN=<ingest account token> --env=dev
 ```
 
-The brace-slice parse is not decoration: `vercel project token` pretty-prints
-JSON across several lines, so a naive last-line parse gets `}` and throws.
+Do **not** store `VERCEL_OIDC_TOKEN_SECONDARY` in Infisical. A 12-hour token in
+a secrets store is stale by definition and produces a confusing 401 later.
 
 #### Reading a token instead of guessing
 
-Decoding the payload tells you which account issued it and when it dies,
-which beats re-minting blind:
+To check which account issued a token and when it dies, decode the payload:
 
 ```bash
-infisical secrets get VERCEL_OIDC_TOKEN_SECONDARY --env=dev --plain --silent \
-  | cut -d. -f2 | base64 -d 2>/dev/null | python3 -m json.tool | grep -E '"(iss|exp)"'
+node scripts/with-ingest-oidc.mjs node -e 'const p=process.env.VERCEL_OIDC_TOKEN_SECONDARY.split(".")[1];console.log(JSON.parse(Buffer.from(p,"base64url")))'
 ```
 
-`iss` must end in the **ingest** account (`.../indhujas-projects`). If it names
-the app account, batch work is spending the user-facing 600/min budget.
+`iss` must end in the **ingest** account. If it names the app account, batch
+work is spending the user-facing 600/min budget.
 
 #### When a local run fails, it is usually one of three things
 

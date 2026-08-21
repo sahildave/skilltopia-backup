@@ -227,10 +227,14 @@ describe('fetchJson retries', () => {
     return { ok: status < 400, status, json: async () => ({ data: [] }) } as Response;
   }
 
-  async function runWithTimers<T>(work: Promise<T>): Promise<T> {
-    const settled = work;
+  /**
+   * Attach the assertion before advancing timers. Awaiting the timers first
+   * leaves the rejection unhandled, which vitest reports as a run-level error
+   * even though every test passes.
+   */
+  async function settle<T>(assertion: Promise<T>): Promise<T> {
     await vi.runAllTimersAsync();
-    return settled;
+    return assertion;
   }
 
   afterEach(() => {
@@ -246,7 +250,7 @@ describe('fetchJson retries', () => {
       .mockResolvedValueOnce(jsonResponse(200));
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(runWithTimers(fetchJson('https://skills.sh/x'))).resolves.toEqual({ data: [] });
+    await settle(expect(fetchJson('https://skills.sh/x')).resolves.toEqual({ data: [] }));
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
@@ -258,7 +262,7 @@ describe('fetchJson retries', () => {
       .mockResolvedValueOnce(jsonResponse(200));
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(runWithTimers(fetchJson('https://skills.sh/x'))).resolves.toEqual({ data: [] });
+    await settle(expect(fetchJson('https://skills.sh/x')).resolves.toEqual({ data: [] }));
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
@@ -267,7 +271,7 @@ describe('fetchJson retries', () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(401));
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(runWithTimers(fetchJson('https://skills.sh/x'))).rejects.toThrow('401');
+    await settle(expect(fetchJson('https://skills.sh/x')).rejects.toThrow('401'));
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -276,7 +280,7 @@ describe('fetchJson retries', () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(503));
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(runWithTimers(fetchJson('https://skills.sh/x'))).rejects.toThrow('503');
+    await settle(expect(fetchJson('https://skills.sh/x')).rejects.toThrow('503'));
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
@@ -288,7 +292,7 @@ describe('fetchJson retries', () => {
       .mockResolvedValueOnce(jsonResponse(200));
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(runWithTimers(fetchJson('https://skills.sh/x'))).resolves.toEqual({ data: [] });
+    await settle(expect(fetchJson('https://skills.sh/x')).resolves.toEqual({ data: [] }));
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

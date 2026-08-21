@@ -21,6 +21,7 @@ export default defineConfig({
     include: [
       'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
       'api/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts}',
+      'scripts/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts}',
     ],
     exclude: [
       'node_modules',

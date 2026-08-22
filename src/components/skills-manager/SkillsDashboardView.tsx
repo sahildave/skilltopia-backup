@@ -156,7 +156,13 @@ function SkillsResults({
               scannedSkill={findScannedSkillForCatalog(skill, scannedByKey)}
             />
           ) : (
-            <CatalogSkillListRow key={skill.id} skill={skill} installedKeys={installedKeys} />
+            <CatalogSkillListRow
+              key={skill.id}
+              skill={skill}
+              installedKeys={installedKeys}
+              snapshot={snapshot}
+              scannedSkill={findScannedSkillForCatalog(skill, scannedByKey)}
+            />
           ),
         )}
       </div>

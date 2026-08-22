@@ -17,7 +17,7 @@ pub struct SkillsCliOutput {
 
 /// Run `npx <args>` with the resolved Node runtime on the child's `PATH`.
 /// Returns the exit code and output; a non-zero exit is the caller's to interpret.
-#[tauri::command]
+#[tauri::command(async)]
 #[specta::specta]
 pub fn run_skills_cli(args: Vec<String>, cwd: Option<String>) -> Result<SkillsCliOutput, String> {
     let lookup = NodeLookup::from_environment();

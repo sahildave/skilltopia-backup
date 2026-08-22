@@ -201,6 +201,8 @@ async fetchSkillAudits(skillId: string) : Promise<Result<SkillAuditsData, string
 },
 /**
  * Scan global provider + Universal skill directories into one normalized snapshot.
+ * Served from cache while a stat-only fingerprint of those directories is
+ * unchanged, so the Installed tab's rescan-per-activation is not a full walk.
  */
 async scanInstalledSkills() : Promise<Result<InstalledScanSnapshot, string>> {
     try {

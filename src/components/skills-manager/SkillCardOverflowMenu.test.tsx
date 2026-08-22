@@ -1,4 +1,4 @@
-import { render, screen } from '@/test/test-utils';
+import { render, screen, waitFor } from '@/test/test-utils';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MOCK_INSTALLED_SCAN } from '@/platform/fixtures';
@@ -40,6 +40,7 @@ describe('SkillCardOverflowMenu', () => {
   beforeEach(() => {
     platformMock.hasLocalLibrary = true;
     platformMock.copiesInstallCommand = false;
+    platformMock.uninstall.mockClear();
     platformMock.uninstall.mockResolvedValue({ results: [] });
   });
 
@@ -58,8 +59,41 @@ describe('SkillCardOverflowMenu', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /skill actions/i }));
+    await user.click(screen.getByRole('button', { name: /^Installed$/ }));
     expect(screen.getByRole('menuitem', { name: /copy to other providers/i })).toBeInTheDocument();
+  });
+
+  it('swaps the pill for a busy state and closes the menu while uninstalling', async () => {
+    const user = userEvent.setup();
+    let settle: (() => void) | undefined;
+    platformMock.uninstall.mockReturnValue(
+      new Promise((resolve) => {
+        settle = () => resolve({ results: [] });
+      }),
+    );
+    const skill = MOCK_INSTALLED_SCAN.skills.find((s) => s.name === 'find-skills');
+    expect(skill).toBeDefined();
+    if (!skill) return;
+
+    render(
+      <SkillCardOverflowMenu
+        skill={skill}
+        snapshot={MOCK_INSTALLED_SCAN}
+        providerFilter={ALL_AGENTS_FILTER_ID}
+        reduceMotion
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /^Installed$/ }));
+    await user.click(screen.getByRole('menuitem', { name: /^uninstall$/i }));
+    await user.click(screen.getByRole('button', { name: /yes, uninstall/i }));
+
+    expect(await screen.findByRole('button', { name: /uninstalling/i })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /^Installed$/ })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument());
+
+    settle?.();
+    expect(await screen.findByRole('button', { name: /^Installed$/ })).toBeInTheDocument();
   });
 
   it('hides Copy to other providers when the platform has no local library', async () => {
@@ -78,7 +112,7 @@ describe('SkillCardOverflowMenu', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /skill actions/i }));
+    await user.click(screen.getByRole('button', { name: /^Installed$/ }));
     expect(
       screen.queryByRole('menuitem', { name: /copy to other providers/i }),
     ).not.toBeInTheDocument();
@@ -99,7 +133,7 @@ describe('SkillCardOverflowMenu', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: /skill actions/i }));
+    await user.click(screen.getByRole('button', { name: /^Installed$/ }));
     const managed = screen.getByRole('menuitem', { name: /managed by ponytail@official/i });
     expect(managed).toBeDisabled();
     expect(screen.queryByRole('menuitem', { name: /^uninstall$/i })).not.toBeInTheDocument();

@@ -84,8 +84,8 @@ describe('SkillsLibraryView (local / mock)', () => {
 
     expect(screen.getByRole('heading', { name: 'Installed' })).toBeInTheDocument();
     expect(screen.getByText('find-skills')).toBeInTheDocument();
-    expect(screen.getAllByText('Universal').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('1 Provider').length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText('Universal').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('+1').length).toBeGreaterThan(0);
     expect(screen.queryByText('Claude Code')).not.toBeInTheDocument();
 
     const findSkillsCard = screen.getByText('find-skills').closest('[data-slot="card"]');
@@ -227,7 +227,7 @@ describe('SkillsLibraryView (local / mock)', () => {
       .closest('[data-slot="card"]') as HTMLElement;
     expect(findSkillsCard).toBeTruthy();
 
-    await user.click(within(findSkillsCard).getByRole('button', { name: /skill actions/i }));
+    await user.click(within(findSkillsCard).getByRole('button', { name: /^Installed$/ }));
     await user.click(screen.getByRole('menuitem', { name: /uninstall/i }));
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /yes, uninstall/i })).toBeInTheDocument();
@@ -254,7 +254,7 @@ describe('SkillsLibraryView (local / mock)', () => {
       .getByText('find-skills')
       .closest('[data-slot="card"]') as HTMLElement;
 
-    await user.click(within(findSkillsCard).getByRole('button', { name: /skill actions/i }));
+    await user.click(within(findSkillsCard).getByRole('button', { name: /^Installed$/ }));
     await user.click(screen.getByRole('menuitem', { name: /copy to other providers/i }));
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -281,9 +281,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     const listRow = screen.getByText('find-skills').closest('[data-slot="skill-list-row"]');
     expect(listRow).toBeTruthy();
 
-    await user.click(
-      within(listRow as HTMLElement).getByRole('button', { name: /skill actions/i }),
-    );
+    await user.click(within(listRow as HTMLElement).getByRole('button', { name: /^Installed$/ }));
     await user.click(screen.getByRole('menuitem', { name: /copy to other providers/i }));
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -294,7 +292,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     scanMock.hasLocalLibrary = false;
     render(<SkillsLibraryView />);
 
-    expect(screen.queryByRole('button', { name: /skill actions/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Installed$/ })).not.toBeInTheDocument();
     expect(
       screen.queryByRole('menuitem', { name: /copy to other providers/i }),
     ).not.toBeInTheDocument();
@@ -308,7 +306,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     const codeReviewCard = screen
       .getByText('code-review')
       .closest('[data-slot="card"]') as HTMLElement;
-    await user.click(within(codeReviewCard).getByRole('button', { name: /skill actions/i }));
+    await user.click(within(codeReviewCard).getByRole('button', { name: /^Installed$/ }));
     await user.click(screen.getByRole('menuitem', { name: /uninstall/i }));
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /yes, uninstall/i })).toBeInTheDocument();
@@ -341,7 +339,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     render(<SkillsLibraryView />);
 
     const skillCard = screen.getByText('Find Skills').closest('[data-slot="card"]') as HTMLElement;
-    await user.click(within(skillCard).getByRole('button', { name: /skill actions/i }));
+    await user.click(within(skillCard).getByRole('button', { name: /^Installed$/ }));
     await user.click(screen.getByRole('menuitem', { name: /uninstall/i }));
     await user.click(screen.getByRole('button', { name: /yes, uninstall/i }));
 

@@ -24,8 +24,8 @@ describe('SkillProviderBadges', () => {
 
     render(<SkillProviderBadges skill={skill} snapshot={MOCK_INSTALLED_SCAN} />);
 
-    expect(screen.getByText('Universal')).toBeInTheDocument();
-    const providersBadge = screen.getByText('1 Provider');
+    expect(screen.getByLabelText('Universal')).toBeInTheDocument();
+    const providersBadge = screen.getByText('+1');
     expect(providersBadge).toHaveAttribute('aria-label', '1 Provider: Claude Code');
 
     await user.hover(providersBadge);
@@ -39,8 +39,8 @@ describe('SkillProviderBadges', () => {
 
     render(<SkillProviderBadges skill={skill} snapshot={MOCK_UNIVERSAL_ONLY_SCAN} />);
 
-    expect(screen.getByText('Universal')).toBeInTheDocument();
-    expect(screen.queryByText(/Provider/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Universal')).toBeInTheDocument();
+    expect(screen.queryByText(/^\+\d+$/)).not.toBeInTheDocument();
   });
 
   it('marks a plugin-delivered skill with its own badge, naming the plugin and version', async () => {
@@ -50,7 +50,6 @@ describe('SkillProviderBadges', () => {
     render(<SkillProviderBadges skill={skill} snapshot={MOCK_INSTALLED_SCAN} />);
 
     const badge = screen.getByLabelText('Shipped by the Claude plugin ponytail@official');
-    expect(badge).toHaveTextContent('ponytail');
 
     await user.hover(badge);
     expect(await screen.findByRole('tooltip')).toHaveTextContent('1.2.0');

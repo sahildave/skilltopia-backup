@@ -13,7 +13,7 @@ import { panelRowSlideVariants } from '@/lib/animation';
 import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { platform } from '@platform';
-import { Copy, MoreHorizontal, Puzzle, Trash2 } from 'lucide-react';
+import { Check, ChevronDown, Copy, Puzzle, Trash2 } from 'lucide-react';
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +27,7 @@ import {
   type ProviderFilterId,
 } from './installed-skills-model';
 import { isNodeRuntimeMissing, isPermissionError, isPluginManaged } from './library-errors';
+import { SKILL_ACTION_PILL_CLASS } from './skill-chip';
 import { summarizeTargetResults } from './target-results';
 export function SkillCardOverflowMenu({
   skill,
@@ -62,6 +63,8 @@ export function SkillCardOverflowMenu({
   const { ref } = useActionMenuDismiss({ open, onOpenChange: closeMenu });
 
   const handleUninstall = async () => {
+    setOpen(false);
+    setConfirming(false);
     setUninstalling(true);
     try {
       const outcome = summarizeTargetResults(
@@ -96,8 +99,6 @@ export function SkillCardOverflowMenu({
         toast.error(t('skills.installed.uninstallFailed', { name: skill.name }), issues);
       }
 
-      setOpen(false);
-      setConfirming(false);
       await rescan();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -134,25 +135,29 @@ export function SkillCardOverflowMenu({
   return (
     <>
       <ActionMenuRoot ref={ref} open={open}>
-        <ActionMenuTrigger
-          aria-label={t('skills.installed.overflowMenu')}
-          aria-expanded={open}
-          disabled={uninstalling}
-          onClick={() => {
-            if (uninstalling) {
-              return;
-            }
-            setOpen((value) => !value);
-          }}
-        >
-          <MoreHorizontal aria-hidden />
-        </ActionMenuTrigger>
+        {uninstalling ? (
+          <Button variant="outline" size="sm" className={SKILL_ACTION_PILL_CLASS} disabled>
+            {t('skills.installed.uninstalling')}
+            <Spinner aria-hidden />
+          </Button>
+        ) : (
+          <ActionMenuTrigger
+            variant="outline"
+            size="sm"
+            className={`${SKILL_ACTION_PILL_CLASS} text-teal-700 dark:text-teal-400`}
+            aria-expanded={open}
+            onClick={() => setOpen((value) => !value)}
+          >
+            <Check aria-hidden />
+            {t('skills.installed.cardInstalled')}
+            <ChevronDown aria-hidden />
+          </ActionMenuTrigger>
+        )}
         <ActionMenuPanel open={open}>
           <LayoutGroup>
             <ActionMenuContent>
               {canCopy ? (
                 <ActionMenuItem
-                  disabled={uninstalling}
                   icon={<Copy aria-hidden />}
                   label={t('skills.installed.copyToProviders')}
                   onClick={() => {
@@ -188,7 +193,6 @@ export function SkillCardOverflowMenu({
                           icon={<Trash2 aria-hidden />}
                           label={t('skills.installed.uninstall')}
                           destructive
-                          disabled={uninstalling}
                           onClick={() => setConfirming(true)}
                         />
                       </motion.div>
@@ -204,23 +208,17 @@ export function SkillCardOverflowMenu({
                       >
                         <Button
                           variant="destructive"
-                          disabled={uninstalling}
                           size="sm"
                           aria-label={t('skills.installed.uninstallYes')}
                           onClick={() => void handleUninstall()}
-                          className="flex-1 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="flex-1"
                         >
-                          {uninstalling ? (
-                            <Spinner aria-hidden />
-                          ) : (
-                            t('skills.installed.uninstallYes')
-                          )}
+                          {t('skills.installed.uninstallYes')}
                         </Button>
 
                         <Button
                           variant="secondary"
                           size="sm"
-                          disabled={uninstalling}
                           onClick={() => setConfirming(false)}
                           className="flex-1"
                         >

@@ -23,12 +23,12 @@ describe('SkillCard', () => {
     expect(card).toHaveClass('ring-1');
 
     expect(screen.getByText('Find and install agent skills')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Skill actions' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Installed' })).toBeInTheDocument();
 
     const footer = card?.querySelector('[data-slot="card-footer"]');
     expect(footer).toBeTruthy();
-    expect(footer).toContainElement(screen.getByText('Universal'));
-    expect(footer).toContainElement(screen.getByText('1 Provider'));
+    expect(footer).toContainElement(screen.getByLabelText('Universal'));
+    expect(footer).toContainElement(screen.getByText('+1'));
 
     expect(
       screen.queryByRole('button', { name: /Open find-skills on skills\.sh/i }),

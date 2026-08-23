@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { useMorphingDialogClose } from '@/components/ui/morphing-dialog';
 import { Spinner } from '@/components/ui/spinner';
 
 import {
@@ -44,11 +45,19 @@ export function SkillCardOverflowMenu({
   const [open, setOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
-  const [uninstalling, setUninstalling] = useState(false);
   const [copyOpen, setCopyOpen] = useState(false);
+  // Shared, not local: this skill's card and the detail dialog opened from it
+  // each render their own menu, and the dialog closes while the uninstall is
+  // still running — the card behind it has to pick the pending state up.
+  const uninstalling = useInstalledScanStore((state) => state.uninstalling.has(skill.name));
   const copiesCommand = platform.copiesInstallCommand;
   const canCopy = platform.hasLocalLibrary;
   const rescan = useInstalledScanStore((state) => state.rescan);
+  // A no-op on a plain card. Inside the detail dialog it must run before the
+  // rescan: the dialog morphs from this skill's own card, so mutating that card
+  // under an open dialog makes motion hand the morph back to it — the dialog
+  // goes invisible while still open, leaving its backdrop over the whole app.
+  const closeDetailDialog = useMorphingDialogClose();
   const rowVariants = panelRowSlideVariants(Boolean(reduceMotion));
   // The plugin cache is read-only, so Rust refuses this uninstall. Don't offer
   // an action that can only fail — say who owns the skill instead.
@@ -65,7 +74,7 @@ export function SkillCardOverflowMenu({
   const handleUninstall = async () => {
     setOpen(false);
     setConfirming(false);
-    setUninstalling(true);
+    useInstalledScanStore.getState().beginUninstall(skill.name);
     try {
       const outcome = summarizeTargetResults(
         await platform.uninstall(skill.uninstallName, {
@@ -99,6 +108,7 @@ export function SkillCardOverflowMenu({
         toast.error(t('skills.installed.uninstallFailed', { name: skill.name }), issues);
       }
 
+      closeDetailDialog();
       await rescan();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -128,7 +138,7 @@ export function SkillCardOverflowMenu({
         );
       }
     } finally {
-      setUninstalling(false);
+      useInstalledScanStore.getState().endUninstall(skill.name);
     }
   };
 

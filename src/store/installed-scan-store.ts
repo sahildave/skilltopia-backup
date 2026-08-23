@@ -7,6 +7,22 @@ interface InstalledScanState {
   snapshot: InstalledScanSnapshot | null;
   error: string | null;
   refreshing: boolean;
+  /**
+   * Names of skills with an uninstall in flight. Shared, because one skill is
+   * on screen in more than one place at once — its card and the detail dialog
+   * opened from it — and the dialog closes mid-uninstall.
+   */
+  uninstalling: ReadonlySet<string>;
+  beginUninstall: (skillName: string) => void;
+  endUninstall: (skillName: string) => void;
+  /**
+   * Project-scoped installs from this session, keyed by the folder name the
+   * skill was written as. The snapshot cannot carry them: it only covers the
+   * home roots, and the project folder is picked per install.
+   */
+  projectInstalls: Record<string, string>;
+  /** Remember that `installName` was installed into `projectPath`. */
+  recordProjectInstall: (installName: string, projectPath: string) => void;
   /** Replace the platform cache and update React state. Keeps prior snapshot visible. */
   rescan: () => Promise<void>;
   /** Load cached snapshot once without forcing a filesystem rescan. */
@@ -21,6 +37,36 @@ export const useInstalledScanStore = create<InstalledScanState>()(
       snapshot: null,
       error: null,
       refreshing: false,
+      uninstalling: new Set<string>(),
+
+      beginUninstall: (skillName) =>
+        set(
+          (state) => ({ uninstalling: new Set(state.uninstalling).add(skillName) }),
+          undefined,
+          'uninstall/start',
+        ),
+
+      endUninstall: (skillName) =>
+        set(
+          (state) => {
+            const next = new Set(state.uninstalling);
+            next.delete(skillName);
+            return { uninstalling: next };
+          },
+          undefined,
+          'uninstall/end',
+        ),
+      projectInstalls: {},
+
+      recordProjectInstall: (installName, projectPath) => {
+        set(
+          (state) => ({
+            projectInstalls: { ...state.projectInstalls, [installName]: projectPath },
+          }),
+          undefined,
+          'recordProjectInstall',
+        );
+      },
 
       hydrate: async () => {
         if (!platform.hasLocalLibrary) return;

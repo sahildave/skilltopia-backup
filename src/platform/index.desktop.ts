@@ -118,7 +118,7 @@ async function installSkillToDisk(
   const projectPath = scope === 'project' ? await pickProjectDirectory() : null;
   const snapshot = await ensureScan();
   const { source, skillName } = parseSkillInstallTarget(skill.id);
-  return normalizeProjection(
+  const result = normalizeProjection(
     unwrapResult(
       await commands.installSkill(
         source,
@@ -128,6 +128,7 @@ async function installSkillToDisk(
       ),
     ),
   );
+  return projectPath ? { ...result, projectPath } : result;
 }
 
 async function uninstallSkillFromDisk(

@@ -32,7 +32,12 @@ async function renderOpenDetail(skill: (typeof MOCK_LEADERBOARD)[number]) {
       <MorphingDialogTrigger>Open skill</MorphingDialogTrigger>
       <MorphingDialogContainer>
         <MorphingDialogContent>
-          <SkillDetailBody skill={skill} />
+          <SkillDetailBody
+            skill={skill}
+            installedKeys={new Set()}
+            snapshot={null}
+            scannedSkill={undefined}
+          />
         </MorphingDialogContent>
       </MorphingDialogContainer>
     </MorphingDialog>,

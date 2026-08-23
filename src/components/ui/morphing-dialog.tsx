@@ -1,8 +1,9 @@
 import { Slot } from '@radix-ui/react-slot';
 import { XIcon } from 'lucide-react';
-import { AnimatePresence, MotionConfig, motion, type Transition, type Variant } from 'motion/react';
+import { MotionConfig, motion, type Transition, type Variant } from 'motion/react';
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useId,
@@ -23,6 +24,19 @@ import { cn } from '@/lib/utils';
 
 const MotionSlot = motion.create(Slot);
 
+/** Own tween, so the backdrop never inherits the dialog's morph timing. */
+const BACKDROP_FADE = { duration: 0.2, ease: 'easeOut' } as const;
+
+/**
+ * The shell is a projection node, so its whole subtree inherits the card→dialog
+ * scale — and only descendants that are projection nodes themselves get that
+ * scale corrected. Rather than make every section a projection node, the body
+ * fades in over the tail of the morph: the distorted frames are never on
+ * screen, and the shell (a rounded rectangle, which scales cleanly) carries
+ * the motion on its own.
+ */
+const CONTENT_FADE = { duration: 0.18, delay: 0.1, ease: 'easeOut' } as const;
+
 interface MorphingDialogContextValue {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
@@ -32,12 +46,29 @@ interface MorphingDialogContextValue {
 
 const MorphingDialogContext = createContext<MorphingDialogContextValue | null>(null);
 
+/**
+ * Whether the subtree is the dialog body rather than the trigger. Title and
+ * subtitle are rendered on both surfaces, so the title's `aria-labelledby`
+ * target has to be claimed by exactly one of them — the dialog's.
+ */
+const MorphingDialogBodyContext = createContext(false);
+
 function useMorphingDialog() {
   const context = useContext(MorphingDialogContext);
   if (!context) {
     throw new Error('useMorphingDialog must be used within a MorphingDialog');
   }
   return context;
+}
+
+/**
+ * Closes the enclosing morphing dialog. Returns a no-op outside one, so shared
+ * card actions can use it whether or not they're rendered inside a dialog.
+ */
+function useMorphingDialogClose() {
+  const context = useContext(MorphingDialogContext);
+  const setIsOpen = context?.setIsOpen;
+  return useCallback(() => setIsOpen?.(false), [setIsOpen]);
 }
 
 interface MorphingDialogProps {
@@ -142,7 +173,6 @@ function MorphingDialogContent({ children, className, style }: MorphingDialogCon
 
   useEffect(() => {
     if (!isOpen) {
-      document.body.classList.remove('overflow-hidden');
       triggerRef.current?.focus();
       return;
     }
@@ -153,6 +183,8 @@ function MorphingDialogContent({ children, className, style }: MorphingDialogCon
     );
     focusable?.[0]?.focus();
 
+    // Runs on close *and* on unmount, so a trigger that disappears while the
+    // dialog is open (its row deleted underneath it) can't strand the lock.
     return () => {
       document.body.classList.remove('overflow-hidden');
     };
@@ -173,7 +205,11 @@ function MorphingDialogContent({ children, className, style }: MorphingDialogCon
       aria-labelledby={`morphing-dialog-title-${uniqueId}`}
       id={`morphing-dialog-content-${uniqueId}`}
     >
-      {children}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={CONTENT_FADE}>
+        <MorphingDialogBodyContext.Provider value={true}>
+          {children}
+        </MorphingDialogBodyContext.Provider>
+      </motion.div>
     </motion.div>
   );
 }
@@ -192,20 +228,23 @@ function MorphingDialogContainer({ children }: MorphingDialogContainerProps) {
 
   if (!mounted) return null;
 
+  // Both layers cover the whole app, so neither may outlive `isOpen`. An
+  // AnimatePresence exit here could stall mid-flight — the morph re-runs
+  // whenever the trigger's own layout shifts under an open dialog — and left
+  // the backdrop stranded at full opacity with nothing able to remove it. Fade
+  // in on open, drop on close: removal is React state, never an animation.
   return createPortal(
     <>
-      <AnimatePresence initial={false}>
-        {isOpen ? (
-          <motion.div
-            key={`backdrop-${uniqueId}`}
-            className="fixed inset-0 z-50 rounded-[min(var(--radius-4xl),24px)]  bg-black/50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            aria-hidden="true"
-          />
-        ) : null}
-      </AnimatePresence>
+      {isOpen ? (
+        <motion.div
+          key={`backdrop-${uniqueId}`}
+          className="pointer-events-none fixed inset-0 z-50 bg-black/50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={BACKDROP_FADE}
+          aria-hidden="true"
+        />
+      ) : null}
       {isOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">{children}</div>
       ) : null}
@@ -220,21 +259,27 @@ interface MorphingDialogTitleProps {
   style?: CSSProperties;
 }
 
+/**
+ * Deliberately *not* a shared layout target. The card and dialog titles differ in
+ * font size and truncation, so morphing between them meant stretching glyphs by
+ * the (anisotropic) card→dialog scale and rendering the larger font-size — which
+ * layout projection never interpolates — at up to that full scale. They cross-fade
+ * with the rest of the body instead.
+ */
 function MorphingDialogTitle({ children, className, style }: MorphingDialogTitleProps) {
   const { uniqueId } = useMorphingDialog();
+  const isDialogBody = useContext(MorphingDialogBodyContext);
 
   return (
-    <motion.div
-      layoutId={`dialog-title-container-${uniqueId}`}
+    <div
       className={className}
       style={style}
-      layout
-      id={`morphing-dialog-title-${uniqueId}`}
+      id={isDialogBody ? `morphing-dialog-title-${uniqueId}` : undefined}
     >
       <div className="truncate text-balance line-clamp-1 font-semibold leading-normal">
         {children}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -244,17 +289,12 @@ interface MorphingDialogSubtitleProps {
   style?: CSSProperties;
 }
 
+/** Not a shared layout target either — see {@link MorphingDialogTitle}. */
 function MorphingDialogSubtitle({ children, className, style }: MorphingDialogSubtitleProps) {
-  const { uniqueId } = useMorphingDialog();
-
   return (
-    <motion.div
-      layoutId={`dialog-subtitle-container-${uniqueId}`}
-      className={className}
-      style={style}
-    >
+    <div className={className} style={style}>
       <div className="text-muted-foreground truncate text-sm text-pretty">{children}</div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -332,7 +372,7 @@ function MorphingDialogClose({ children, className, variants }: MorphingDialogCl
       onClick={() => setIsOpen(false)}
       aria-label="Close dialog"
       className={cn(
-        'app-pressable ring-offset-background focus:ring-ring absolute top-7 right-7 rounded-xs opacity-70 hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden',
+        'app-pressable ring-offset-background focus:ring-ring absolute top-8.5 right-8 rounded-xs opacity-70 hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden',
         className,
       )}
       initial="initial"
@@ -355,4 +395,6 @@ export {
   MorphingDialogSubtitle,
   MorphingDialogTitle,
   MorphingDialogTrigger,
+  useMorphingDialogClose
 };
+

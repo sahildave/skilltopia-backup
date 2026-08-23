@@ -39,14 +39,6 @@ export function SkillProviderBadges({
           );
         }
 
-        if (badge.kind === 'project') {
-          return (
-            <Badge key="project" variant="secondary" size="sm" className={SKILL_CHIP_TEXT_CLASS}>
-              {t('skills.projects.agentsBadge')}
-            </Badge>
-          );
-        }
-
         if (badge.kind === 'plugin') {
           const label = pluginOriginLabel(badge);
           return (
@@ -69,6 +61,13 @@ export function SkillProviderBadges({
                 })}
               </TooltipContent>
             </Tooltip>
+          );
+        }
+        if (badge.kind === 'project') {
+          return (
+            <Badge key="project" variant="secondary" size="sm" className={SKILL_CHIP_TEXT_CLASS}>
+              {t('skills.projects.agentsBadge')}
+            </Badge>
           );
         }
 

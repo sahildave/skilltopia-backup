@@ -1,7 +1,9 @@
+import type { SkillsShSkill } from '@/catalog/types';
+import { MorphingDialogTitle } from '@/components/ui/morphing-dialog';
 import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
-import { useReducedMotion } from 'motion/react';
+import { CatalogInstalledMenu } from './CatalogSkillActions';
 import type { ProviderFilterId } from './installed-skills-model';
-import { SkillCardOverflowMenu } from './SkillCardOverflowMenu';
+import { InstalledSkillDialog } from './InstalledSkillDialog';
 import { SkillProviderBadges } from './SkillProviderBadges';
 import { SkillSurfaceListRow } from './SkillSurfaceListRow';
 
@@ -9,38 +11,44 @@ export function SkillListRow({
   skill,
   snapshot,
   providerFilter,
+  catalogSkill,
 }: {
   skill: ScannedSkill;
   snapshot: InstalledScanSnapshot;
   providerFilter: ProviderFilterId;
+  catalogSkill?: SkillsShSkill;
 }) {
-  const reduceMotion = useReducedMotion() ?? false;
-
   return (
-    <div data-slot="skill-list-row">
-      <SkillSurfaceListRow
-        title={
-          <div className="truncate text-balance h-6.5 line-clamp-1 font-semibold leading-normal">
-            {skill.name}
-          </div>
-        }
-        subtitle={
-          <div className="text-muted-foreground truncate text-sm text-pretty max-w-prose line-clamp-1">
-            {skill.description}
-          </div>
-        }
-        trailing={
-          <>
-            <SkillProviderBadges skill={skill} snapshot={snapshot} />
-            <SkillCardOverflowMenu
-              skill={skill}
-              snapshot={snapshot}
-              providerFilter={providerFilter}
-              reduceMotion={reduceMotion}
-            />
-          </>
-        }
-      />
-    </div>
+    <InstalledSkillDialog
+      skill={skill}
+      snapshot={snapshot}
+      providerFilter={providerFilter}
+      catalogSkill={catalogSkill}
+    >
+      <div data-slot="skill-list-row">
+        <SkillSurfaceListRow
+          title={
+            <div className="flex min-w-0 h-6.5 items-center gap-2">
+              <MorphingDialogTitle className="min-w-0 truncate">{skill.name}</MorphingDialogTitle>
+            </div>
+          }
+          subtitle={
+            <div className="text-muted-foreground truncate text-sm text-pretty max-w-prose line-clamp-1">
+              {skill.description}
+            </div>
+          }
+          trailing={
+            <>
+              <SkillProviderBadges skill={skill} snapshot={snapshot} />
+              <CatalogInstalledMenu
+                snapshot={snapshot}
+                scannedSkill={skill}
+                providerFilter={providerFilter}
+              />
+            </>
+          }
+        />
+      </div>
+    </InstalledSkillDialog>
   );
 }

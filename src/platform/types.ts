@@ -130,6 +130,12 @@ export interface SkillTargetResult {
 
 export interface SkillTargetsResult {
   results: SkillTargetResult[];
+  /**
+   * The folder a project-scoped install landed in. Absent for global installs.
+   * Nothing else can report it: the user picks it in a native dialog, and the
+   * home-root scan never walks it.
+   */
+  projectPath?: string;
 }
 
 export type CopyProviderStatus =

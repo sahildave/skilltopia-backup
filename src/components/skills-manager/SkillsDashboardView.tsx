@@ -12,6 +12,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
+import { useCollapsibleHeader } from '@/hooks/use-collapsible-header';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { cn } from '@/lib/utils';
 import {
@@ -175,6 +176,7 @@ const API_SEARCH_DEBOUNCE_MS = 450;
 export function SkillsDashboardView() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { viewportRef, collapsed, headerHeight, onExpandedHeightChange } = useCollapsibleHeader();
   const [viewId, setViewId] = useState<DiscoveryViewId>('trending');
   const layoutMode = useInstalledSkillsUiStore((state) => state.layoutMode);
   const setLayoutMode = useInstalledSkillsUiStore((state) => state.setLayoutMode);
@@ -216,19 +218,22 @@ export function SkillsDashboardView() {
 
   return (
     <div className="relative flex h-full min-w-0 flex-col overflow-hidden">
-      <InstalledToolbar
-        title={t('skills.dashboard.title')}
-        description={t('skills.dashboard.description')}
-        skillCount={null}
-        layoutMode={layoutMode}
-        skillQuery={searchInput}
-        onSkillQueryChange={setSearchInput}
-        searchPlaceholder={t('skills.dashboard.searchPlaceholder')}
-        searchLabel={t('skills.dashboard.searchLabel')}
-        clearSearchLabel={t('skills.dashboard.clearSearch')}
-        showInstalledControls={false}
-        leadingAction={
-          <>
+      <div className="absolute inset-x-0 top-0 z-20">
+        <InstalledToolbar
+          title={t('skills.dashboard.title')}
+          description={t('skills.dashboard.description')}
+          skillCount={null}
+          refreshing={isRefreshing}
+          collapsed={collapsed}
+          onExpandedHeightChange={onExpandedHeightChange}
+          layoutMode={layoutMode}
+          skillQuery={searchInput}
+          onSkillQueryChange={setSearchInput}
+          searchPlaceholder={t('skills.dashboard.searchPlaceholder')}
+          searchLabel={t('skills.dashboard.searchLabel')}
+          clearSearchLabel={t('skills.dashboard.clearSearch')}
+          showInstalledControls={false}
+          leadingAction={
             <ContinuousTabs
               value={viewId}
               defaultActiveId="trending"
@@ -243,27 +248,24 @@ export function SkillsDashboardView() {
                 }
               }}
             />
-            {isRefreshing ? (
-              <Spinner
-                className="text-muted-foreground size-3.5"
-                aria-label={t('skills.dashboard.refreshing')}
-              />
-            ) : null}
-          </>
-        }
-        searchError={
-          hasSearchError ? (
-            <Alert variant="destructive" className="max-w-xl">
-              <AlertCircle />
-              <AlertTitle>{t('skills.dashboard.searchFailed')}</AlertTitle>
-              <AlertDescription>{errorMessage(search.error)}</AlertDescription>
-            </Alert>
-          ) : null
-        }
-        onLayoutModeChange={setLayoutMode}
-      />
-      <ScrollArea className="min-h-0 min-w-0 flex-1">
-        <div className="flex w-full min-w-0 max-w-full flex-col gap-6 px-6 py-6">
+          }
+          searchError={
+            hasSearchError ? (
+              <Alert variant="destructive" className="max-w-xl">
+                <AlertCircle />
+                <AlertTitle>{t('skills.dashboard.searchFailed')}</AlertTitle>
+                <AlertDescription>{errorMessage(search.error)}</AlertDescription>
+              </Alert>
+            ) : null
+          }
+          onLayoutModeChange={setLayoutMode}
+        />
+      </div>
+      <ScrollArea viewportRef={viewportRef} className="min-h-0 min-w-0 flex-1">
+        <div
+          className="flex w-full min-w-0 max-w-full flex-col gap-6 px-6 pb-6"
+          style={{ paddingTop: (headerHeight ?? 0) + 24 }}
+        >
           <SkillsResults
             skills={skills}
             layoutMode={layoutMode}

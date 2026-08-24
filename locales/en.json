@@ -319,6 +319,7 @@
   "skills.projects.chooseDescription": "Select the folder that contains your projects. We look one or two levels deep.",
   "skills.projects.refresh": "Refresh projects",
   "skills.projects.empty": "No project folders found",
+  "skills.projects.noSkills": "No skills found in {{project}}. Skills live in .agents/skills or a provider folder like .claude/skills.",
   "skills.projects.direct": "Direct project",
   "skills.projects.nested": "Nested project",
   "skills.projects.loadFailed": "Couldn't load projects",

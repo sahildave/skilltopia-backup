@@ -5,6 +5,17 @@ import { create } from 'zustand';
 const ROOT_KEY = 'skilltopia.projects.root';
 let requestId = 0;
 
+/** Default to the project the sidebar lists first: most skills, then name. */
+function pickDefaultProject(projects: ProjectInfo[]): ProjectInfo | null {
+  return projects.reduce<ProjectInfo | null>((best, project) => {
+    if (!best) return project;
+    if (project.skillCount !== best.skillCount) {
+      return project.skillCount > best.skillCount ? project : best;
+    }
+    return project.name.localeCompare(best.name) < 0 ? project : best;
+  }, null);
+}
+
 function readRoot(): string | null {
   return typeof localStorage === 'undefined' ? null : localStorage.getItem(ROOT_KEY);
 }
@@ -53,7 +64,7 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
       if (currentRequest !== requestId) return;
       const selectedPath = get().selectedPath;
       const selected =
-        projects.find((project) => project.path === selectedPath) ?? projects[0] ?? null;
+        projects.find((project) => project.path === selectedPath) ?? pickDefaultProject(projects);
       set({ projects, selectedPath: selected?.path ?? null });
       if (selected) {
         const snapshot = await platform.scanProject(selected.path);

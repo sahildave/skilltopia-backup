@@ -178,7 +178,7 @@ export function InstalledToolbar({
               collapsed ? 'flex-none' : 'flex-1',
             )}
           >
-            <div className="flex h-7.5 min-w-0 flex-row items-center gap-2.5">
+            <div className="flex h-7.5 min-w-0 flex-row items-baseline gap-2.5">
               <h1 className="text-3xl leading-none text-balance">{title}</h1>
               {skillCount !== null ? (
                 <Badge variant="secondary" size="sm" className="mt-3.5 tabular-nums">

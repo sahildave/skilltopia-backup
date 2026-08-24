@@ -40,6 +40,9 @@ function LocalProjectsView() {
   const error = useProjectsStore((state) => state.error);
   const chooseRoot = useProjectsStore((state) => state.chooseRoot);
   const refresh = useProjectsStore((state) => state.refresh);
+  const projects = useProjectsStore((state) => state.projects);
+  const selectedPath = useProjectsStore((state) => state.selectedPath);
+  const selectedProject = projects.find((project) => project.path === selectedPath) ?? null;
   const layoutMode = useInstalledSkillsUiStore((state) => state.layoutMode);
   const setLayoutMode = useInstalledSkillsUiStore((state) => state.setLayoutMode);
   const [skillQuery, setSkillQuery] = useState('');
@@ -57,7 +60,7 @@ function LocalProjectsView() {
     <div className="flex h-full min-w-0 flex-col overflow-hidden">
       <InstalledToolbar
         title={t('skills.projects.title')}
-        description={root ?? t('skills.projects.noFolder')}
+        description={selectedProject?.path ?? root ?? t('skills.projects.noFolder')}
         skillCount={snapshot?.skills.length ?? null}
         refreshing={refreshing}
         hasSnapshot={snapshot !== null}
@@ -97,6 +100,20 @@ function LocalProjectsView() {
                   <AlertTitle>{t('skills.projects.loadFailed')}</AlertTitle>
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
+              ) : null}
+              {snapshot && visibleSkills?.length === 0 ? (
+                <Card>
+                  <CardContent className="text-muted-foreground flex flex-col items-center gap-4 py-12 text-center text-sm">
+                    <Search className="size-8" />
+                    <p>
+                      {normalizedSkillQuery
+                        ? t('skills.installed.noMatchingSkills')
+                        : t('skills.projects.noSkills', {
+                            project: selectedProject?.name ?? '',
+                          })}
+                    </p>
+                  </CardContent>
+                </Card>
               ) : null}
               {snapshot ? (
                 <div className="flex flex-col gap-3">

@@ -27,7 +27,6 @@ import {
   Search,
   Sun,
   X,
-  type Sparkles,
 } from 'lucide-react';
 import { useState, type SVGProps } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -38,6 +37,7 @@ import {
   type ProviderFilterId,
   type ProviderSidebarItem,
 } from './installed-skills-model';
+import { FALLBACK_PROVIDER_ICON, PROVIDER_ICONS } from './provider-icons';
 import { SkillsSidebarFilter } from './SkillsSidebarFilter';
 import type { SkillsNavId } from './types';
 
@@ -538,7 +538,6 @@ function ProviderRow(props: {
   skillCount?: number;
   selected: boolean;
   onSelect: (id: ProviderFilterId) => void;
-  icon?: typeof Sparkles;
   installedTabActive: boolean;
   onEnsureInstalledTab: () => void;
   compact?: boolean;
@@ -547,7 +546,6 @@ function ProviderRow(props: {
     item,
     selected,
     onSelect,
-    icon: Icon,
     installedTabActive,
     onEnsureInstalledTab,
     compact = false,
@@ -557,6 +555,7 @@ function ProviderRow(props: {
   if (rowId === undefined || rowName === undefined) {
     return null;
   }
+  const Icon = PROVIDER_ICONS[String(rowId)] ?? FALLBACK_PROVIDER_ICON;
   const count = item?.skillCount ?? props.skillCount ?? 0;
   const hasWarning = sidebarWarnings(item?.warnings ?? []).length > 0;
   const showSelected = selected && installedTabActive;
@@ -579,7 +578,7 @@ function ProviderRow(props: {
       {showSelected ? (
         <span aria-hidden className="bg-primary absolute inset-y-1 inset-s-0 w-0.5 rounded-full" />
       ) : null}
-      {Icon ? <Icon className="size-4 shrink-0" /> : null}
+      <Icon className="size-4 shrink-0" aria-hidden />
       <span className="truncate">{rowName}</span>
       {hasWarning ? (
         <AlertTriangle

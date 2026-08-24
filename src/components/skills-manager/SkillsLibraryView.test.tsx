@@ -401,6 +401,13 @@ describe('SkillsSidebar providers', () => {
     expect(cursorRow).toHaveTextContent('2');
   });
 
+  it('renders the provider brand icon inside its row', () => {
+    render(<SkillsSidebar active="installed" onSelect={vi.fn()} />);
+
+    const claude = screen.getByText('Claude Code').closest('button') as HTMLElement;
+    expect(within(claude).getByTitle('Claude Code')).toBeInTheDocument();
+  });
+
   it('filters active and inactive providers from the top search field', async () => {
     const user = userEvent.setup();
     render(<SkillsSidebar active="installed" onSelect={vi.fn()} />);

@@ -1,5 +1,10 @@
 import '@testing-library/jest-dom';
+import { configure } from '@testing-library/react';
 import { vi } from 'vitest';
+
+// Brand icons render an SVG <title> for their product name, which duplicates the
+// visible label next to them. Keep those out of text queries.
+configure({ defaultIgnore: 'script, style, title' });
 
 class ResizeObserverMock {
   observe = vi.fn();

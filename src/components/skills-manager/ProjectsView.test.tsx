@@ -1,5 +1,7 @@
 import { render, screen } from '@/test/test-utils';
 import { MOCK_EMPTY_SCAN } from '@/platform/fixtures';
+import { useInstalledScanStore } from '@/store/installed-scan-store';
+import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
 import { useProjectsStore } from '@/store/projects-store';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,6 +17,18 @@ const platformMock = vi.hoisted(() => ({
 }));
 
 vi.mock('@platform', () => ({ platform: platformMock }));
+
+function projectSkill(name: string) {
+  return {
+    name,
+    uninstallName: name,
+    description: `${name} description`,
+    scope: 'project' as const,
+    providerIds: ['claude-code'],
+    origins: [{ providerDirectory: { providerId: 'claude-code' } }],
+    paths: [{ path: `/Users/partner/code/skilltopia/.claude/skills/${name}` }],
+  };
+}
 
 function getChooseFolderButton() {
   const button = screen.getAllByRole('button', { name: 'Choose coding folder' }).at(0);
@@ -57,6 +71,8 @@ describe('ProjectsView (desktop)', () => {
       error: null,
       hasLoadedProjects: false,
     });
+    useInstalledScanStore.setState({ snapshot: null });
+    useInstalledSkillsUiStore.setState({ projectSkillScope: 'all' });
   });
 
   it('shows an error when the native folder picker fails', async () => {
@@ -132,7 +148,37 @@ describe('ProjectsView (desktop)', () => {
     render(<ProjectsView />);
     await user.click(getChooseFolderButton());
 
+    expect(await screen.findByText(/No skills reach this project yet/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('radio', { name: 'Project-only' }));
+
     expect(await screen.findByText(/No skills found in skilltopia/)).toBeInTheDocument();
+  });
+
+  it('lists globally installed skills alongside the project ones', async () => {
+    platformMock.pickCodingFolder.mockResolvedValue('/Users/partner/code');
+    platformMock.listProjects.mockResolvedValue([
+      { name: 'skilltopia', path: '/Users/partner/code/skilltopia', depth: 1, skillCount: 1 },
+    ]);
+    platformMock.scanProject.mockResolvedValue({
+      ...MOCK_EMPTY_SCAN,
+      skills: [projectSkill('project-only-skill')],
+    });
+    useInstalledScanStore.setState({
+      snapshot: { ...MOCK_EMPTY_SCAN, skills: [projectSkill('universal-skill')] },
+    });
+    const user = userEvent.setup();
+
+    render(<ProjectsView />);
+    await user.click(getChooseFolderButton());
+
+    expect(await screen.findByText('project-only-skill')).toBeInTheDocument();
+    expect(screen.getByText('universal-skill')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('radio', { name: 'Project-only' }));
+
+    expect(await screen.findByText('project-only-skill')).toBeInTheDocument();
+    expect(screen.queryByText('universal-skill')).not.toBeInTheDocument();
   });
 
   it('does not keep projects from the previously selected root', async () => {

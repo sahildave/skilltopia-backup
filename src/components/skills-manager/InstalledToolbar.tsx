@@ -287,6 +287,9 @@ export function InstalledToolbar({
             {showInstalledControls ? (
               <ContinuousTabs
                 value={installedSkillView}
+                // Same order as the Projects tabs: all, then what reaches
+                // this scope from global, then what lives only in it. The ids
+                // predate the labels and stay as the filter keys.
                 tabs={[
                   {
                     id: 'all',
@@ -294,14 +297,14 @@ export function InstalledToolbar({
                     helpTooltip: t('skills.installed.viewHelp.all'),
                   },
                   {
-                    id: 'provider',
-                    label: t('skills.installed.viewProvider'),
-                    helpTooltip: t('skills.installed.viewHelp.provider'),
-                  },
-                  {
                     id: 'available',
                     label: t('skills.installed.viewAvailable'),
                     helpTooltip: t('skills.installed.viewHelp.available'),
+                  },
+                  {
+                    id: 'provider',
+                    label: t('skills.installed.viewProvider'),
+                    helpTooltip: t('skills.installed.viewHelp.provider'),
                   },
                 ]}
                 onChange={(id) => {

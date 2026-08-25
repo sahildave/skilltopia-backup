@@ -157,6 +157,59 @@ Always commit:
 - Rust changes (`src-tauri/src/lib.rs`, `src-tauri/src/bindings.rs`)
 - Generated TypeScript (`src/lib/bindings.ts`)
 
+## Streaming progress with a Channel
+
+A command that runs for a long time reports progress over `tauri::ipc::Channel`
+rather than a global `app.emit` event: the channel is an argument, so the
+progress reaches the one caller that asked for it and dies with the call. The
+bulk provider copy (`copy_provider_skills`) is the reference implementation.
+
+Rust — take the channel as a parameter and hand the module a plain closure, so
+the domain code never learns about Tauri:
+
+```rust
+use tauri::ipc::Channel;
+
+#[tauri::command(async)]
+#[specta::specta]
+pub fn copy_provider_skills(
+    source_provider_id: String,
+    skill_names: Vec<String>,
+    target_provider_ids: Vec<String>,
+    on_progress: Channel<BulkCopyProgress>,
+) -> Result<CopyProviderSkillsResult, String> {
+    copy_provider_skills_impl(
+        &source_provider_id,
+        &skill_names,
+        &target_provider_ids,
+        &ScanContext::from_environment(),
+        // A dropped receiver is not a reason to abandon work already writing
+        // to disk, so a send failure is ignored.
+        &|progress| {
+            let _ = on_progress.send(progress);
+        },
+    )
+}
+```
+
+The payload struct needs `Type` like any other, and `#[tauri::command(async)]`
+matters: a synchronous command blocks the main thread and nothing ticks.
+
+TypeScript — the generated binding takes a `Channel<T>`. The channel argument is
+not optional, so build one even when the caller does not want progress:
+
+```typescript
+import { Channel } from '@tauri-apps/api/core';
+
+const channel = new Channel<BulkCopyProgress>();
+if (onProgress) channel.onmessage = onProgress;
+const result = unwrapResult(await commands.copyProviderSkills(id, names, targets, channel));
+```
+
+Keep the channel behind the platform port (`src/platform/`) like every other
+command, so the web and mock ports can satisfy the same signature — the mock
+port calls `onProgress` itself to drive the UI in Chrome.
+
 ## File Structure
 
 ```

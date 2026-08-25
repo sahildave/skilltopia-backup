@@ -24,22 +24,30 @@ import { buildBulkCopyDialogModel } from './installed-skills-model';
 import { isPermissionError } from './library-errors';
 import { ProviderCheckboxRow } from './ProviderCheckboxRow';
 
+/**
+ * A refusal is not a failure: the destination lives in the read-only Claude
+ * plugin cache, which is managed elsewhere and was never ours to write. It is
+ * counted apart so the summary can say so instead of reporting a fault.
+ */
 function totals(result: CopyProviderSkillsResult) {
   return result.targets.reduce(
     (acc, target) => ({
       copied: acc.copied + target.copied,
       skipped: acc.skipped + target.skipped,
-      failed: acc.failed + target.failed + target.refused,
+      refused: acc.refused + target.refused,
+      failed: acc.failed + target.failed,
     }),
-    { copied: 0, skipped: 0, failed: 0 },
+    { copied: 0, skipped: 0, refused: 0, failed: 0 },
   );
 }
 
 /**
  * Copy everything one provider owns into other providers.
  *
- * Counts come from the scan snapshot already in memory — no preview call — so
- * the numbers the user reads are the same ones the sidebar shows. The run
+ * Counts come from the scan snapshot already in memory — no preview call. They
+ * are deliberately narrower than the sidebar badge, which also counts links
+ * projected in from elsewhere and Claude Code's plugin skills; only folders the
+ * provider owns can be a source, so the description says so. The run
  * itself is one backend call; it can take a while over 178 skills, so the
  * dialog holds itself open until it settles rather than leaving a half-finished
  * batch behind a dismissed dialog.
@@ -65,6 +73,8 @@ export function CopyProviderSkillsDialog({
   const [progress, setProgress] = useState<BulkCopyProgress | null>(null);
 
   const selectedCount = selectedIds.size;
+  const providerLabel = (providerId: string) =>
+    snapshot.providers.find((p) => p.id === providerId)?.name ?? providerId;
   const percentComplete =
     progress && progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
 
@@ -98,23 +108,28 @@ export function CopyProviderSkillsDialog({
         [...selectedIds],
         setProgress,
       );
-      const { copied, skipped, failed } = totals(result);
-      // Land on 100% before the summary, even from a port that never ticked.
-      setProgress({
-        completed: model.skillNames.length,
-        total: model.skillNames.length,
-        skillName: '',
-      });
+      const { copied, skipped, refused, failed } = totals(result);
+      const summary = t('skills.installed.copyAllSummary', { copied, skipped, failed });
+      const refusedProviders = result.targets
+        .filter((target) => target.refused > 0)
+        .map((target) => providerLabel(target.providerId))
+        .join(', ');
 
       if (failed > 0) {
-        toast.warning(t('skills.installed.copyAllSummary', { copied, skipped, failed }), {
+        toast.warning(summary, {
           description: result.targets
             .flatMap((target) => target.issues.slice(0, 3))
             .map((issue) => issue.skillName)
             .join(', '),
         });
+      } else if (refused > 0) {
+        toast.warning(summary, {
+          description: t('skills.installed.copyRefusedDescription', {
+            providers: refusedProviders,
+          }),
+        });
       } else {
-        toast.success(t('skills.installed.copyAllSummary', { copied, skipped, failed }));
+        toast.success(summary);
       }
 
       setRunning(false);

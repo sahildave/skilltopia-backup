@@ -136,6 +136,60 @@ describe('buildBulkCopyDialogModel', () => {
     expect(ids).not.toContain('claude-code');
   });
 
+  it('counts a link already pointing at the source as already there, like the backend', () => {
+    // What a previous bulk copy leaves behind: Codex holds a symlink back to
+    // Claude Code's bundle. The backend skips it, so the dialog must not
+    // advertise it as still to copy.
+    const base = snapshot();
+    const model = buildBulkCopyDialogModel(
+      {
+        ...base,
+        skills: base.skills.map((entry) =>
+          entry.name === 'tdd'
+            ? {
+                ...entry,
+                providerIds: [...entry.providerIds, 'codex'],
+                paths: [
+                  ...entry.paths,
+                  { path: `${CODEX_DIR}/tdd`, originalPath: `${CLAUDE_DIR}/tdd` },
+                ],
+              }
+            : entry,
+        ),
+      },
+      'claude-code',
+    );
+    expect(model.targets.find((target) => target.id === 'codex')).toMatchObject({
+      toCopy: 1,
+      alreadyThere: 2,
+    });
+  });
+
+  it('still counts a link pointing at another provider as to-copy, since the backend rewrites it', () => {
+    const base = snapshot();
+    const model = buildBulkCopyDialogModel(
+      {
+        ...base,
+        skills: base.skills.map((entry) =>
+          entry.name === 'tdd'
+            ? {
+                ...entry,
+                paths: [
+                  ...entry.paths,
+                  { path: `${CODEX_DIR}/tdd`, originalPath: `${UNIVERSAL_DIR}/tdd` },
+                ],
+              }
+            : entry,
+        ),
+      },
+      'claude-code',
+    );
+    expect(model.targets.find((target) => target.id === 'codex')).toMatchObject({
+      toCopy: 2,
+      alreadyThere: 1,
+    });
+  });
+
   it('offers undetected registry providers as destinations with everything to copy', () => {
     const model = buildBulkCopyDialogModel(snapshot(), 'claude-code');
     const gemini = model.targets.find((target) => target.id === 'gemini-cli');

@@ -2,6 +2,7 @@ import type {
   InstalledScanSnapshot,
   ScannedProvider,
   ScannedSkill,
+  ScannedSkillPath,
   ScanWarning,
   ScanWarningCode,
   UninstallAgentScope,
@@ -335,15 +336,43 @@ export function ownedSkillsForProvider(
   );
 }
 
+/** Direct children of `skillsDir`, keyed by folder name — links included. */
+function entriesInSkillsDir(
+  snapshot: InstalledScanSnapshot,
+  skillsDir: string | null,
+): Map<string, ScannedSkillPath> {
+  const entries = new Map<string, ScannedSkillPath>();
+  if (!skillsDir) return entries;
+  const normalizedDir = skillsDir.replaceAll('\\', '/').replace(/\/+$/, '');
+  for (const skill of snapshot.skills) {
+    for (const entry of skill.paths) {
+      const normalized = entry.path.replaceAll('\\', '/').replace(/\/+$/, '');
+      const cut = normalized.lastIndexOf('/');
+      if (cut < 0 || normalized.slice(0, cut) !== normalizedDir) continue;
+      const name = normalized.slice(cut + 1);
+      if (name && !entries.has(name)) entries.set(name, entry);
+    }
+  }
+  return entries;
+}
+
 /**
  * Destination rows for the bulk copy dialog, counted from the snapshot alone —
- * no extra scan and no backend preview call. "Already there" is a name match at
- * the destination, which is exactly what the backend skips.
+ * no extra scan and no backend preview call.
+ *
+ * "Already there" mirrors what the backend skips, which is not simply "the name
+ * exists here": a real directory is refused (skipped), and so is a link that
+ * already points at the source bundle — but a link pointing at some *other*
+ * provider's copy is removed and rewritten, so it still counts as to-copy.
+ * Getting this wrong made the second run of the same copy advertise N to copy
+ * and then report N skipped.
  */
 export function buildBulkCopyDialogModel(
   snapshot: InstalledScanSnapshot,
   sourceProviderId: string,
 ): BulkCopyDialogModel {
+  const sourceDir = snapshot.providers.find((p) => p.id === sourceProviderId)?.skillsDir ?? null;
+  const sourceEntries = entriesInSkillsDir(snapshot, sourceDir);
   const sourceSkills = ownedSkillsForProvider(snapshot, sourceProviderId);
   const skillNames = sourceSkills.map((skill) => skill.uninstallName);
   const sidebar = buildProviderSidebarModel(snapshot);
@@ -351,10 +380,13 @@ export function buildBulkCopyDialogModel(
   const targets = [...sidebar.activeProviders, ...sidebar.inactiveProviders]
     .filter((item) => item.id !== sourceProviderId && isEligibleCopyDestination(item, snapshot))
     .map((item) => {
-      const present = new Set(
-        ownedSkillsForProvider(snapshot, String(item.id)).map((skill) => skill.uninstallName),
-      );
-      const alreadyThere = skillNames.filter((name) => present.has(name)).length;
+      const present = entriesInSkillsDir(snapshot, item.skillsDir);
+      const alreadyThere = skillNames.filter((name) => {
+        const entry = present.get(name);
+        if (!entry) return false;
+        if (!entry.originalPath) return true;
+        return entry.originalPath === sourceEntries.get(name)?.path;
+      }).length;
       return {
         ...toCopyOption(item),
         toCopy: skillNames.length - alreadyThere,

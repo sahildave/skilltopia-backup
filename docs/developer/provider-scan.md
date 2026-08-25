@@ -8,8 +8,10 @@ Global installed-skill discovery for the desktop adapter.
 2. Desktop adapter invokes typed Tauri commands (`scanInstalledSkills`,
    `revealProviderSkillsDir`) via `@/lib/tauri-bindings`.
 3. Rust loads the checked-in `src/providers/registry.json`, detects providers,
-   scans Universal (`~/.agents/skills`) and each detected provider’s direct
-   global skills directory, and returns one `InstalledScanSnapshot`.
+   scans Universal (`~/.agents/skills`) and each detected provider’s global
+   skills directory, and returns one `InstalledScanSnapshot`. Provider scans
+   are flat except for Hermes Agent, whose category directories are traversed
+   recursively to match Hermes' native skill loader.
 
 `listInstalled()` and `listProviders()` read the same in-memory snapshot. Call
 `scanInstalled()` to replace it (app open / Installed Skills activation /

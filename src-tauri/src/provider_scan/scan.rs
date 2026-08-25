@@ -159,6 +159,41 @@ fn scan_skills_dir(
     include_internal: bool,
     provider_id_for_warnings: Option<&str>,
 ) -> DirScanOutcome {
+    scan_skills_dir_inner(
+        dir,
+        include_internal,
+        provider_id_for_warnings,
+        false,
+        &mut BTreeSet::new(),
+    )
+}
+
+fn scan_provider_skills_dir(
+    dir: &Path,
+    include_internal: bool,
+    provider_id: &str,
+) -> DirScanOutcome {
+    let recursive = provider_id == "hermes-agent";
+    let mut visited = BTreeSet::new();
+    if recursive {
+        visited.insert(fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf()));
+    }
+    scan_skills_dir_inner(
+        dir,
+        include_internal,
+        Some(provider_id),
+        recursive,
+        &mut visited,
+    )
+}
+
+fn scan_skills_dir_inner(
+    dir: &Path,
+    include_internal: bool,
+    provider_id_for_warnings: Option<&str>,
+    recursive: bool,
+    visited: &mut BTreeSet<PathBuf>,
+) -> DirScanOutcome {
     let mut skills = Vec::new();
     let mut warnings = Vec::new();
 
@@ -183,17 +218,39 @@ fn scan_skills_dir(
         };
 
         let skill_md = entry.content_root.join("SKILL.md");
-        let Ok(raw) = fs::read_to_string(&skill_md) else {
-            warnings.push(ScanWarning {
-                code: ScanWarningCode::EntrySkipped,
-                message: format!(
-                    "Missing SKILL.md in {}",
-                    normalize_path_for_serialization(&entry.entry_path)
-                ),
-                provider_id: provider_id_for_warnings.map(str::to_string),
-                path: Some(normalize_path_for_serialization(&entry.entry_path)),
-            });
-            continue;
+        let raw = match fs::read_to_string(&skill_md) {
+            Ok(raw) => raw,
+            Err(_) => {
+                if recursive && !skill_md.exists() {
+                    let canonical = fs::canonicalize(&entry.content_root)
+                        .unwrap_or_else(|_| entry.content_root.clone());
+                    if !visited.insert(canonical) {
+                        continue;
+                    }
+                    let nested = scan_skills_dir_inner(
+                        &entry.content_root,
+                        include_internal,
+                        provider_id_for_warnings,
+                        true,
+                        visited,
+                    );
+                    if !nested.skills.is_empty() || !nested.warnings.is_empty() {
+                        skills.extend(nested.skills);
+                        warnings.extend(nested.warnings);
+                        continue;
+                    }
+                }
+                warnings.push(ScanWarning {
+                    code: ScanWarningCode::EntrySkipped,
+                    message: format!(
+                        "Missing SKILL.md in {}",
+                        normalize_path_for_serialization(&entry.entry_path)
+                    ),
+                    provider_id: provider_id_for_warnings.map(str::to_string),
+                    path: Some(normalize_path_for_serialization(&entry.entry_path)),
+                });
+                continue;
+            }
         };
 
         let Some(parsed) = parse_skill_md(&raw) else {
@@ -432,7 +489,7 @@ pub fn scan_installed(ctx: &ScanContext) -> Result<InstalledScanSnapshot, String
             }
         } else if let Some(ref dir) = skills_dir {
             if skills_dir_exists {
-                let outcome = scan_skills_dir(dir, ctx.include_internal, Some(&provider.id));
+                let outcome = scan_provider_skills_dir(dir, ctx.include_internal, &provider.id);
                 warnings.extend(outcome.warnings);
                 for (name, description, path) in outcome.skills {
                     skill_count += 1;
@@ -569,7 +626,7 @@ fn count_project_skills(
         if skills_dir == universal_dir || !skills_dir.is_dir() {
             continue;
         }
-        let outcome = scan_skills_dir(&skills_dir, include_internal, None);
+        let outcome = scan_provider_skills_dir(&skills_dir, include_internal, &provider.id);
         for (name, _, _) in outcome.skills {
             names.insert(name);
         }
@@ -699,7 +756,7 @@ pub fn scan_project(
             // Do not tag project `.agents` skills with global provider ids (cursor,
             // claude-code, registry `universal`, …). Those ids mean home installs.
         } else if exists {
-            let outcome = scan_skills_dir(&skills_dir, ctx.include_internal, Some(&provider.id));
+            let outcome = scan_provider_skills_dir(&skills_dir, ctx.include_internal, &provider.id);
             warnings.extend(outcome.warnings);
             for (name, description, path) in outcome.skills {
                 count += 1;
@@ -1183,6 +1240,39 @@ mod tests {
         assert!(!snapshot.warnings.iter().any(|w| {
             w.code == ScanWarningCode::ProviderEmpty
                 && w.provider_id.as_deref() == Some("codebuddy")
+        }));
+    }
+
+    #[test]
+    fn scans_hermes_category_directories_recursively() {
+        let home = temp_home("hermes-categories");
+        let hermes_skills = home.join(".hermes/skills");
+        let category = hermes_skills.join("mlops/inference");
+        write_skill(
+            &category,
+            "serving-llms-vllm",
+            "serving-llms-vllm",
+            "Serve language models",
+        );
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        let hermes = snapshot
+            .providers
+            .iter()
+            .find(|provider| provider.id == "hermes-agent")
+            .expect("Hermes detected");
+        let skill = snapshot
+            .skills
+            .iter()
+            .find(|skill| skill.name == "serving-llms-vllm")
+            .expect("nested Hermes skill");
+
+        assert_eq!(hermes.skill_count, 1);
+        assert!(skill.provider_ids.contains(&"hermes-agent".to_string()));
+        assert!(snapshot.warnings.iter().all(|warning| {
+            warning.provider_id.as_deref() != Some("hermes-agent")
+                || warning.path.as_deref()
+                    != Some(normalize_path_for_serialization(&category).as_str())
         }));
     }
 

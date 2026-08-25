@@ -16,7 +16,7 @@
 | ID | Task | Status | Dependencies |
 | --- | --- | --- | --- |
 | 21 | Prefactor: shared copy-provider checkbox row and progress primitive | passed | - |
-| 22 | Copy all skills from one provider into another | pending | 21 |
+| 22 | Copy all skills from one provider into another | passed | 21 |
 | 23 | Live progress during a bulk skill copy | pending | 22 |
 
 

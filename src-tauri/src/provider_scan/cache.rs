@@ -7,12 +7,13 @@
 //!
 //! Open-knowledge's `file-watcher.ts` solves this with an OS watcher feeding a
 //! content-hashed index. This crate has no watcher dependency available, so the
-//! same invalidation model is driven by a **stat-only fingerprint**: one pass
-//! over the directories the scan reads, hashing entry names, modification times
-//! and `SKILL.md` sizes without opening or parsing a single file. Same
-//! contract, different trigger — the answer is only reused when the fingerprint
-//! matches, so an edit made outside the app is picked up on the next scan with
-//! no restart.
+//! same invalidation model is driven by a metadata fingerprint: one pass over
+//! the directories the scan reads, hashing entry names, modification times and
+//! `SKILL.md` sizes without opening skill content. Provider control files such
+//! as Hermes' small `_org/.active_org` marker are read so the fingerprint walks
+//! the same active tree as the scanner. The answer is only reused when that
+//! fingerprint matches, so an edit made outside the app is picked up on the
+//! next scan with no restart.
 //!
 //! It fails safe: any error while fingerprinting means "unknown state", which
 //! falls through to a full walk and stores nothing, rather than serving a stale
@@ -109,7 +110,8 @@ fn hash_provider_skills_dir(hasher: &mut DefaultHasher, dir: &Path, provider_id:
     }
 }
 
-/// A stat-only digest of every input `scan_installed` reads.
+/// A metadata digest of every input `scan_installed` reads, plus the small
+/// provider control files needed to select the same tree.
 ///
 /// Deliberately re-derives provider detection: a provider that becomes detected
 /// changes the snapshot even when no skills directory moved.

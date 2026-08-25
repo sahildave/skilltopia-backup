@@ -21,7 +21,7 @@ import { catalogInstallName, isCatalogSkillInstalled } from './catalog-installed
 import { ALL_AGENTS_FILTER_ID, type ProviderFilterId } from './installed-skills-model';
 import {
   isInstallCancelled,
-  isNodeRuntimeMissing,
+  isGitRuntimeMissing,
   isPermissionError,
   isUnsupportedSkillSource,
 } from './library-errors';
@@ -140,9 +140,9 @@ export function SkillInstallMenu({
         toast.error(t('skills.install.unsupportedSource', { name: skill.name }), {
           description: t('skills.install.unsupportedSourceDetail'),
         });
-      } else if (isNodeRuntimeMissing(message)) {
-        toast.error(t('skills.install.nodeMissing'), {
-          description: t('skills.install.nodeMissingDetail'),
+      } else if (isGitRuntimeMissing(message)) {
+        toast.error(t('skills.install.gitMissing'), {
+          description: t('skills.install.gitMissingDetail'),
         });
       } else if (isPermissionError(message)) {
         toast.error(t('skills.install.permissionError'), {

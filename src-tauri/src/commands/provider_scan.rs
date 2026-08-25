@@ -91,7 +91,7 @@ fn skill_cache_root(app: &AppHandle) -> Result<std::path::PathBuf, String> {
 }
 
 /// Install one skill from `source` into Universal and the given providers.
-/// Spawns no subprocess; a source already in the cache installs without network.
+/// Acquisition may spawn the resolved Git executable; cache hits do not.
 /// `project_path` selects project scope, `null` installs into the home roots.
 #[tauri::command(async)]
 #[specta::specta]

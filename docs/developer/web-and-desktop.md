@@ -93,19 +93,14 @@ Skill ids are `owner/repo/skill` → source `owner/repo` + skill `skill`. Web
 (`copiesInstallCommand: true`); only the web path still speaks CLI args. Shared
 UI must not import `@tauri-apps/*`; only `index.desktop.ts` may.
 
-### Spawning the skills CLI
+### Resolving Git in desktop builds
 
-Install and uninstall no longer go through the CLI, but `run_skills_cli` is still
-the only sanctioned way to reach it. Never spawn `npx` from the webview. A Finder-launched `.app` inherits
-`PATH=/usr/bin:/bin:/usr/sbin:/sbin`, so a bare `npx` fails with `ENOENT`, and the
-shell scope pins the command name at config time so it cannot carry a resolved
-path. `src-tauri/src/node_runtime.rs` resolves an absolute `npx` once at startup
-(PATH, then nvm/fnm/Volta/asdf, `~/.local/bin`, Homebrew, system) and
-`run_skills_cli` spawns it with that runtime's `bin` dir prepended to the child's
-`PATH` — `npx` is a `#!/usr/bin/env node` shebang script, so the absolute path
-alone is not enough. When nothing resolves, the command returns a
-`node_runtime_not_found` error that the UI turns into a localized message via
-`isNodeRuntimeMissing`.
+Desktop install acquires repositories with Git. A Finder-launched `.app` gets a
+minimal `PATH`, so `src-tauri/src/git_runtime.rs` probes inherited and standard
+install locations once, caches the absolute executable path, and uses it for
+every acquisition. If no working Git resolves, Rust returns
+`git_runtime_not_found` and the UI shows the localized install instructions.
+Cache hits do not spawn Git. Copy and uninstall stay entirely in-process.
 
 ### CatalogPort
 

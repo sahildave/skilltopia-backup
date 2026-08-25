@@ -8,7 +8,6 @@ pub mod preferences;
 pub mod provider_scan;
 pub mod quick_pane;
 pub mod recovery;
-pub mod skills_cli;
 pub mod skills_sh;
 
 /// A bare `#[tauri::command]` on a non-async `fn` compiles to
@@ -27,7 +26,6 @@ mod blocking_command_guard {
         (include_str!("provider_scan.rs"), "uninstall_skill"),
         (include_str!("provider_scan.rs"), "copy_skill_to_providers"),
         (include_str!("provider_scan.rs"), "delete_universal_skill"),
-        (include_str!("skills_cli.rs"), "run_skills_cli"),
     ];
 
     #[test]

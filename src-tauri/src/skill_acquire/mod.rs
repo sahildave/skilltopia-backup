@@ -31,11 +31,11 @@ mod source;
 
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
+use crate::git_runtime;
 pub(crate) use source::SourceError;
 use source::{parse_skill_source, SkillSource};
 
@@ -57,6 +57,7 @@ pub(crate) struct AcquiredSkill {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum AcquireError {
     Source(SourceError),
+    GitUnavailable(String),
     /// A git invocation failed; carries git's own stderr.
     Git(String),
     Io(String),
@@ -66,6 +67,7 @@ impl std::fmt::Display for AcquireError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Source(err) => write!(f, "{err}"),
+            Self::GitUnavailable(message) => write!(f, "{message}"),
             Self::Git(message) => write!(f, "git failed: {message}"),
             Self::Io(message) => write!(f, "cache is unusable: {message}"),
         }
@@ -115,7 +117,7 @@ pub(crate) fn acquire_skill(
     let git_ref = git(&["rev-parse", "HEAD"], Some(&staged))?;
     let content_hash = git(&["rev-parse", "HEAD^{tree}"], Some(&staged))?;
 
-    let bundle_path = install_staged(cache_root, &staged, &git_ref, &content_hash)?;
+    let bundle_path = install_staged(cache_root, &staged, &git_ref)?;
     let entry = CacheEntry {
         source: source.raw.clone(),
         git_ref,
@@ -132,38 +134,22 @@ pub(crate) fn acquire_skill(
     })
 }
 
-/// The recorded entry for `raw_source`, but only if the bundle it points at is
-/// still intact.
+/// The recorded entry for `raw_source`, but only if its bundle directory exists.
 ///
-/// A half-written or since-damaged entry is removed here rather than returned,
-/// which turns "the cache is corrupt" into one extra fetch instead of a skill
-/// that silently installs missing files.
+/// The index and bundle are installed with atomic renames. Install validates the
+/// selected skill before copying it into a provider directory.
 fn load_valid_entry(cache_root: &Path, raw_source: &str) -> Option<CacheEntry> {
     let index_path = index_path(cache_root, raw_source);
     let entry: CacheEntry = serde_json::from_slice(&fs::read(&index_path).ok()?).ok()?;
 
     let bundle = commit_dir(cache_root, &entry.git_ref);
-    if bundle_matches(&bundle, &entry.git_ref, &entry.content_hash) {
+    if bundle.is_dir() {
         return Some(entry);
     }
 
     let _ = fs::remove_dir_all(&bundle);
     let _ = fs::remove_file(&index_path);
     None
-}
-
-/// Whether the checkout at `bundle` is exactly the commit the entry recorded.
-///
-/// `status --porcelain` is what catches damage: a truncated file, a deleted one
-/// or a stray addition all leave the working tree dirty against the commit git
-/// stored, and none of them would change the recorded hashes.
-fn bundle_matches(bundle: &Path, git_ref: &str, content_hash: &str) -> bool {
-    let head = git(&["rev-parse", "HEAD"], Some(bundle));
-    let tree = git(&["rev-parse", "HEAD^{tree}"], Some(bundle));
-    let status = git(&["status", "--porcelain"], Some(bundle));
-
-    matches!((head, tree, status), (Ok(head), Ok(tree), Ok(status))
-        if head == git_ref && tree == content_hash && status.is_empty())
 }
 
 /// Shallow-fetch `source` into a staging directory inside the cache.
@@ -216,12 +202,11 @@ fn install_staged(
     cache_root: &Path,
     staged: &Path,
     git_ref: &str,
-    content_hash: &str,
 ) -> Result<PathBuf, AcquireError> {
     let destination = commit_dir(cache_root, git_ref);
 
     // Another ref of the same repo may have resolved to this same commit.
-    if bundle_matches(&destination, git_ref, content_hash) {
+    if destination.is_dir() {
         let _ = fs::remove_dir_all(staged);
         return Ok(destination);
     }
@@ -292,7 +277,8 @@ fn unique_name() -> String {
 /// mistyped repository blocks on a credential prompt that has no terminal to
 /// appear on, and the acquisition hangs instead of failing.
 fn git(args: &[&str], cwd: Option<&Path>) -> Result<String, AcquireError> {
-    let mut command = Command::new("git");
+    let executable = git_runtime::cached().map_err(AcquireError::GitUnavailable)?;
+    let mut command = std::process::Command::new(executable);
     command.args(args).env("GIT_TERMINAL_PROMPT", "0");
     if let Some(cwd) = cwd {
         command.current_dir(cwd);

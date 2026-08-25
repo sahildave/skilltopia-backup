@@ -4,7 +4,7 @@
 //! for. `npx skills add` cloned the source repository on every install and
 //! `npx skills remove` cost ~1.4 s *per provider, sequentially* — 64 detected
 //! providers projected to ~90 s of subprocess spawning to delete some symlinks.
-//! Nothing here spawns a subprocess.
+//! Only acquisition may spawn Git. Projection and uninstall stay in-process.
 //!
 //! Shape of an install:
 //!
@@ -292,7 +292,7 @@ fn universal_root_for(project_path: Option<&Path>, ctx: &ScanContext) -> Result<
                 .iter()
                 .find(|p| p.id == UNIVERSAL_PROVIDER_ID)
                 .map(|p| p.skills_dir.as_str())
-                .unwrap_or(".agents/skills"),
+                .ok_or("Provider registry is missing the 'universal' provider")?,
         ),
         None => universal,
     })

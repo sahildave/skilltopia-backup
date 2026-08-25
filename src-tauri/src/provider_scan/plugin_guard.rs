@@ -17,7 +17,7 @@ use crate::utils::platform::normalize_path_for_serialization;
 use super::plugin_manifest::read_installed_plugins;
 use super::scan::ScanContext;
 
-/// Stable marker the UI matches on, mirroring `node_runtime_not_found`. The
+/// Stable marker the UI matches on, mirroring `git_runtime_not_found`. The
 /// prose after it is detail; this is the part TypeScript is allowed to branch
 /// on, so a reworded message never silently loses its translated toast.
 pub(crate) const PLUGIN_MANAGED_CODE: &str = "plugin_managed_read_only";

@@ -2,6 +2,7 @@
 //! network, so the suite is as fast and as deterministic offline as on.
 
 use super::*;
+use std::process::Command;
 use std::time::Instant;
 
 /// Run git in `cwd`, panicking with git's own stderr — fixture setup that
@@ -154,25 +155,21 @@ fn two_refs_of_one_repo_coexist() {
 }
 
 #[test]
-fn corrupt_cache_entry_is_refetched_rather_than_returned() {
+fn cache_hit_does_not_run_git_status_validation() {
     let root = temp_root("corrupt");
     let remote = fixture_remote(&root);
     let cache = root.join("cache");
     let first = acquire_skill(remote.to_str().unwrap(), &cache).unwrap();
 
-    // The shape a partial write leaves behind: the index still points here, and
-    // the recorded hashes still look right, but the bytes on disk are not the
-    // bundle any more.
+    // Cache hits trust the atomically written index and existing bundle directory.
+    // Bundle validation remains the install caller's responsibility.
     fs::write(first.bundle_path.join("SKILL.md"), "truncat").unwrap();
 
+    fs::remove_dir_all(&remote).unwrap();
     let second = acquire_skill(remote.to_str().unwrap(), &cache).unwrap();
 
-    assert!(!second.cache_hit, "damaged bundle was served from cache");
-    assert_eq!(second.content_hash, first.content_hash);
-    assert_eq!(
-        read_skill_md(&second.bundle_path),
-        "---\nname: demo\n---\n\n# demo v1\n"
-    );
+    assert!(second.cache_hit);
+    assert_eq!(read_skill_md(&second.bundle_path), "truncat");
 }
 
 #[test]

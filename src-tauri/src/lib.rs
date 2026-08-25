@@ -6,7 +6,7 @@
 
 mod bindings;
 mod commands;
-mod node_runtime;
+mod git_runtime;
 mod provider_scan;
 /// Seam C: acquisition into a content-addressed cache, consumed by
 /// `provider_scan::install`.
@@ -106,20 +106,12 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_os::init())
-        .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             log::info!("Application starting up");
             log::debug!(
                 "App handle initialized for package: {}",
                 app.package_info().name
             );
-
-            // Resolve the Node runtime once, here, so every later spawn reuses it and a
-            // missing install shows up in the startup log rather than mid-install.
-            match node_runtime::cached(&node_runtime::NodeLookup::from_environment()) {
-                Ok(runtime) => log::info!("Resolved Node runtime: {}", runtime.npx.display()),
-                Err(error) => log::warn!("No Node runtime found: {error}"),
-            }
 
             // Set up global shortcut plugin (without any shortcuts - we register them separately)
             #[cfg(desktop)]

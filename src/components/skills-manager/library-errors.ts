@@ -9,12 +9,9 @@ export function isPermissionError(message: string): boolean {
   );
 }
 
-/**
- * Matches the code Rust returns when no Node runtime could be resolved. Checked
- * before `isPermissionError`, which would otherwise swallow it.
- */
-export function isNodeRuntimeMissing(message: string): boolean {
-  return message.includes('node_runtime_not_found');
+/** Matches the stable code Rust returns when no working Git executable resolves. */
+export function isGitRuntimeMissing(message: string): boolean {
+  return message.includes('git_runtime_not_found');
 }
 
 /**

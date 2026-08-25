@@ -27,7 +27,7 @@ import {
   uninstallAgentScopeFromFilter,
   type ProviderFilterId,
 } from './installed-skills-model';
-import { isNodeRuntimeMissing, isPermissionError, isPluginManaged } from './library-errors';
+import { isPermissionError, isPluginManaged } from './library-errors';
 import { SKILL_ACTION_PILL_CLASS } from './skill-chip';
 import { summarizeTargetResults } from './target-results';
 export function SkillCardOverflowMenu({
@@ -117,10 +117,6 @@ export function SkillCardOverflowMenu({
           description: t('skills.installed.uninstallPluginManagedDetail', {
             plugin: owningPlugins || skill.name,
           }),
-        });
-      } else if (isNodeRuntimeMissing(message)) {
-        toast.error(t('skills.install.nodeMissing'), {
-          description: t('skills.install.nodeMissingDetail'),
         });
       } else if (isPermissionError(message)) {
         toast.error(t('skills.install.permissionError'), {

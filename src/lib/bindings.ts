@@ -144,18 +144,6 @@ async updateQuickPaneShortcut(shortcut: string | null) : Promise<Result<null, st
 }
 },
 /**
- * Run `npx <args>` with the resolved Node runtime on the child's `PATH`.
- * Returns the exit code and output; a non-zero exit is the caller's to interpret.
- */
-async runSkillsCli(args: string[], cwd: string | null) : Promise<Result<SkillsCliOutput, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("run_skills_cli", { args, cwd }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
  * Fetches the skills leaderboard (default: all-time, page 0, up to 500).
  */
 async fetchSkillsLeaderboard(view: string | null, page: number | null, perPage: number | null) : Promise<Result<SkillsShSkill[], string>> {
@@ -284,7 +272,7 @@ async copySkillToProviders(uninstallName: string, providerIds: string[]) : Promi
 },
 /**
  * Install one skill from `source` into Universal and the given providers.
- * Spawns no subprocess; a source already in the cache installs without network.
+ * Acquisition may spawn the resolved Git executable; cache hits do not.
  * `project_path` selects project scope, `null` installs into the home roots.
  */
 async installSkill(source: string, skillName: string, providerIds: string[], projectPath: string | null) : Promise<Result<SkillProjectionResult, string>> {
@@ -420,7 +408,6 @@ export type SkillTargetStatus =
  * The destination is inside the read-only Claude plugin cache.
  */
 "refused" | "failed"
-export type SkillsCliOutput = { code: number; stdout: string; stderr: string }
 export type SkillsShSkill = { id: string; slug: string; name: string; source: string; installs: number; sourceType: string; installUrl?: string | null; url: string; isDuplicate?: boolean | null }
 export type UniversalScanInfo = { skillsDir: string; skillsDirExists: boolean; skillCount: number }
 

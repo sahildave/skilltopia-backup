@@ -48,7 +48,6 @@ export type {
   SkillProjectionResult,
   SkillTargetResult,
   SkillTargetStatus,
-  SkillsCliOutput,
   SkillsShSkill,
   UniversalScanInfo,
 } from './bindings';

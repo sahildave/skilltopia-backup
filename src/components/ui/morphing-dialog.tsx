@@ -395,6 +395,5 @@ export {
   MorphingDialogSubtitle,
   MorphingDialogTitle,
   MorphingDialogTrigger,
-  useMorphingDialogClose
+  useMorphingDialogClose,
 };
-

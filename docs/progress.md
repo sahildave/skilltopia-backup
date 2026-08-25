@@ -17,7 +17,7 @@
 | --- | --- | --- | --- |
 | 21 | Prefactor: shared copy-provider checkbox row and progress primitive | passed | - |
 | 22 | Copy all skills from one provider into another | passed | 21 |
-| 23 | Live progress during a bulk skill copy | pending | 22 |
+| 23 | Live progress during a bulk skill copy | passed | 22 |
 
 
 <!-- /afk:progress:28 -->

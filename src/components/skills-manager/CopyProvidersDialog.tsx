@@ -17,35 +17,9 @@ import { ChevronDown } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { buildCopyProviderDialogModel, type CopyProviderOption } from './installed-skills-model';
+import { buildCopyProviderDialogModel } from './installed-skills-model';
 import { isPermissionError } from './library-errors';
-
-function ProviderCheckboxRow({
-  option,
-  checked,
-  disabled,
-  onCheckedChange,
-}: {
-  option: CopyProviderOption;
-  checked: boolean;
-  disabled?: boolean;
-  onCheckedChange?: (checked: boolean) => void;
-}) {
-  const id = `copy-provider-${option.id}`;
-  return (
-    <Field orientation="horizontal" data-disabled={disabled || undefined}>
-      <Checkbox
-        id={id}
-        checked={checked}
-        disabled={disabled}
-        onCheckedChange={(value) => onCheckedChange?.(value === true)}
-      />
-      <FieldLabel htmlFor={id} className="font-normal">
-        {option.name}
-      </FieldLabel>
-    </Field>
-  );
-}
+import { ProviderCheckboxRow } from './ProviderCheckboxRow';
 
 function CollapsibleSection({
   title,

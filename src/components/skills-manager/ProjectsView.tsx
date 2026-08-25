@@ -1,6 +1,14 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
@@ -36,6 +44,7 @@ function LocalProjectsView() {
   const { t } = useTranslation();
   const root = useProjectsStore((state) => state.root);
   const snapshot = useProjectsStore((state) => state.snapshot);
+  const hasLoadedProjects = useProjectsStore((state) => state.hasLoadedProjects);
   const refreshing = useProjectsStore((state) => state.refreshing);
   const error = useProjectsStore((state) => state.error);
   const chooseRoot = useProjectsStore((state) => state.chooseRoot);
@@ -55,6 +64,14 @@ function LocalProjectsView() {
   });
 
   const reduceMotion = useReducedMotion() ?? false;
+  function renderChooseFolderButton(variant: 'default' | 'outline' = 'default') {
+    return (
+      <Button variant={variant} size="default" onClick={() => void chooseRoot()}>
+        <FolderOpen data-icon="inline-start" />
+        {t('skills.projects.chooseFolder')}
+      </Button>
+    );
+  }
 
   return (
     <div className="flex h-full min-w-0 flex-col overflow-hidden">
@@ -66,12 +83,7 @@ function LocalProjectsView() {
         hasSnapshot={snapshot !== null}
         skillQuery={skillQuery}
         layoutMode={layoutMode}
-        leadingAction={
-          <Button variant="outline" size="default" onClick={() => void chooseRoot()}>
-            <FolderOpen data-icon="inline-start" />
-            {t('skills.projects.chooseFolder')}
-          </Button>
-        }
+        leadingAction={renderChooseFolderButton('outline')}
         onRescan={root ? () => void refresh() : undefined}
         rescanLabel={t('skills.projects.refresh')}
         showInstalledControls={false}
@@ -79,8 +91,30 @@ function LocalProjectsView() {
         onSkillQueryChange={setSkillQuery}
       />
       <ScrollArea className="min-h-0 flex-1">
-        <div className="min-w-0 p-8">
-          {!root || !snapshot ? (
+        <div className="flex min-w-0 flex-col gap-4 p-8">
+          {error ? (
+            <Alert variant="destructive">
+              <AlertTitle>{t('skills.projects.loadFailed')}</AlertTitle>
+              <AlertDescription>{t('skills.projects.loadFailedDescription')}</AlertDescription>
+            </Alert>
+          ) : null}
+          {root &&
+          hasLoadedProjects &&
+          !snapshot &&
+          !refreshing &&
+          projects.length === 0 &&
+          !error ? (
+            <Empty className="border border-dashed bg-card py-12">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Search />
+                </EmptyMedia>
+                <EmptyTitle>{t('skills.projects.empty')}</EmptyTitle>
+                <EmptyDescription>{t('skills.projects.chooseDescription')}</EmptyDescription>
+              </EmptyHeader>
+              <EmptyContent>{renderChooseFolderButton()}</EmptyContent>
+            </Empty>
+          ) : !root || !snapshot ? (
             <Card>
               <CardHeader>
                 <CardTitle>{t('skills.projects.chooseTitle')}</CardTitle>
@@ -88,19 +122,11 @@ function LocalProjectsView() {
               <CardContent className="text-muted-foreground flex flex-col items-center gap-4 py-12 text-center text-sm">
                 <Search className="size-8" />
                 <p>{t('skills.projects.chooseDescription')}</p>
-                <Button onClick={() => void chooseRoot()}>
-                  {t('skills.projects.chooseFolder')}
-                </Button>
+                {renderChooseFolderButton()}
               </CardContent>
             </Card>
           ) : (
             <section className="min-w-0">
-              {error ? (
-                <Alert variant="destructive">
-                  <AlertTitle>{t('skills.projects.loadFailed')}</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              ) : null}
               {snapshot && visibleSkills?.length === 0 ? (
                 <Card>
                   <CardContent className="text-muted-foreground flex flex-col items-center gap-4 py-12 text-center text-sm">

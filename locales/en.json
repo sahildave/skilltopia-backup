@@ -323,6 +323,7 @@
   "skills.projects.direct": "Direct project",
   "skills.projects.nested": "Nested project",
   "skills.projects.loadFailed": "Couldn't load projects",
+  "skills.projects.loadFailedDescription": "Couldn't open or read this folder. Choose it again and make sure Skilltopia has access.",
   "skills.projects.skillsTitle": "Project skills",
   "skills.projects.skillsFound": "skills found",
   "skills.projects.catalogMatch": "Catalog match",

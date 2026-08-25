@@ -1,4 +1,5 @@
 import type { InstalledScanSnapshot, ProjectInfo } from '@/platform/types';
+import { logger } from '@/lib/logger';
 import { platform } from '@platform';
 import { create } from 'zustand';
 
@@ -25,6 +26,7 @@ interface ProjectsState {
   projects: ProjectInfo[];
   selectedPath: string | null;
   snapshot: InstalledScanSnapshot | null;
+  hasLoadedProjects: boolean;
   refreshing: boolean;
   error: string | null;
   chooseRoot: () => Promise<void>;
@@ -38,15 +40,28 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
   projects: [],
   selectedPath: null,
   snapshot: null,
+  hasLoadedProjects: false,
   refreshing: false,
   error: null,
 
   chooseRoot: async () => {
-    const root = await platform.pickCodingFolder();
-    if (!root) return;
-    if (typeof localStorage !== 'undefined') localStorage.setItem(ROOT_KEY, root);
-    set({ root, selectedPath: null, snapshot: null });
-    await get().refresh();
+    set({ error: null });
+    try {
+      const root = await platform.pickCodingFolder();
+      if (!root) return;
+      if (typeof localStorage !== 'undefined') localStorage.setItem(ROOT_KEY, root);
+      set({
+        root,
+        projects: [],
+        selectedPath: null,
+        snapshot: null,
+        hasLoadedProjects: false,
+      });
+      await get().refresh();
+    } catch (error) {
+      logger.error('Failed to choose coding folder', { error });
+      set({ error: error instanceof Error ? error.message : String(error) });
+    }
   },
 
   clearSelection: () => {
@@ -65,7 +80,7 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
       const selectedPath = get().selectedPath;
       const selected =
         projects.find((project) => project.path === selectedPath) ?? pickDefaultProject(projects);
-      set({ projects, selectedPath: selected?.path ?? null });
+      set({ projects, selectedPath: selected?.path ?? null, hasLoadedProjects: true });
       if (selected) {
         const snapshot = await platform.scanProject(selected.path);
         if (currentRequest !== requestId) return;
@@ -75,6 +90,7 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
       }
     } catch (error) {
       if (currentRequest === requestId) {
+        logger.error('Failed to refresh projects', { error });
         set({ error: error instanceof Error ? error.message : String(error) });
       }
     } finally {
@@ -90,6 +106,7 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
       if (currentRequest === requestId) set({ snapshot });
     } catch (error) {
       if (currentRequest === requestId) {
+        logger.error('Failed to scan project', { error });
         set({ error: error instanceof Error ? error.message : String(error), snapshot: null });
       }
     } finally {

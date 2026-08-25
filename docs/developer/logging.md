@@ -36,7 +36,8 @@ logger.error('Request failed', { error: response.error });
 ### TypeScript Frontend
 
 - **Development**: All logs go to browser console
-- **Production**: Console logging only (keeps it simple)
+- **Desktop**: All logs are forwarded through `tauri-plugin-log` to the configured Rust targets
+- **Production desktop**: Logs are written to the app log directory
 - Logger utility at `src/lib/logger.ts`
 
 ## Log Levels
@@ -59,7 +60,7 @@ logger.error('Request failed', { error: response.error });
 ### Production
 
 - **Rust**: Terminal (stdout) + log file in app log directory
-- **TypeScript**: Browser DevTools console
+- **TypeScript desktop**: App log file through `tauri-plugin-log`
 
 Log directory locations vary by platform (e.g., `~/Library/Logs/` on macOS).
 

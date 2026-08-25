@@ -67,6 +67,14 @@ describe('PlatformPort mock', () => {
       ],
     });
   });
+
+  it('reports every bulk-copied skill as copied for each target', async () => {
+    await expect(
+      mockPlatform.copyProviderSkills('claude-code', ['a', 'b'], ['codex']),
+    ).resolves.toEqual({
+      targets: [{ providerId: 'codex', copied: 2, skipped: 0, refused: 0, failed: 0, issues: [] }],
+    });
+  });
 });
 
 describe('PlatformPort web', () => {
@@ -149,6 +157,29 @@ describe('PlatformPort web', () => {
         ],
       },
     );
+  });
+
+  it('marks copyProviderSkills as unavailable on web', async () => {
+    await expect(
+      webPlatform.copyProviderSkills('claude-code', ['find-skills'], ['codex']),
+    ).resolves.toEqual({
+      targets: [
+        {
+          providerId: 'codex',
+          copied: 0,
+          skipped: 0,
+          refused: 0,
+          failed: 1,
+          issues: [
+            {
+              skillName: 'find-skills',
+              status: 'failed',
+              message: 'Copy to providers requires the desktop app',
+            },
+          ],
+        },
+      ],
+    });
   });
 
   it('opens external urls in a new tab', async () => {

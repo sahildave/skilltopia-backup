@@ -15,7 +15,9 @@ import {
 } from './install-command';
 import { skillEntriesFromScan, providersFromScan } from './scan-utils';
 import type {
+  BulkCopyStatus,
   CopyProviderResult,
+  CopyProviderSkillsResult,
   CopySkillToProvidersResult,
   InstallableSkill,
   InstalledScanSnapshot,
@@ -66,6 +68,28 @@ function normalizeCopyResult(result: {
       providerId: entry.providerId,
       status: entry.status,
       message: entry.message ?? undefined,
+    })),
+  };
+}
+
+function normalizeBulkCopyResult(result: {
+  targets: {
+    providerId: string;
+    copied: number;
+    skipped: number;
+    refused: number;
+    failed: number;
+    issues: { skillName: string; status: BulkCopyStatus; message?: string | null }[];
+  }[];
+}): CopyProviderSkillsResult {
+  return {
+    targets: result.targets.map((target) => ({
+      ...target,
+      issues: target.issues.map((issue) => ({
+        skillName: issue.skillName,
+        status: issue.status,
+        message: issue.message ?? undefined,
+      })),
     })),
   };
 }
@@ -188,6 +212,14 @@ export const platform: PlatformPort = {
   async copySkillToProviders(uninstallName, providerIds) {
     return normalizeCopyResult(
       unwrapResult(await commands.copySkillToProviders(uninstallName, providerIds)),
+    );
+  },
+
+  async copyProviderSkills(sourceProviderId, skillNames, targetProviderIds) {
+    return normalizeBulkCopyResult(
+      unwrapResult(
+        await commands.copyProviderSkills(sourceProviderId, skillNames, targetProviderIds),
+      ),
     );
   },
 

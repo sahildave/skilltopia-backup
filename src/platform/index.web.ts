@@ -65,6 +65,23 @@ export const platform: PlatformPort = {
     };
   },
 
+  async copyProviderSkills(_sourceProviderId, skillNames, targetProviderIds) {
+    return {
+      targets: targetProviderIds.map((providerId) => ({
+        providerId,
+        copied: 0,
+        skipped: 0,
+        refused: 0,
+        failed: skillNames.length,
+        issues: skillNames.map((skillName) => ({
+          skillName,
+          status: 'failed' as const,
+          message: 'Copy to providers requires the desktop app',
+        })),
+      })),
+    };
+  },
+
   async openExternal(url) {
     window.open(url, '_blank', 'noopener,noreferrer');
   },

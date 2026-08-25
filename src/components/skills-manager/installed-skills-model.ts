@@ -302,6 +302,70 @@ export function buildCopyProviderDialogModel(
   };
 }
 
+export interface BulkCopyTargetOption extends CopyProviderOption {
+  /** Source skills this target does not have yet. */
+  toCopy: number;
+  /** Source skills whose name is already present at this target. */
+  alreadyThere: number;
+}
+
+export interface BulkCopyDialogModel {
+  /** Folder names to copy, in the order the dialog reports them. */
+  skillNames: string[];
+  targets: BulkCopyTargetOption[];
+}
+
+/**
+ * Skills the provider physically owns: a real, non-symlinked directory under
+ * its own skills folder. The same rule the toolbar's "Provider" view applies,
+ * and the only correct source set for a bulk copy — a symlinked entry is
+ * another provider's (or Universal's) content projected in, not this one's.
+ */
+export function ownedSkillsForProvider(
+  snapshot: InstalledScanSnapshot,
+  providerId: string,
+): ScannedSkill[] {
+  const skillsDir = snapshot.providers.find((p) => p.id === providerId)?.skillsDir;
+  if (!skillsDir || skillsDir === snapshot.universal.skillsDir) return [];
+
+  return sortSkills(
+    snapshot.skills.filter((skill) =>
+      skill.paths.some((entry) => !entry.originalPath && pathUnderDir(entry.path, skillsDir)),
+    ),
+  );
+}
+
+/**
+ * Destination rows for the bulk copy dialog, counted from the snapshot alone —
+ * no extra scan and no backend preview call. "Already there" is a name match at
+ * the destination, which is exactly what the backend skips.
+ */
+export function buildBulkCopyDialogModel(
+  snapshot: InstalledScanSnapshot,
+  sourceProviderId: string,
+): BulkCopyDialogModel {
+  const sourceSkills = ownedSkillsForProvider(snapshot, sourceProviderId);
+  const skillNames = sourceSkills.map((skill) => skill.uninstallName);
+  const sidebar = buildProviderSidebarModel(snapshot);
+
+  const targets = [...sidebar.activeProviders, ...sidebar.inactiveProviders]
+    .filter((item) => item.id !== sourceProviderId && isEligibleCopyDestination(item, snapshot))
+    .map((item) => {
+      const present = new Set(
+        ownedSkillsForProvider(snapshot, String(item.id)).map((skill) => skill.uninstallName),
+      );
+      const alreadyThere = skillNames.filter((name) => present.has(name)).length;
+      return {
+        ...toCopyOption(item),
+        toCopy: skillNames.length - alreadyThere,
+        alreadyThere,
+      };
+    })
+    .sort((a, b) => b.toCopy - a.toCopy || a.name.localeCompare(b.name));
+
+  return { skillNames, targets };
+}
+
 function sortSkills(skills: ScannedSkill[]): ScannedSkill[] {
   return [...skills].sort((a, b) => a.name.localeCompare(b.name));
 }

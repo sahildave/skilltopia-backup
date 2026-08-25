@@ -19,6 +19,7 @@ const scanMock = vi.hoisted(() => ({
   openExternal: vi.fn(),
   uninstall: vi.fn(),
   copySkillToProviders: vi.fn(),
+  copyProviderSkills: vi.fn(),
 }));
 
 vi.mock('@platform', () => ({
@@ -35,6 +36,7 @@ vi.mock('@platform', () => ({
     install: vi.fn(),
     uninstall: (...args: unknown[]) => scanMock.uninstall(...args),
     copySkillToProviders: (...args: unknown[]) => scanMock.copySkillToProviders(...args),
+    copyProviderSkills: (...args: unknown[]) => scanMock.copyProviderSkills(...args),
     openExternal: (...args: unknown[]) => scanMock.openExternal(...args),
   },
 }));
@@ -515,5 +517,75 @@ describe('Installed Skills shared snapshot lifecycle', () => {
     });
     expect(scanMock.scanInstalled).not.toHaveBeenCalled();
     expect(useInstalledScanStore.getState().snapshot).toEqual(MOCK_INSTALLED_SCAN);
+  });
+});
+
+describe('SkillsLibraryView bulk copy entry point', () => {
+  beforeEach(() => {
+    scanMock.hasLocalLibrary = true;
+    scanMock.scanInstalled.mockResolvedValue(MOCK_INSTALLED_SCAN);
+    scanMock.getInstalledScan.mockResolvedValue(MOCK_INSTALLED_SCAN);
+    scanMock.copyProviderSkills.mockResolvedValue({ targets: [] });
+    useInstalledScanStore.setState({
+      snapshot: MOCK_INSTALLED_SCAN,
+      error: null,
+      refreshing: false,
+    });
+    useInstalledSkillsUiStore.setState({
+      providerFilter: ALL_AGENTS_FILTER_ID,
+      layoutMode: 'grid',
+    });
+  });
+
+  const copyToButton = () => screen.queryByRole('button', { name: /copy to/i });
+
+  it('hides the button for the All agents selection', () => {
+    render(<SkillsLibraryView />);
+    expect(copyToButton()).not.toBeInTheDocument();
+  });
+
+  it('hides the button for the Universal selection', () => {
+    useInstalledSkillsUiStore.setState({ providerFilter: UNIVERSAL_PROVIDER_ID });
+    render(<SkillsLibraryView />);
+    expect(copyToButton()).not.toBeInTheDocument();
+  });
+
+  it('hides the button for a provider that owns nothing', () => {
+    // Cursor is detected but its skills directory holds no real folders.
+    useInstalledSkillsUiStore.setState({ providerFilter: 'cursor' });
+    render(<SkillsLibraryView />);
+    expect(copyToButton()).not.toBeInTheDocument();
+  });
+
+  it('shows the button for a concrete provider that owns skills', () => {
+    useInstalledSkillsUiStore.setState({ providerFilter: 'claude-code' });
+    render(<SkillsLibraryView />);
+    expect(copyToButton()).toBeInTheDocument();
+    expect(copyToButton()).toBeEnabled();
+  });
+
+  it('disables the button while a rescan is in flight', () => {
+    useInstalledSkillsUiStore.setState({ providerFilter: 'claude-code' });
+    useInstalledScanStore.setState({ refreshing: true });
+    render(<SkillsLibraryView />);
+    expect(copyToButton()).toBeDisabled();
+  });
+
+  it('opens the bulk copy dialog listing the counts for each destination', async () => {
+    const user = userEvent.setup();
+    useInstalledSkillsUiStore.setState({ providerFilter: 'claude-code' });
+    render(<SkillsLibraryView />);
+
+    const button = copyToButton();
+    expect(button).not.toBeNull();
+    if (!button) return;
+    await user.click(button);
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/copy every claude code skill/i)).toBeInTheDocument();
+    expect(within(dialog).getByRole('checkbox', { name: /^cursor$/i })).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole('checkbox', { name: /^universal$/i }),
+    ).not.toBeInTheDocument();
   });
 });

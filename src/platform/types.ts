@@ -155,6 +155,35 @@ export interface CopySkillToProvidersResult {
   results: CopyProviderResult[];
 }
 
+export type BulkCopyStatus =
+  | 'copied'
+  /** Already present at the destination; left untouched. */
+  | 'skipped'
+  /** The destination is inside the read-only Claude plugin cache. */
+  | 'refused'
+  | 'failed';
+
+/** One skill that did not copy, named so the summary can say which. */
+export interface BulkCopyIssue {
+  skillName: string;
+  status: BulkCopyStatus;
+  message?: string;
+}
+
+export interface BulkCopyTargetResult {
+  providerId: string;
+  copied: number;
+  skipped: number;
+  refused: number;
+  failed: number;
+  /** Failures only; skipped and refused are counted, not enumerated. */
+  issues: BulkCopyIssue[];
+}
+
+export interface CopyProviderSkillsResult {
+  targets: BulkCopyTargetResult[];
+}
+
 export interface PlatformPort {
   hasLocalLibrary: boolean;
   /** When true, `install` copies a CLI command instead of writing to disk. */
@@ -193,5 +222,16 @@ export interface PlatformPort {
     uninstallName: string,
     providerIds: string[],
   ): Promise<CopySkillToProvidersResult>;
+  /**
+   * Copy every named skill owned by `sourceProviderId` into each target
+   * provider. Sources come from that provider's own skills directory, so a
+   * Universal copy of the same name never stands in for it. Names already at a
+   * destination are left untouched and counted as skipped. Does not rescan.
+   */
+  copyProviderSkills(
+    sourceProviderId: string,
+    skillNames: string[],
+    targetProviderIds: string[],
+  ): Promise<CopyProviderSkillsResult>;
   openExternal(url: string): Promise<void>;
 }

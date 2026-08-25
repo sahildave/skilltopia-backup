@@ -3,11 +3,12 @@
 use tauri::{AppHandle, Manager};
 
 use crate::provider_scan::{
+    copy_provider_skills as copy_provider_skills_impl,
     copy_skill_to_providers as copy_skill_to_providers_impl, delete_universal_skill_dir,
     install_skill as install_skill_impl, list_projects as list_projects_impl,
     resolve_provider_skills_dir, reveal_skills_dir, scan_installed_cached, scan_project,
-    uninstall_skill as uninstall_skill_impl, CopySkillToProvidersResult, InstalledScanSnapshot,
-    ProjectInfo, ScanContext, SkillProjectionResult,
+    uninstall_skill as uninstall_skill_impl, CopyProviderSkillsResult, CopySkillToProvidersResult,
+    InstalledScanSnapshot, ProjectInfo, ScanContext, SkillProjectionResult,
 };
 
 /// Scan global provider + Universal skill directories into one normalized snapshot.
@@ -78,6 +79,25 @@ pub fn copy_skill_to_providers(
     copy_skill_to_providers_impl(
         &uninstall_name,
         &provider_ids,
+        &ScanContext::from_environment(),
+    )
+}
+
+/// Copy every named skill owned by one provider into the given target providers.
+/// Sources come from the named provider's own skills directory, so a Universal
+/// copy of the same name never stands in for it. Names already present at a
+/// destination are left untouched and counted as skipped.
+#[tauri::command(async)]
+#[specta::specta]
+pub fn copy_provider_skills(
+    source_provider_id: String,
+    skill_names: Vec<String>,
+    target_provider_ids: Vec<String>,
+) -> Result<CopyProviderSkillsResult, String> {
+    copy_provider_skills_impl(
+        &source_provider_id,
+        &skill_names,
+        &target_provider_ids,
         &ScanContext::from_environment(),
     )
 }

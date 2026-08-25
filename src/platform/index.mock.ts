@@ -68,6 +68,19 @@ export const platform: PlatformPort = {
     };
   },
 
+  async copyProviderSkills(_sourceProviderId, skillNames, targetProviderIds) {
+    return {
+      targets: targetProviderIds.map((providerId) => ({
+        providerId,
+        copied: skillNames.length,
+        skipped: 0,
+        refused: 0,
+        failed: 0,
+        issues: [],
+      })),
+    };
+  },
+
   async openExternal(url) {
     window.open(url, '_blank', 'noopener,noreferrer');
   },

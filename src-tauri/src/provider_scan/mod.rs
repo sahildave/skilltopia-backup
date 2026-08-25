@@ -1,5 +1,6 @@
 //! Global installed-skill scan using the vendored provider registry.
 
+mod bulk_copy;
 mod cache;
 mod copy;
 mod frontmatter;
@@ -13,6 +14,7 @@ mod projection;
 mod scan;
 mod types;
 
+pub use bulk_copy::{copy_provider_skills, CopyProviderSkillsResult};
 pub use cache::scan_installed_cached;
 pub use copy::{copy_skill_to_providers, CopySkillToProvidersResult};
 pub use install::{install_skill, uninstall_skill, SkillProjectionResult};

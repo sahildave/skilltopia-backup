@@ -9,3 +9,15 @@
 | 14 | Enforce plugin skills as read-only, and show their origin | passed | 13 |
 | 15 | Cache the installed scan and invalidate on filesystem change | passed | 13 |
 
+<!-- afk:progress:28 -->
+
+## Progress — Bulk copy all skills from one provider into another
+
+| ID | Task | Status | Dependencies |
+| --- | --- | --- | --- |
+| 21 | Prefactor: shared copy-provider checkbox row and progress primitive | passed | - |
+| 22 | Copy all skills from one provider into another | pending | 21 |
+| 23 | Live progress during a bulk skill copy | pending | 22 |
+
+
+<!-- /afk:progress:28 -->

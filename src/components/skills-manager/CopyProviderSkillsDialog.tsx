@@ -8,7 +8,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { FieldGroup, FieldSet } from '@/components/ui/field';
-import type { CopyProviderSkillsResult, InstalledScanSnapshot } from '@/platform/types';
+import { Progress } from '@/components/ui/progress';
+import type {
+  BulkCopyProgress,
+  CopyProviderSkillsResult,
+  InstalledScanSnapshot,
+} from '@/platform/types';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { platform } from '@platform';
 import { LoaderCircle } from 'lucide-react';
@@ -57,14 +62,20 @@ export function CopyProviderSkillsDialog({
   const model = buildBulkCopyDialogModel(snapshot, sourceProviderId);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [running, setRunning] = useState(false);
+  const [progress, setProgress] = useState<BulkCopyProgress | null>(null);
 
   const selectedCount = selectedIds.size;
+  const percentComplete =
+    progress && progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0;
 
   const handleOpenChange = (next: boolean) => {
     // A batch in flight owns the dialog: closing it would strand the summary.
     if (running) return;
     onOpenChange(next);
-    if (!next) setSelectedIds(new Set());
+    if (!next) {
+      setSelectedIds(new Set());
+      setProgress(null);
+    }
   };
 
   const toggleId = (id: string, checked: boolean) => {
@@ -79,11 +90,21 @@ export function CopyProviderSkillsDialog({
   const handleSubmit = async () => {
     if (selectedCount === 0 || model.skillNames.length === 0) return;
     setRunning(true);
+    setProgress(null);
     try {
-      const result = await platform.copyProviderSkills(sourceProviderId, model.skillNames, [
-        ...selectedIds,
-      ]);
+      const result = await platform.copyProviderSkills(
+        sourceProviderId,
+        model.skillNames,
+        [...selectedIds],
+        setProgress,
+      );
       const { copied, skipped, failed } = totals(result);
+      // Land on 100% before the summary, even from a port that never ticked.
+      setProgress({
+        completed: model.skillNames.length,
+        total: model.skillNames.length,
+        skillName: '',
+      });
 
       if (failed > 0) {
         toast.warning(t('skills.installed.copyAllSummary', { copied, skipped, failed }), {
@@ -99,10 +120,12 @@ export function CopyProviderSkillsDialog({
       setRunning(false);
       onOpenChange(false);
       setSelectedIds(new Set());
+      setProgress(null);
       await rescan();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       setRunning(false);
+      setProgress(null);
       if (isPermissionError(message)) {
         toast.error(t('skills.install.permissionError'), { description: message });
       } else {
@@ -153,6 +176,21 @@ export function CopyProviderSkillsDialog({
             </p>
           )}
         </div>
+
+        {running && (
+          <div className="flex flex-col gap-1.5">
+            <Progress value={percentComplete} />
+            <p className="text-muted-foreground truncate text-sm">
+              {progress && progress.skillName
+                ? t('skills.installed.copyAllProgress', {
+                    completed: progress.completed,
+                    total: progress.total,
+                    name: progress.skillName,
+                  })
+                : t('skills.installed.copyAllRunning')}
+            </p>
+          </div>
+        )}
 
         <DialogFooter className="sm:items-center sm:justify-between">
           <p className="text-muted-foreground text-sm text-pretty">

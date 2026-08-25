@@ -50,6 +50,17 @@ pub struct BulkCopyIssue {
     pub message: Option<String>,
 }
 
+/// One tick of a bulk copy, emitted after a skill has been handled for every
+/// target. `completed` counts skills finished, not per-target writes, so it
+/// advances once per name regardless of how many destinations are selected.
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BulkCopyProgress {
+    pub completed: u32,
+    pub total: u32,
+    pub skill_name: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct BulkCopyTargetResult {
@@ -109,6 +120,7 @@ pub fn copy_provider_skills(
     skill_names: &[String],
     target_provider_ids: &[String],
     ctx: &ScanContext,
+    on_progress: &dyn Fn(BulkCopyProgress),
 ) -> Result<CopyProviderSkillsResult, String> {
     if skill_names.is_empty() {
         return Err("At least one skill name is required".into());
@@ -144,46 +156,55 @@ pub fn copy_provider_skills(
         targets.push((result, root));
     }
 
-    for skill_name in &names {
-        let source = match resolve_owned_source(source_provider_id, &source_dir, skill_name) {
-            Ok(path) => path,
+    let total = names.len() as u32;
+
+    for (index, skill_name) in names.iter().enumerate() {
+        match resolve_owned_source(source_provider_id, &source_dir, skill_name) {
             Err(message) => {
                 for (result, root) in targets.iter_mut() {
                     if root.is_some() {
                         result.record(skill_name, BulkCopyStatus::Failed, Some(message.clone()));
                     }
                 }
-                continue;
             }
-        };
+            Ok(source) => {
+                for (result, root) in targets.iter_mut() {
+                    let Some(root) = root else { continue };
+                    let outcome = project_skill(
+                        &source,
+                        skill_name,
+                        &[ProjectionTarget {
+                            id: result.provider_id.clone(),
+                            root: root.clone(),
+                        }],
+                        ProjectionMode::Symlink,
+                        ForeignDirPolicy::Refuse,
+                        None,
+                        &guard,
+                    )
+                    .remove(0);
 
-        for (result, root) in targets.iter_mut() {
-            let Some(root) = root else { continue };
-            let outcome = project_skill(
-                &source,
-                skill_name,
-                &[ProjectionTarget {
-                    id: result.provider_id.clone(),
-                    root: root.clone(),
-                }],
-                ProjectionMode::Symlink,
-                ForeignDirPolicy::Refuse,
-                None,
-                &guard,
-            )
-            .remove(0);
-
-            let status = match outcome.status {
-                ProjectionStatus::Written => BulkCopyStatus::Copied,
-                // Already there, either by name or through an aliased root.
-                ProjectionStatus::AlreadyPresent | ProjectionStatus::Conflict => {
-                    BulkCopyStatus::Skipped
+                    let status = match outcome.status {
+                        ProjectionStatus::Written => BulkCopyStatus::Copied,
+                        // Already there, either by name or through an aliased root.
+                        ProjectionStatus::AlreadyPresent | ProjectionStatus::Conflict => {
+                            BulkCopyStatus::Skipped
+                        }
+                        ProjectionStatus::Refused => BulkCopyStatus::Refused,
+                        _ => BulkCopyStatus::Failed,
+                    };
+                    result.record(skill_name, status, outcome.message);
                 }
-                ProjectionStatus::Refused => BulkCopyStatus::Refused,
-                _ => BulkCopyStatus::Failed,
-            };
-            result.record(skill_name, status, outcome.message);
+            }
         }
+
+        // A skill that could not be sourced still consumed its share of the
+        // batch, so it ticks too — otherwise the bar stalls on a bad bundle.
+        on_progress(BulkCopyProgress {
+            completed: index as u32 + 1,
+            total,
+            skill_name: skill_name.clone(),
+        });
     }
 
     Ok(CopyProviderSkillsResult {
@@ -285,16 +306,28 @@ mod tests {
     #[test]
     fn rejects_empty_skill_list() {
         let home = temp_home("empty-skills");
-        let err = copy_provider_skills("claude-code", &[], &names(&["codex"]), &scan_ctx(&home))
-            .unwrap_err();
+        let err = copy_provider_skills(
+            "claude-code",
+            &[],
+            &names(&["codex"]),
+            &scan_ctx(&home),
+            &|_| {},
+        )
+        .unwrap_err();
         assert!(err.contains("At least one skill name"));
     }
 
     #[test]
     fn rejects_empty_target_list() {
         let home = temp_home("empty-targets");
-        let err =
-            copy_provider_skills("claude-code", &names(&["a"]), &[], &scan_ctx(&home)).unwrap_err();
+        let err = copy_provider_skills(
+            "claude-code",
+            &names(&["a"]),
+            &[],
+            &scan_ctx(&home),
+            &|_| {},
+        )
+        .unwrap_err();
         assert!(err.contains("At least one provider id"));
     }
 
@@ -306,6 +339,7 @@ mod tests {
             &names(&["a"]),
             &names(&["codex"]),
             &scan_ctx(&home),
+            &|_| {},
         )
         .unwrap_err();
         assert!(err.contains("Unknown or unresolvable provider"));
@@ -328,6 +362,7 @@ mod tests {
             &names(&["code-review", "find-skills"]),
             &names(&["codex"]),
             &scan_ctx(&home),
+            &|_| {},
         )
         .unwrap();
 
@@ -355,6 +390,7 @@ mod tests {
             &names(&["missing-skill", "code-review"]),
             &names(&["codex"]),
             &scan_ctx(&home),
+            &|_| {},
         )
         .unwrap();
 
@@ -382,6 +418,7 @@ mod tests {
             &names(&["code-review"]),
             &names(&["codex"]),
             &scan_ctx(&home),
+            &|_| {},
         )
         .unwrap();
 
@@ -412,6 +449,7 @@ mod tests {
             &names(&["code-review"]),
             &names(&["codex"]),
             &scan_ctx(&home),
+            &|_| {},
         )
         .unwrap();
 
@@ -445,6 +483,7 @@ mod tests {
             &names(&["code-review"]),
             &names(&["codex"]),
             &scan_ctx(&home),
+            &|_| {},
         )
         .unwrap();
 
@@ -466,12 +505,50 @@ mod tests {
             &names(&["code-review", "code-review"]),
             &names(&["codex", "codex"]),
             &scan_ctx(&home),
+            &|_| {},
         )
         .unwrap();
 
         assert_eq!(result.targets.len(), 1);
         assert_eq!(result.targets[0].copied, 1);
         assert_eq!(result.targets[0].skipped, 0);
+    }
+
+    /// One tick per skill, in order, counting up to the deduped total — and
+    /// the outcome counts are the same as a run with no sink at all.
+    #[test]
+    fn emits_one_progress_tick_per_skill() {
+        let home = temp_home("progress-ticks");
+        let claude = home.join(".claude/skills");
+        write_skill(&claude, "code-review", "Real");
+        write_skill(&claude, "tdd", "Real");
+        fs::create_dir_all(home.join(".claude")).unwrap();
+
+        let ticks = std::cell::RefCell::new(Vec::new());
+        let result = copy_provider_skills(
+            "claude-code",
+            // A missing skill and a duplicate: neither may stall or double-tick.
+            &names(&["code-review", "missing-skill", "tdd", "tdd"]),
+            &names(&["codex"]),
+            &scan_ctx(&home),
+            &|progress| ticks.borrow_mut().push(progress),
+        )
+        .unwrap();
+
+        let ticks = ticks.into_inner();
+        assert_eq!(
+            ticks
+                .iter()
+                .map(|t| (t.completed, t.total, t.skill_name.as_str()))
+                .collect::<Vec<_>>(),
+            vec![
+                (1, 3, "code-review"),
+                (2, 3, "missing-skill"),
+                (3, 3, "tdd"),
+            ]
+        );
+        assert_eq!(result.targets[0].copied, 2);
+        assert_eq!(result.targets[0].failed, 1);
     }
 
     #[test]
@@ -486,6 +563,7 @@ mod tests {
             &names(&["code-review"]),
             &names(&["universal", "codex"]),
             &scan_ctx(&home),
+            &|_| {},
         )
         .unwrap();
 

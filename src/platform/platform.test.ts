@@ -75,6 +75,17 @@ describe('PlatformPort mock', () => {
       targets: [{ providerId: 'codex', copied: 2, skipped: 0, refused: 0, failed: 0, issues: [] }],
     });
   });
+
+  it('emits one synthetic progress tick per skill', async () => {
+    const ticks: unknown[] = [];
+    await mockPlatform.copyProviderSkills('claude-code', ['a', 'b'], ['codex'], (progress) =>
+      ticks.push(progress),
+    );
+    expect(ticks).toEqual([
+      { completed: 1, total: 2, skillName: 'a' },
+      { completed: 2, total: 2, skillName: 'b' },
+    ]);
+  });
 });
 
 describe('PlatformPort web', () => {

@@ -276,9 +276,9 @@ async copySkillToProviders(uninstallName: string, providerIds: string[]) : Promi
  * copy of the same name never stands in for it. Names already present at a
  * destination are left untouched and counted as skipped.
  */
-async copyProviderSkills(sourceProviderId: string, skillNames: string[], targetProviderIds: string[]) : Promise<Result<CopyProviderSkillsResult, string>> {
+async copyProviderSkills(sourceProviderId: string, skillNames: string[], targetProviderIds: string[], onProgress: TAURI_CHANNEL<BulkCopyProgress>) : Promise<Result<CopyProviderSkillsResult, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("copy_provider_skills", { sourceProviderId, skillNames, targetProviderIds }) };
+    return { status: "ok", data: await TAURI_INVOKE("copy_provider_skills", { sourceProviderId, skillNames, targetProviderIds, onProgress }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -341,6 +341,12 @@ language: string | null }
  * One skill that did not copy, named so the summary can say which.
  */
 export type BulkCopyIssue = { skillName: string; status: BulkCopyStatus; message?: string | null }
+/**
+ * One tick of a bulk copy, emitted after a skill has been handled for every
+ * target. `completed` counts skills finished, not per-target writes, so it
+ * advances once per name regardless of how many destinations are selected.
+ */
+export type BulkCopyProgress = { completed: number; total: number; skillName: string }
 export type BulkCopyStatus = "copied" | 
 /**
  * Already there: the destination holds this name, or resolves onto the
@@ -445,6 +451,7 @@ export type SkillTargetStatus =
  */
 "refused" | "failed"
 export type SkillsShSkill = { id: string; slug: string; name: string; source: string; installs: number; sourceType: string; installUrl?: string | null; url: string; isDuplicate?: boolean | null }
+export type TAURI_CHANNEL<TSend> = null
 export type UniversalScanInfo = { skillsDir: string; skillsDirExists: boolean; skillCount: number }
 
 /** tauri-specta globals **/

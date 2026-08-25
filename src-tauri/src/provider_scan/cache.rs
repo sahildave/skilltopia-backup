@@ -30,7 +30,7 @@ use super::paths::{
     evaluate_detection, load_registry, resolve_global_skills_dir, universal_skills_dir,
 };
 use super::plugin_manifest::read_installed_plugins;
-use super::scan::{scan_installed, ScanContext};
+use super::scan::{scan_installed, walk_provider_skill_entries, ScanContext};
 use super::types::InstalledScanSnapshot;
 
 /// Nanoseconds since the epoch, or `0` for a time the platform cannot express.
@@ -97,6 +97,18 @@ fn hash_skills_dir(hasher: &mut DefaultHasher, dir: &Path) {
     }
 }
 
+fn hash_provider_skills_dir(hasher: &mut DefaultHasher, dir: &Path, provider_id: &str) {
+    hash_path_stat(hasher, dir);
+    let walk = walk_provider_skill_entries(dir, provider_id);
+    for control_path in walk.control_paths {
+        hash_path_stat(hasher, &control_path);
+    }
+    for entry in walk.entries {
+        hash_path_stat(hasher, &entry.entry_path);
+        hash_path_stat(hasher, &entry.content_root.join("SKILL.md"));
+    }
+}
+
 /// A stat-only digest of every input `scan_installed` reads.
 ///
 /// Deliberately re-derives provider detection: a provider that becomes detected
@@ -118,7 +130,9 @@ fn fingerprint(ctx: &ScanContext) -> Result<u64, String> {
         }
         let skills_dir = resolve_global_skills_dir(&provider.global_skills_dir, &ctx.probe);
         match skills_dir {
-            Some(dir) if dir != universal_dir => hash_skills_dir(&mut hasher, &dir),
+            Some(dir) if dir != universal_dir => {
+                hash_provider_skills_dir(&mut hasher, &dir, &provider.id)
+            }
             // A provider sharing the Universal tree adds no directory of its
             // own; the Universal hash above already covers it.
             other => other.is_some().hash(&mut hasher),
@@ -274,6 +288,66 @@ mod tests {
 
         write_skill(&universal, "alpha", "first, but rewritten at length");
         assert_ne!(before, fingerprint(&ctx).unwrap());
+        fs::remove_dir_all(&home).ok();
+    }
+
+    #[test]
+    fn nested_hermes_skill_edit_invalidates_cached_scan() {
+        let home = temp_home("hermes-nested-edit");
+        let category = home.join(".hermes/skills/mlops/inference");
+        write_skill(&category, "serving-llms-vllm", "first");
+        let ctx = scan_ctx(&home);
+        let cache = ScanCache::default();
+        let before = cache.scan(&ctx).unwrap();
+        assert!(before
+            .skills
+            .iter()
+            .any(|skill| skill.description == "first"));
+
+        write_skill(
+            &category,
+            "serving-llms-vllm",
+            "first, but rewritten at length",
+        );
+
+        let after = cache.scan(&ctx).unwrap();
+        assert_eq!(cache.hits(), 0, "a nested edit must not be a cache hit");
+        assert!(after
+            .skills
+            .iter()
+            .any(|skill| skill.description == "first, but rewritten at length"));
+        fs::remove_dir_all(&home).ok();
+    }
+
+    #[test]
+    fn changing_active_hermes_org_invalidates_cached_scan() {
+        let home = temp_home("hermes-active-org");
+        let org_root = home.join(".hermes/skills/_org");
+        write_skill(&org_root.join("first-org"), "first-skill", "First org");
+        write_skill(&org_root.join("second-org"), "second-skill", "Second org");
+        fs::write(org_root.join(".active_org"), "first-org\n").unwrap();
+        let ctx = scan_ctx(&home);
+        let cache = ScanCache::default();
+
+        let first = cache.scan(&ctx).unwrap();
+        assert!(first.skills.iter().any(|skill| skill.name == "first-skill"));
+        assert!(!first
+            .skills
+            .iter()
+            .any(|skill| skill.name == "second-skill"));
+
+        fs::write(org_root.join(".active_org"), "second-org\n").unwrap();
+        let second = cache.scan(&ctx).unwrap();
+
+        assert_eq!(cache.hits(), 0, "an org change must not be a cache hit");
+        assert!(!second
+            .skills
+            .iter()
+            .any(|skill| skill.name == "first-skill"));
+        assert!(second
+            .skills
+            .iter()
+            .any(|skill| skill.name == "second-skill"));
         fs::remove_dir_all(&home).ok();
     }
 

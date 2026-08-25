@@ -11,7 +11,10 @@ Global installed-skill discovery for the desktop adapter.
    scans Universal (`~/.agents/skills`) and each detected provider’s global
    skills directory, and returns one `InstalledScanSnapshot`. Provider scans
    are flat except for Hermes Agent, whose category directories are traversed
-   recursively to match Hermes' native skill loader.
+   recursively to match Hermes' native skill loader. The shared Hermes walker
+   also follows the verified `_org/.active_org` marker, excludes stale org
+   mirrors and skill support folders, and supplies the cache fingerprint so
+   discovery and invalidation cannot drift.
 
 `listInstalled()` and `listProviders()` read the same in-memory snapshot. Call
 `scanInstalled()` to replace it (app open / Installed Skills activation /

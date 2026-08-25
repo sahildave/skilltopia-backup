@@ -145,8 +145,116 @@ pub(crate) fn classify_skill_entry(path: &Path) -> Option<SkillDirEntry> {
     }
 }
 
-fn is_hidden_dir_name(name: &str) -> bool {
-    name.starts_with('.')
+fn is_hermes_excluded_dir_name(name: &str, parent_has_skill_md: bool) -> bool {
+    matches!(
+        name,
+        "venv" | "node_modules" | "site-packages" | "__pycache__"
+    ) || (parent_has_skill_md && matches!(name, "references" | "templates" | "assets" | "scripts"))
+}
+
+pub(crate) struct ProviderSkillWalk {
+    pub(crate) entries: Vec<SkillDirEntry>,
+    pub(crate) control_paths: Vec<PathBuf>,
+    pub(crate) recursive: bool,
+}
+
+fn sorted_visible_dir_names(dir: &Path) -> Vec<std::ffi::OsString> {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    let mut names = entries
+        .flatten()
+        .map(|entry| entry.file_name())
+        .filter(|name| !name.to_string_lossy().starts_with('.'))
+        .collect::<Vec<_>>();
+    names.sort();
+    names
+}
+
+fn flat_skill_entries(dir: &Path) -> Vec<SkillDirEntry> {
+    sorted_visible_dir_names(dir)
+        .into_iter()
+        .filter_map(|name| classify_skill_entry(&dir.join(name)))
+        .collect()
+}
+
+fn read_active_hermes_org(marker: &Path) -> Option<String> {
+    let active_org = fs::read_to_string(marker).ok()?.trim().to_string();
+    validate_skill_dir_name(&active_org).ok()?;
+    Some(active_org)
+}
+
+struct HermesWalkContext<'a> {
+    skills_root: &'a Path,
+    org_root: PathBuf,
+    active_org: Option<String>,
+    visited: BTreeSet<PathBuf>,
+    entries: Vec<SkillDirEntry>,
+}
+
+fn walk_hermes_dir(logical_dir: &Path, content_dir: &Path, ctx: &mut HermesWalkContext<'_>) {
+    let current_has_skill_md = content_dir.join("SKILL.md").is_file();
+
+    for name in sorted_visible_dir_names(content_dir) {
+        let Some(name_str) = name.to_str() else {
+            continue;
+        };
+        if is_hermes_excluded_dir_name(name_str, current_has_skill_md) {
+            continue;
+        }
+        if logical_dir == ctx.skills_root && name_str == "_org" && ctx.active_org.is_none() {
+            continue;
+        }
+        if logical_dir == ctx.org_root
+            && ctx
+                .active_org
+                .as_deref()
+                .is_some_and(|active| active != name_str)
+        {
+            continue;
+        }
+
+        let logical_path = logical_dir.join(&name);
+        let Some(entry) = classify_skill_entry(&logical_path) else {
+            continue;
+        };
+        let canonical =
+            fs::canonicalize(&entry.content_root).unwrap_or_else(|_| entry.content_root.clone());
+        if !ctx.visited.insert(canonical) {
+            continue;
+        }
+
+        let nested_logical_dir = entry.entry_path.clone();
+        let nested_content_dir = entry.content_root.clone();
+        ctx.entries.push(entry);
+        walk_hermes_dir(&nested_logical_dir, &nested_content_dir, ctx);
+    }
+}
+
+pub(crate) fn walk_provider_skill_entries(dir: &Path, provider_id: &str) -> ProviderSkillWalk {
+    if provider_id != "hermes-agent" {
+        return ProviderSkillWalk {
+            entries: flat_skill_entries(dir),
+            control_paths: Vec::new(),
+            recursive: false,
+        };
+    }
+
+    let org_marker = dir.join("_org/.active_org");
+    let mut ctx = HermesWalkContext {
+        skills_root: dir,
+        org_root: dir.join("_org"),
+        active_org: read_active_hermes_org(&org_marker),
+        visited: BTreeSet::from([fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf())]),
+        entries: Vec::new(),
+    };
+    walk_hermes_dir(dir, dir, &mut ctx);
+
+    ProviderSkillWalk {
+        entries: ctx.entries,
+        control_paths: vec![org_marker],
+        recursive: true,
+    }
 }
 
 struct DirScanOutcome {
@@ -159,12 +267,11 @@ fn scan_skills_dir(
     include_internal: bool,
     provider_id_for_warnings: Option<&str>,
 ) -> DirScanOutcome {
-    scan_skills_dir_inner(
-        dir,
+    scan_skill_entries(
+        flat_skill_entries(dir),
         include_internal,
         provider_id_for_warnings,
         false,
-        &mut BTreeSet::new(),
     )
 }
 
@@ -173,73 +280,52 @@ fn scan_provider_skills_dir(
     include_internal: bool,
     provider_id: &str,
 ) -> DirScanOutcome {
-    let recursive = provider_id == "hermes-agent";
-    let mut visited = BTreeSet::new();
-    if recursive {
-        visited.insert(fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf()));
-    }
-    scan_skills_dir_inner(
-        dir,
+    let walk = walk_provider_skill_entries(dir, provider_id);
+    scan_skill_entries(
+        walk.entries,
         include_internal,
         Some(provider_id),
-        recursive,
-        &mut visited,
+        walk.recursive,
     )
 }
 
-fn scan_skills_dir_inner(
-    dir: &Path,
+fn scan_skill_entries(
+    entries: Vec<SkillDirEntry>,
     include_internal: bool,
     provider_id_for_warnings: Option<&str>,
     recursive: bool,
-    visited: &mut BTreeSet<PathBuf>,
 ) -> DirScanOutcome {
     let mut skills = Vec::new();
     let mut warnings = Vec::new();
 
-    let entries = match fs::read_dir(dir) {
-        Ok(entries) => entries,
-        Err(_) => {
-            return DirScanOutcome { skills, warnings };
-        }
-    };
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
-            continue;
-        };
-        if is_hidden_dir_name(name) {
-            continue;
-        }
-
-        let Some(entry) = classify_skill_entry(&path) else {
-            continue;
-        };
-
+    for entry in entries {
         let skill_md = entry.content_root.join("SKILL.md");
-        let raw = match fs::read_to_string(&skill_md) {
-            Ok(raw) => raw,
-            Err(_) => {
-                if recursive && !skill_md.exists() {
-                    let canonical = fs::canonicalize(&entry.content_root)
-                        .unwrap_or_else(|_| entry.content_root.clone());
-                    if !visited.insert(canonical) {
-                        continue;
+        match fs::read_to_string(&skill_md) {
+            Ok(raw) => {
+                if let Some(parsed) = parse_skill_md(&raw) {
+                    if parsed.internal && !include_internal {
+                        warnings.push(ScanWarning {
+                            code: ScanWarningCode::EntrySkipped,
+                            message: format!("Skipped internal skill '{}'", parsed.name),
+                            provider_id: provider_id_for_warnings.map(str::to_string),
+                            path: Some(normalize_path_for_serialization(&entry.entry_path)),
+                        });
+                    } else {
+                        skills.push((parsed.name, parsed.description, entry));
                     }
-                    let nested = scan_skills_dir_inner(
-                        &entry.content_root,
-                        include_internal,
-                        provider_id_for_warnings,
-                        true,
-                        visited,
-                    );
-                    if !nested.skills.is_empty() || !nested.warnings.is_empty() {
-                        skills.extend(nested.skills);
-                        warnings.extend(nested.warnings);
-                        continue;
-                    }
+                } else {
+                    warnings.push(ScanWarning {
+                        code: ScanWarningCode::EntrySkipped,
+                        message: format!(
+                            "Invalid SKILL.md frontmatter in {}",
+                            normalize_path_for_serialization(&entry.entry_path)
+                        ),
+                        provider_id: provider_id_for_warnings.map(str::to_string),
+                        path: Some(normalize_path_for_serialization(&entry.entry_path)),
+                    });
                 }
+            }
+            Err(_) if !recursive || skill_md.exists() => {
                 warnings.push(ScanWarning {
                     code: ScanWarningCode::EntrySkipped,
                     message: format!(
@@ -249,34 +335,9 @@ fn scan_skills_dir_inner(
                     provider_id: provider_id_for_warnings.map(str::to_string),
                     path: Some(normalize_path_for_serialization(&entry.entry_path)),
                 });
-                continue;
             }
-        };
-
-        let Some(parsed) = parse_skill_md(&raw) else {
-            warnings.push(ScanWarning {
-                code: ScanWarningCode::EntrySkipped,
-                message: format!(
-                    "Invalid SKILL.md frontmatter in {}",
-                    normalize_path_for_serialization(&entry.entry_path)
-                ),
-                provider_id: provider_id_for_warnings.map(str::to_string),
-                path: Some(normalize_path_for_serialization(&entry.entry_path)),
-            });
-            continue;
-        };
-
-        if parsed.internal && !include_internal {
-            warnings.push(ScanWarning {
-                code: ScanWarningCode::EntrySkipped,
-                message: format!("Skipped internal skill '{}'", parsed.name),
-                provider_id: provider_id_for_warnings.map(str::to_string),
-                path: Some(normalize_path_for_serialization(&entry.entry_path)),
-            });
-            continue;
+            Err(_) => {}
         }
-
-        skills.push((parsed.name, parsed.description, entry));
     }
 
     DirScanOutcome { skills, warnings }
@@ -1274,6 +1335,156 @@ mod tests {
                 || warning.path.as_deref()
                     != Some(normalize_path_for_serialization(&category).as_str())
         }));
+    }
+
+    #[test]
+    fn scans_nested_hermes_skill_below_another_skill() {
+        let home = temp_home("hermes-nested-skill");
+        let hermes_skills = home.join(".hermes/skills");
+        write_skill(&hermes_skills, "toolbox", "toolbox", "Parent skill");
+        write_skill(
+            &hermes_skills.join("toolbox"),
+            "nested-tool",
+            "nested-tool",
+            "Nested skill",
+        );
+        write_skill(
+            &hermes_skills.join("toolbox/references"),
+            "archived-tool",
+            "archived-tool",
+            "Archived support file",
+        );
+        write_skill(
+            &hermes_skills.join("toolbox/node_modules"),
+            "dependency-tool",
+            "dependency-tool",
+            "Dependency support file",
+        );
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        let hermes_skill_names = snapshot
+            .skills
+            .iter()
+            .filter(|skill| skill.provider_ids.contains(&"hermes-agent".to_string()))
+            .map(|skill| skill.name.as_str())
+            .collect::<BTreeSet<_>>();
+
+        assert_eq!(
+            hermes_skill_names,
+            BTreeSet::from(["nested-tool", "toolbox"])
+        );
+    }
+
+    #[test]
+    fn does_not_warn_for_empty_hermes_category() {
+        let home = temp_home("hermes-empty-category");
+        let category = home.join(".hermes/skills/creative");
+        fs::create_dir_all(&category).unwrap();
+        fs::write(category.join("DESCRIPTION.md"), "Creative skills").unwrap();
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+
+        assert!(snapshot.warnings.iter().all(|warning| {
+            warning.code != ScanWarningCode::EntrySkipped
+                || warning.path.as_deref()
+                    != Some(normalize_path_for_serialization(&category).as_str())
+        }));
+    }
+
+    #[test]
+    fn invalid_hermes_parent_warns_without_hiding_nested_skill() {
+        let home = temp_home("hermes-invalid-parent");
+        let parent = home.join(".hermes/skills/toolbox");
+        fs::create_dir_all(&parent).unwrap();
+        fs::write(parent.join("SKILL.md"), "# Missing frontmatter").unwrap();
+        write_skill(&parent, "nested-tool", "nested-tool", "Nested skill");
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+
+        assert!(snapshot
+            .skills
+            .iter()
+            .any(|skill| skill.name == "nested-tool"));
+        assert!(snapshot.warnings.iter().any(|warning| {
+            warning.message.starts_with("Invalid SKILL.md frontmatter")
+                && warning.path.as_deref()
+                    == Some(normalize_path_for_serialization(&parent).as_str())
+        }));
+    }
+
+    #[test]
+    fn does_not_scan_inactive_hermes_org_mirrors() {
+        let home = temp_home("hermes-inactive-org");
+        write_skill(
+            &home.join(".hermes/skills/_org/stale-org"),
+            "private-skill",
+            "private-skill",
+            "Stale org skill",
+        );
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+
+        assert!(!snapshot
+            .skills
+            .iter()
+            .any(|skill| skill.name == "private-skill"));
+    }
+
+    #[test]
+    fn scans_only_the_active_hermes_org_mirror() {
+        let home = temp_home("hermes-active-org");
+        let org_root = home.join(".hermes/skills/_org");
+        write_skill(
+            &org_root.join("current-org"),
+            "current-skill",
+            "current-skill",
+            "Current org skill",
+        );
+        write_skill(
+            &org_root.join("stale-org"),
+            "stale-skill",
+            "stale-skill",
+            "Stale org skill",
+        );
+        fs::write(org_root.join(".active_org"), "current-org\n").unwrap();
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+
+        assert!(snapshot
+            .skills
+            .iter()
+            .any(|skill| skill.name == "current-skill"));
+        assert!(!snapshot
+            .skills
+            .iter()
+            .any(|skill| skill.name == "stale-skill"));
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn hermes_symlink_cycle_does_not_duplicate_skill_count() {
+        use std::os::unix::fs::symlink;
+
+        let home = temp_home("hermes-cycle");
+        let hermes_skills = home.join(".hermes/skills");
+        write_skill(&hermes_skills, "cycle-root", "cycle-root", "Cycle root");
+        let cycle_root = hermes_skills.join("cycle-root");
+        symlink(&cycle_root, cycle_root.join("loop")).unwrap();
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        let hermes = snapshot
+            .providers
+            .iter()
+            .find(|provider| provider.id == "hermes-agent")
+            .expect("Hermes detected");
+        let skill = snapshot
+            .skills
+            .iter()
+            .find(|skill| skill.name == "cycle-root")
+            .expect("cycle root skill");
+
+        assert_eq!(hermes.skill_count, 1);
+        assert_eq!(skill.paths.len(), 1);
     }
 
     #[test]

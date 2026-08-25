@@ -1,5 +1,6 @@
 //! Tauri commands for installed-skill scanning and reveal.
 
+use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager};
 
 use crate::provider_scan::{
@@ -7,8 +8,9 @@ use crate::provider_scan::{
     copy_skill_to_providers as copy_skill_to_providers_impl, delete_universal_skill_dir,
     install_skill as install_skill_impl, list_projects as list_projects_impl,
     resolve_provider_skills_dir, reveal_skills_dir, scan_installed_cached, scan_project,
-    uninstall_skill as uninstall_skill_impl, CopyProviderSkillsResult, CopySkillToProvidersResult,
-    InstalledScanSnapshot, ProjectInfo, ScanContext, SkillProjectionResult,
+    uninstall_skill as uninstall_skill_impl, BulkCopyProgress, CopyProviderSkillsResult,
+    CopySkillToProvidersResult, InstalledScanSnapshot, ProjectInfo, ScanContext,
+    SkillProjectionResult,
 };
 
 /// Scan global provider + Universal skill directories into one normalized snapshot.
@@ -93,12 +95,18 @@ pub fn copy_provider_skills(
     source_provider_id: String,
     skill_names: Vec<String>,
     target_provider_ids: Vec<String>,
+    on_progress: Channel<BulkCopyProgress>,
 ) -> Result<CopyProviderSkillsResult, String> {
     copy_provider_skills_impl(
         &source_provider_id,
         &skill_names,
         &target_provider_ids,
         &ScanContext::from_environment(),
+        // A dropped receiver is not a reason to abandon a batch that is
+        // already writing to disk, so a send failure is ignored.
+        &|progress| {
+            let _ = on_progress.send(progress);
+        },
     )
 }
 

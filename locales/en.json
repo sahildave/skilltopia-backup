@@ -219,6 +219,7 @@
   "skills.installed.copyAllDescription_other": "Copy the {{count}} skills {{name}} owns into other agents. Skills already there are left alone.",
   "skills.installed.copyAllTargetCounts": "{{toCopy}} to copy, {{alreadyThere}} already there",
   "skills.installed.copyAllNoTargets": "No other agents can receive these skills.",
+  "skills.installed.copyAllProgress": "{{completed}} of {{total}} \u00b7 {{name}}",
   "skills.installed.copyAllRunning": "Copying\u2026",
   "skills.installed.copyAllSummary": "Copied {{copied}}, skipped {{skipped}}, failed {{failed}}",
   "skills.installed.copyAllFailed": "Couldn\u2019t copy {{name}}\u2019s skills",

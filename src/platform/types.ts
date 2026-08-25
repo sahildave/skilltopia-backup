@@ -184,6 +184,16 @@ export interface CopyProviderSkillsResult {
   targets: BulkCopyTargetResult[];
 }
 
+/**
+ * One tick of a bulk copy: emitted after a skill has been handled for every
+ * selected target, so `completed` advances once per name, not per write.
+ */
+export interface BulkCopyProgress {
+  completed: number;
+  total: number;
+  skillName: string;
+}
+
 export interface PlatformPort {
   hasLocalLibrary: boolean;
   /** When true, `install` copies a CLI command instead of writing to disk. */
@@ -227,11 +237,14 @@ export interface PlatformPort {
    * provider. Sources come from that provider's own skills directory, so a
    * Universal copy of the same name never stands in for it. Names already at a
    * destination are left untouched and counted as skipped. Does not rescan.
+   * `onProgress` receives one tick per skill; a port with no backend to report
+   * from may never call it.
    */
   copyProviderSkills(
     sourceProviderId: string,
     skillNames: string[],
     targetProviderIds: string[],
+    onProgress?: (progress: BulkCopyProgress) => void,
   ): Promise<CopyProviderSkillsResult>;
   openExternal(url: string): Promise<void>;
 }

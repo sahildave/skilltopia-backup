@@ -14,7 +14,7 @@ mod projection;
 mod scan;
 mod types;
 
-pub use bulk_copy::{copy_provider_skills, CopyProviderSkillsResult};
+pub use bulk_copy::{copy_provider_skills, BulkCopyProgress, CopyProviderSkillsResult};
 pub use cache::scan_installed_cached;
 pub use copy::{copy_skill_to_providers, CopySkillToProvidersResult};
 pub use install::{install_skill, uninstall_skill, SkillProjectionResult};

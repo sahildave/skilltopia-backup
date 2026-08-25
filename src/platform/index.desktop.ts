@@ -1,3 +1,4 @@
+import { Channel } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import i18n from '@/i18n/config';
@@ -15,6 +16,7 @@ import {
 } from './install-command';
 import { skillEntriesFromScan, providersFromScan } from './scan-utils';
 import type {
+  BulkCopyProgress,
   BulkCopyStatus,
   CopyProviderResult,
   CopyProviderSkillsResult,
@@ -215,10 +217,14 @@ export const platform: PlatformPort = {
     );
   },
 
-  async copyProviderSkills(sourceProviderId, skillNames, targetProviderIds) {
+  async copyProviderSkills(sourceProviderId, skillNames, targetProviderIds, onProgress) {
+    // The command's channel argument is not optional, so an uninterested
+    // caller still gets a channel — it just drops what arrives.
+    const channel = new Channel<BulkCopyProgress>();
+    if (onProgress) channel.onmessage = onProgress;
     return normalizeBulkCopyResult(
       unwrapResult(
-        await commands.copyProviderSkills(sourceProviderId, skillNames, targetProviderIds),
+        await commands.copyProviderSkills(sourceProviderId, skillNames, targetProviderIds, channel),
       ),
     );
   },

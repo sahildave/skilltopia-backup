@@ -68,7 +68,12 @@ export const platform: PlatformPort = {
     };
   },
 
-  async copyProviderSkills(_sourceProviderId, skillNames, targetProviderIds) {
+  async copyProviderSkills(_sourceProviderId, skillNames, targetProviderIds, onProgress) {
+    // Synthetic ticks, one per skill, so the dialog's progress bar is
+    // exercisable in the browser with no desktop backend behind it.
+    skillNames.forEach((skillName, index) =>
+      onProgress?.({ completed: index + 1, total: skillNames.length, skillName }),
+    );
     return {
       targets: targetProviderIds.map((providerId) => ({
         providerId,

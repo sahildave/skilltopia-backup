@@ -1,7 +1,7 @@
 import { MOCK_INSTALLED_SCAN } from '@/platform/fixtures';
 import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
-import { render, screen, waitFor } from '@/test/test-utils';
+import { act, render, screen, waitFor } from '@/test/test-utils';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CopyProviderSkillsDialog } from './CopyProviderSkillsDialog';
@@ -165,6 +165,7 @@ describe('CopyProviderSkillsDialog', () => {
         'claude-code',
         ['code-review', 'tdd'],
         ['codex'],
+        expect.any(Function),
       );
     });
   });
@@ -208,6 +209,47 @@ describe('CopyProviderSkillsDialog', () => {
       expect.objectContaining({ description: 'tdd' }),
     );
     expect(toastMock.success).not.toHaveBeenCalled();
+  });
+
+  it('reports determinate progress and the current skill while a run is in flight', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(useInstalledScanStore.getState(), 'rescan').mockResolvedValue();
+    const pending: { settle?: (value: unknown) => void } = {};
+    copyMock.copyProviderSkills.mockReturnValue(
+      new Promise((resolve) => {
+        pending.settle = resolve;
+      }),
+    );
+    const onOpenChange = renderDialog();
+
+    await user.click(screen.getByRole('checkbox', { name: /^codex$/i }));
+    await user.click(screen.getByRole('button', { name: /^copy$/i }));
+
+    // Nothing has ticked yet: a bar at zero, not an indeterminate spinner alone.
+    const bar = await screen.findByRole('progressbar');
+    expect(bar).toHaveAttribute('aria-valuenow', '0');
+
+    const onProgress = copyMock.copyProviderSkills.mock.calls[0]?.[3] as (progress: {
+      completed: number;
+      total: number;
+      skillName: string;
+    }) => void;
+
+    act(() => onProgress({ completed: 1, total: 2, skillName: 'code-review' }));
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '50');
+    expect(screen.getByText('1 of 2 · code-review')).toBeInTheDocument();
+
+    act(() => onProgress({ completed: 2, total: 2, skillName: 'tdd' }));
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
+    expect(screen.getByText('2 of 2 · tdd')).toBeInTheDocument();
+
+    // 100% gives way to the summary, and the bar goes with the dialog.
+    pending.settle?.({
+      targets: [{ providerId: 'codex', copied: 2, skipped: 0, refused: 0, failed: 0, issues: [] }],
+    });
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+    expect(toastMock.success).toHaveBeenCalledWith('Copied 2, skipped 0, failed 0');
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   });
 
   it('cannot be dismissed while a run is in flight', async () => {

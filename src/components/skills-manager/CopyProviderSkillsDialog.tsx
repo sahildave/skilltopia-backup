@@ -25,6 +25,14 @@ import { isPermissionError } from './library-errors';
 import { ProviderCheckboxRow } from './ProviderCheckboxRow';
 
 /**
+ * How long the finished bar rests at 100% before the dialog gives way to the
+ * summary. The backend's last per-skill tick and the command's resolve can land
+ * in the same frame, so without this hold the user would never see the bar
+ * reach the end.
+ */
+const COMPLETE_HOLD_MS = 500;
+
+/**
  * A refusal is not a failure: the destination lives in the read-only Claude
  * plugin cache, which is managed elsewhere and was never ours to write. It is
  * counted apart so the summary can say so instead of reporting a fault.
@@ -108,6 +116,11 @@ export function CopyProviderSkillsDialog({
         [...selectedIds],
         setProgress,
       );
+      // Settle the bar at 100% and let it breathe before the dialog closes, so
+      // a completed run reads as finished rather than vanishing mid-progress.
+      setProgress((prev) => (prev ? { ...prev, completed: prev.total } : prev));
+      await new Promise((resolve) => setTimeout(resolve, COMPLETE_HOLD_MS));
+
       const { copied, skipped, refused, failed } = totals(result);
       const summary = t('skills.installed.copyAllSummary', { copied, skipped, failed });
       const refusedProviders = result.targets

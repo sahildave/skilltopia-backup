@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { catalogSourcesByInstalledKey } from './catalog-installed-match';
+import { CopyProviderSkillsDialog } from './CopyProviderSkillsDialog';
 import {
   ALL_AGENTS_FILTER_ID,
   buildProviderSidebarModel,
@@ -15,6 +16,7 @@ import {
   filterSkillSectionsByQuery,
   filterSkillSectionsByView,
   filterSkillsForSelection,
+  ownedSkillsForProvider,
   type InstalledSkillView,
 } from './installed-skills-model';
 import { InstalledContent } from './InstalledContent';
@@ -22,6 +24,9 @@ import { InstalledToolbar } from './InstalledToolbar';
 import { InstalledUnavailableStub } from './InstalledUnavailableStub';
 import { isPermissionError } from './library-errors';
 import { resolveSelectedPath } from './library-path';
+import { Button } from '@/components/ui/button';
+import { UNIVERSAL_PROVIDER_ID } from '@/platform/types';
+import { Copy } from 'lucide-react';
 
 export function SkillsLibraryView() {
   if (!platform.hasLocalLibrary) {
@@ -44,6 +49,7 @@ function LocalInstalledSkillsView() {
   const { viewportRef, collapsed, headerHeight, onExpandedHeightChange } = useCollapsibleHeader();
   const [skillQuery, setSkillQuery] = useState('');
   const [installedSkillView, setInstalledSkillView] = useState<InstalledSkillView>('all');
+  const [copyAllOpen, setCopyAllOpen] = useState(false);
 
   const showPermissionCard = error !== null && isPermissionError(error);
   const catalogSourcesByKey = catalogSourcesByInstalledKey(
@@ -83,6 +89,17 @@ function LocalInstalledSkillsView() {
   const pathInfo = snapshot ? resolveSelectedPath(snapshot, providerFilter) : null;
   const hasActiveSkillQuery = skillQuery.trim().length > 0;
 
+  // A bulk copy needs a concrete source provider that actually owns something:
+  // not "All agents", not Universal, and not a row with nothing to copy.
+  const bulkCopySourceId =
+    providerFilter !== ALL_AGENTS_FILTER_ID && providerFilter !== UNIVERSAL_PROVIDER_ID
+      ? providerFilter
+      : null;
+  const canBulkCopy =
+    snapshot !== null &&
+    bulkCopySourceId !== null &&
+    ownedSkillsForProvider(snapshot, bulkCopySourceId).length > 0;
+
   return (
     <div className="relative flex h-full flex-col">
       <div className="absolute inset-x-0 top-0 z-20">
@@ -102,6 +119,19 @@ function LocalInstalledSkillsView() {
           onLayoutModeChange={setLayoutMode}
           onInstalledSkillViewChange={setInstalledSkillView}
           onSkillQueryChange={setSkillQuery}
+          viewTrailingAction={
+            canBulkCopy ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={refreshing}
+                onClick={() => setCopyAllOpen(true)}
+              >
+                <Copy data-icon="inline-start" aria-hidden />
+                {t('skills.installed.copyAllAction')}
+              </Button>
+            ) : null
+          }
         />
       </div>
       <InstalledContent
@@ -118,6 +148,15 @@ function LocalInstalledSkillsView() {
         hasActiveSkillQuery={hasActiveSkillQuery}
         onRescan={() => void rescan()}
       />
+      {snapshot && bulkCopySourceId && canBulkCopy ? (
+        <CopyProviderSkillsDialog
+          sourceProviderId={bulkCopySourceId}
+          sourceProviderName={selectedProviderItem?.name ?? bulkCopySourceId}
+          snapshot={snapshot}
+          open={copyAllOpen}
+          onOpenChange={setCopyAllOpen}
+        />
+      ) : null}
     </div>
   );
 }

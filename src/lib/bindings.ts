@@ -271,6 +271,20 @@ async copySkillToProviders(uninstallName: string, providerIds: string[]) : Promi
 }
 },
 /**
+ * Copy every named skill owned by one provider into the given target providers.
+ * Sources come from the named provider's own skills directory, so a Universal
+ * copy of the same name never stands in for it. Names already present at a
+ * destination are left untouched and counted as skipped.
+ */
+async copyProviderSkills(sourceProviderId: string, skillNames: string[], targetProviderIds: string[], onProgress: TAURI_CHANNEL<BulkCopyProgress>) : Promise<Result<CopyProviderSkillsResult, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("copy_provider_skills", { sourceProviderId, skillNames, targetProviderIds, onProgress }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
  * Install one skill from `source` into Universal and the given providers.
  * Acquisition may spawn the resolved Git executable; cache hits do not.
  * `project_path` selects project scope, `null` installs into the home roots.
@@ -323,7 +337,35 @@ quick_pane_shortcut: string | null;
  * If None, uses system locale detection
  */
 language: string | null }
+/**
+ * One skill that did not copy, named so the summary can say which.
+ */
+export type BulkCopyIssue = { skillName: string; status: BulkCopyStatus; message?: string | null }
+/**
+ * One tick of a bulk copy, emitted after a skill has been handled for every
+ * target. `completed` counts skills finished, not per-target writes, so it
+ * advances once per name regardless of how many destinations are selected.
+ */
+export type BulkCopyProgress = { completed: number; total: number; skillName: string }
+export type BulkCopyStatus = "copied" | 
+/**
+ * Already there: the destination holds this name, or resolves onto the
+ * source itself. Nothing was touched.
+ */
+"skipped" | 
+/**
+ * The destination is inside the read-only Claude plugin cache.
+ */
+"refused" | "failed"
+export type BulkCopyTargetResult = { providerId: string; copied: number; skipped: number; refused: number; failed: number; 
+/**
+ * Failures only. Skipped and refused are counted, not enumerated: a
+ * refused destination refuses every skill, and listing 178 of them says
+ * nothing the count does not.
+ */
+issues: BulkCopyIssue[] }
 export type CopyProviderResult = { providerId: string; status: CopyProviderStatus; message?: string | null }
+export type CopyProviderSkillsResult = { targets: BulkCopyTargetResult[] }
 export type CopyProviderStatus = "copied" | "conflict" | 
 /**
  * The destination is inside the read-only Claude plugin cache.
@@ -409,6 +451,7 @@ export type SkillTargetStatus =
  */
 "refused" | "failed"
 export type SkillsShSkill = { id: string; slug: string; name: string; source: string; installs: number; sourceType: string; installUrl?: string | null; url: string; isDuplicate?: boolean | null }
+export type TAURI_CHANNEL<TSend> = null
 export type UniversalScanInfo = { skillsDir: string; skillsDirExists: boolean; skillCount: number }
 
 /** tauri-specta globals **/

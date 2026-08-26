@@ -2,6 +2,7 @@ import type {
   InstalledScanSnapshot,
   ScannedProvider,
   ScannedSkill,
+  ScannedSkillPath,
   ScanWarning,
   ScanWarningCode,
   UninstallAgentScope,
@@ -300,6 +301,101 @@ export function buildCopyProviderDialogModel(
     ),
     other,
   };
+}
+
+export interface BulkCopyTargetOption extends CopyProviderOption {
+  /** Source skills this target does not have yet. */
+  toCopy: number;
+  /** Source skills whose name is already present at this target. */
+  alreadyThere: number;
+}
+
+export interface BulkCopyDialogModel {
+  /** Folder names to copy, in the order the dialog reports them. */
+  skillNames: string[];
+  targets: BulkCopyTargetOption[];
+}
+
+/**
+ * Skills the provider physically owns: a real, non-symlinked directory under
+ * its own skills folder. The same rule the toolbar's "Provider" view applies,
+ * and the only correct source set for a bulk copy — a symlinked entry is
+ * another provider's (or Universal's) content projected in, not this one's.
+ */
+export function ownedSkillsForProvider(
+  snapshot: InstalledScanSnapshot,
+  providerId: string,
+): ScannedSkill[] {
+  const skillsDir = snapshot.providers.find((p) => p.id === providerId)?.skillsDir;
+  if (!skillsDir || skillsDir === snapshot.universal.skillsDir) return [];
+
+  return sortSkills(
+    snapshot.skills.filter((skill) =>
+      skill.paths.some((entry) => !entry.originalPath && pathUnderDir(entry.path, skillsDir)),
+    ),
+  );
+}
+
+/** Direct children of `skillsDir`, keyed by folder name — links included. */
+function entriesInSkillsDir(
+  snapshot: InstalledScanSnapshot,
+  skillsDir: string | null,
+): Map<string, ScannedSkillPath> {
+  const entries = new Map<string, ScannedSkillPath>();
+  if (!skillsDir) return entries;
+  const normalizedDir = skillsDir.replaceAll('\\', '/').replace(/\/+$/, '');
+  for (const skill of snapshot.skills) {
+    for (const entry of skill.paths) {
+      const normalized = entry.path.replaceAll('\\', '/').replace(/\/+$/, '');
+      const cut = normalized.lastIndexOf('/');
+      if (cut < 0 || normalized.slice(0, cut) !== normalizedDir) continue;
+      const name = normalized.slice(cut + 1);
+      if (name && !entries.has(name)) entries.set(name, entry);
+    }
+  }
+  return entries;
+}
+
+/**
+ * Destination rows for the bulk copy dialog, counted from the snapshot alone —
+ * no extra scan and no backend preview call.
+ *
+ * "Already there" mirrors what the backend skips, which is not simply "the name
+ * exists here": a real directory is refused (skipped), and so is a link that
+ * already points at the source bundle — but a link pointing at some *other*
+ * provider's copy is removed and rewritten, so it still counts as to-copy.
+ * Getting this wrong made the second run of the same copy advertise N to copy
+ * and then report N skipped.
+ */
+export function buildBulkCopyDialogModel(
+  snapshot: InstalledScanSnapshot,
+  sourceProviderId: string,
+): BulkCopyDialogModel {
+  const sourceDir = snapshot.providers.find((p) => p.id === sourceProviderId)?.skillsDir ?? null;
+  const sourceEntries = entriesInSkillsDir(snapshot, sourceDir);
+  const sourceSkills = ownedSkillsForProvider(snapshot, sourceProviderId);
+  const skillNames = sourceSkills.map((skill) => skill.uninstallName);
+  const sidebar = buildProviderSidebarModel(snapshot);
+
+  const targets = [...sidebar.activeProviders, ...sidebar.inactiveProviders]
+    .filter((item) => item.id !== sourceProviderId && isEligibleCopyDestination(item, snapshot))
+    .map((item) => {
+      const present = entriesInSkillsDir(snapshot, item.skillsDir);
+      const alreadyThere = skillNames.filter((name) => {
+        const entry = present.get(name);
+        if (!entry) return false;
+        if (!entry.originalPath) return true;
+        return entry.originalPath === sourceEntries.get(name)?.path;
+      }).length;
+      return {
+        ...toCopyOption(item),
+        toCopy: skillNames.length - alreadyThere,
+        alreadyThere,
+      };
+    })
+    .sort((a, b) => b.toCopy - a.toCopy || a.name.localeCompare(b.name));
+
+  return { skillNames, targets };
 }
 
 function sortSkills(skills: ScannedSkill[]): ScannedSkill[] {

@@ -1,3 +1,4 @@
+import { Channel } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import i18n from '@/i18n/config';
@@ -15,7 +16,10 @@ import {
 } from './install-command';
 import { skillEntriesFromScan, providersFromScan } from './scan-utils';
 import type {
+  BulkCopyProgress,
+  BulkCopyStatus,
   CopyProviderResult,
+  CopyProviderSkillsResult,
   CopySkillToProvidersResult,
   InstallableSkill,
   InstalledScanSnapshot,
@@ -66,6 +70,28 @@ function normalizeCopyResult(result: {
       providerId: entry.providerId,
       status: entry.status,
       message: entry.message ?? undefined,
+    })),
+  };
+}
+
+function normalizeBulkCopyResult(result: {
+  targets: {
+    providerId: string;
+    copied: number;
+    skipped: number;
+    refused: number;
+    failed: number;
+    issues: { skillName: string; status: BulkCopyStatus; message?: string | null }[];
+  }[];
+}): CopyProviderSkillsResult {
+  return {
+    targets: result.targets.map((target) => ({
+      ...target,
+      issues: target.issues.map((issue) => ({
+        skillName: issue.skillName,
+        status: issue.status,
+        message: issue.message ?? undefined,
+      })),
     })),
   };
 }
@@ -188,6 +214,18 @@ export const platform: PlatformPort = {
   async copySkillToProviders(uninstallName, providerIds) {
     return normalizeCopyResult(
       unwrapResult(await commands.copySkillToProviders(uninstallName, providerIds)),
+    );
+  },
+
+  async copyProviderSkills(sourceProviderId, skillNames, targetProviderIds, onProgress) {
+    // The command's channel argument is not optional, so an uninterested
+    // caller still gets a channel — it just drops what arrives.
+    const channel = new Channel<BulkCopyProgress>();
+    if (onProgress) channel.onmessage = onProgress;
+    return normalizeBulkCopyResult(
+      unwrapResult(
+        await commands.copyProviderSkills(sourceProviderId, skillNames, targetProviderIds, channel),
+      ),
     );
   },
 

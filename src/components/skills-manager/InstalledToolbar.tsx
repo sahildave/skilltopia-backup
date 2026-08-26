@@ -91,6 +91,7 @@ export function InstalledToolbar({
   searchLabel,
   clearSearchLabel,
   showInstalledControls = true,
+  viewTrailingAction,
   onExpandedHeightChange,
   onLayoutModeChange,
   onInstalledSkillViewChange,
@@ -119,6 +120,8 @@ export function InstalledToolbar({
   searchLabel?: string;
   clearSearchLabel?: string;
   showInstalledControls?: boolean;
+  /** Rendered immediately after the view tabs. Owned by the calling view. */
+  viewTrailingAction?: ReactNode;
   onExpandedHeightChange?: (height: number) => void;
   onLayoutModeChange?: (mode: LibraryLayoutMode) => void;
   onInstalledSkillViewChange?: (view: InstalledSkillView) => void;
@@ -313,6 +316,10 @@ export function InstalledToolbar({
                   }
                 }}
               />
+            ) : null}
+
+            {viewTrailingAction ? (
+              <div className="ms-2 flex items-center">{viewTrailingAction}</div>
             ) : null}
           </motion.div>
 

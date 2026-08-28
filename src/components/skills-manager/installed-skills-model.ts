@@ -68,6 +68,19 @@ export interface CopyProviderOption {
   name: string;
 }
 
+/**
+ * Case-insensitive name filter behind the copy dialogs' search box. It only
+ * narrows what is listed; callers keep selections for hidden rows.
+ */
+export function filterProviderOptions<T extends Pick<CopyProviderOption, 'name'>>(
+  options: T[],
+  query: string,
+): T[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return options;
+  return options.filter((option) => option.name.toLowerCase().includes(needle));
+}
+
 export interface CopyProviderDialogModel {
   available: CopyProviderOption[];
   installed: CopyProviderOption[];

@@ -20,9 +20,10 @@ import { LoaderCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { buildBulkCopyDialogModel } from './installed-skills-model';
+import { buildBulkCopyDialogModel, filterProviderOptions } from './installed-skills-model';
 import { isPermissionError } from './library-errors';
 import { ProviderCheckboxRow } from './ProviderCheckboxRow';
+import { ProviderSearchField } from './ProviderSearchField';
 
 /**
  * How long the finished bar rests at 100% before the dialog gives way to the
@@ -77,9 +78,12 @@ export function CopyProviderSkillsDialog({
   const rescan = useInstalledScanStore((state) => state.rescan);
   const model = buildBulkCopyDialogModel(snapshot, sourceProviderId);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [query, setQuery] = useState('');
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState<BulkCopyProgress | null>(null);
 
+  // The query only narrows the list; hidden rows keep their selection.
+  const visibleTargets = filterProviderOptions(model.targets, query);
   const selectedCount = selectedIds.size;
   const providerLabel = (providerId: string) =>
     snapshot.providers.find((p) => p.id === providerId)?.name ?? providerId;
@@ -92,6 +96,7 @@ export function CopyProviderSkillsDialog({
     onOpenChange(next);
     if (!next) {
       setSelectedIds(new Set());
+      setQuery('');
       setProgress(null);
     }
   };
@@ -179,11 +184,23 @@ export function CopyProviderSkillsDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {model.targets.length > 0 && !running && (
+          <ProviderSearchField query={query} onQueryChange={setQuery} />
+        )}
+
         <div className="flex max-h-[min(60vh,24rem)] flex-col gap-4 overflow-y-auto">
-          {model.targets.length > 0 ? (
+          {model.targets.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-pretty">
+              {t('skills.installed.copyAllNoTargets')}
+            </p>
+          ) : visibleTargets.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-pretty">
+              {t('skills.installed.noMatchingProviders')}
+            </p>
+          ) : (
             <FieldSet>
               <FieldGroup data-slot="checkbox-group" className="gap-3">
-                {model.targets.map((target) => (
+                {visibleTargets.map((target) => (
                   <ProviderCheckboxRow
                     key={target.id}
                     option={target}
@@ -198,10 +215,6 @@ export function CopyProviderSkillsDialog({
                 ))}
               </FieldGroup>
             </FieldSet>
-          ) : (
-            <p className="text-muted-foreground text-sm text-pretty">
-              {t('skills.installed.copyAllNoTargets')}
-            </p>
           )}
         </div>
 

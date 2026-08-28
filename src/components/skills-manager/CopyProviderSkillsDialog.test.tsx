@@ -138,6 +138,23 @@ describe('CopyProviderSkillsDialog', () => {
     expect(screen.getAllByText('2 to copy, 0 already there').length).toBeGreaterThan(0);
   });
 
+  it('filters destinations by search while keeping hidden selections', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+
+    await user.click(screen.getByRole('checkbox', { name: /^codex$/i }));
+    await user.type(screen.getByRole('textbox', { name: /search providers/i }), 'zzz');
+
+    expect(screen.queryByRole('checkbox', { name: /^codex$/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/no providers match/i)).toBeInTheDocument();
+    // The hidden selection survives: the footer still counts it and Copy stays live.
+    expect(screen.getByText(/copying to 1 provider/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^copy$/i })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: /clear provider search/i }));
+    expect(screen.getByRole('checkbox', { name: /^codex$/i })).toBeChecked();
+  });
+
   it('never offers Universal as a destination', () => {
     renderDialog();
     expect(screen.queryByRole('checkbox', { name: /^universal$/i })).not.toBeInTheDocument();

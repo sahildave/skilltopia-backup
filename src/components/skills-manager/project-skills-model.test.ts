@@ -10,7 +10,7 @@ function skill(name: string, description = `${name} description`): ScannedSkill 
     description,
     scope: 'project',
     providerIds: ['claude-code'],
-    origins: [{ providerDirectory: { providerId: 'claude-code' } }],
+    origins: [{ kind: 'providerDirectory', providerId: 'claude-code' }],
     paths: [{ path: `/skills/${name}` }],
   };
 }

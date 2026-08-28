@@ -187,7 +187,8 @@ export function CopyProviderSkillsDialog({
         </DialogHeader>
 
         {model.pluginSkippedNames.length > 0 && (
-          <Popover>
+          // modal so the list stays wheel-scrollable inside the dialog's scroll lock
+          <Popover modal>
             <PopoverTrigger asChild>
               <button
                 type="button"

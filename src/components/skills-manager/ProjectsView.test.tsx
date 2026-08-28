@@ -25,7 +25,7 @@ function projectSkill(name: string) {
     description: `${name} description`,
     scope: 'project' as const,
     providerIds: ['claude-code'],
-    origins: [{ providerDirectory: { providerId: 'claude-code' } }],
+    origins: [{ kind: 'providerDirectory' as const, providerId: 'claude-code' }],
     paths: [{ path: `/Users/partner/code/skilltopia/.claude/skills/${name}` }],
   };
 }

@@ -174,6 +174,7 @@ describe('CopyProviderSkillsDialog', () => {
 
     await user.click(screen.getByRole('button', { name: /1 plugin-managed skill/i }));
     expect(screen.getByText('plugin-goodies')).toBeInTheDocument();
+    await user.keyboard('{Escape}');
 
     vi.spyOn(useInstalledScanStore.getState(), 'rescan').mockResolvedValue();
     await user.click(screen.getByRole('checkbox', { name: /^codex$/i }));

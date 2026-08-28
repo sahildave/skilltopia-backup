@@ -20,6 +20,7 @@ import { LoaderCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { buildBulkCopyDialogModel, filterProviderOptions } from './installed-skills-model';
 import { isPermissionError } from './library-errors';
 import { ProviderCheckboxRow } from './ProviderCheckboxRow';
@@ -51,12 +52,13 @@ function totals(result: CopyProviderSkillsResult) {
 }
 
 /**
- * Copy everything one provider owns into other providers.
+ * Copy everything one provider can use into other providers.
  *
- * Counts come from the scan snapshot already in memory — no preview call. They
- * are deliberately narrower than the sidebar badge, which also counts links
- * projected in from elsewhere and Claude Code's plugin skills; only folders the
- * provider owns can be a source, so the description says so. The run
+ * Counts come from the scan snapshot already in memory — no preview call. The
+ * source set matches the sidebar badge: owned folders, links projected in, and
+ * Universal skills a universal-registry agent can invoke. Plugin-managed
+ * skills are the exception — their bundles live in the read-only plugin cache,
+ * so they are left out of the batch and named in a popover instead. The run
  * itself is one backend call; it can take a while over 178 skills, so the
  * dialog holds itself open until it settles rather than leaving a half-finished
  * batch behind a dismissed dialog.
@@ -183,6 +185,31 @@ export function CopyProviderSkillsDialog({
             })}
           </DialogDescription>
         </DialogHeader>
+
+        {model.pluginSkippedNames.length > 0 && (
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="text-muted-foreground self-start text-start text-sm underline decoration-dotted underline-offset-4"
+              >
+                {t('skills.installed.copyAllPluginSkipped', {
+                  count: model.pluginSkippedNames.length,
+                })}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 select-text">
+              <p className="text-muted-foreground mb-2 text-xs text-pretty">
+                {t('skills.installed.copyAllPluginSkippedDetail')}
+              </p>
+              <ul className="max-h-48 overflow-y-auto font-mono text-xs leading-relaxed">
+                {model.pluginSkippedNames.map((name) => (
+                  <li key={name}>{name}</li>
+                ))}
+              </ul>
+            </PopoverContent>
+          </Popover>
+        )}
 
         {model.targets.length > 0 && !running && (
           <ProviderSearchField query={query} onQueryChange={setQuery} />

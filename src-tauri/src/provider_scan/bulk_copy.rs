@@ -1,13 +1,17 @@
-//! Copy every skill one provider owns into other providers, in one pass.
+//! Copy every skill one provider can use into other providers, in one pass.
 //!
 //! The single-skill fan-out in `copy` answers "where else should this skill
 //! live"; this answers "make that agent look like this one". The difference
 //! that matters is the source: `copy` picks a bundle by name under a global
-//! preference order that starts at Universal, which would silently source half
-//! of Claude Code's skills from `~/.agents/skills`. Here the source provider is
-//! named, so each skill is resolved directly under that provider's own skills
-//! directory and only a real (non-symlinked) directory is accepted — the same
-//! set the toolbar's "Provider" view shows.
+//! preference order that starts at Universal; here the source provider is
+//! named, so each skill is resolved under that provider's own skills directory
+//! first. A real directory is taken as-is; a symlinked entry resolves to its
+//! target, so the destination links to the real bundle rather than chaining
+//! through the source's link. A name absent from the source directory falls
+//! back to Universal — that covers universal-registry agents (Codex, Cursor)
+//! whose invokable set includes `~/.agents/skills` without local entries.
+//! Plugin-shipped skills never reach this module: the frontend excludes them
+//! from the batch and reports them as skipped up front.
 //!
 //! A name already present at the destination is left alone and reported as
 //! skipped; the projection layer already refuses to replace a foreign real
@@ -131,6 +135,8 @@ pub fn copy_provider_skills(
 
     let source_dir = resolve_provider_skills_dir(source_provider_id, ctx)?
         .ok_or_else(|| format!("Unknown or unresolvable provider '{source_provider_id}'"))?;
+    let universal_dir =
+        resolve_provider_skills_dir(UNIVERSAL_PROVIDER_ID, ctx)?.filter(|dir| *dir != source_dir);
 
     let guard = PluginGuard::for_context(ctx);
     let names = dedupe(skill_names);
@@ -159,7 +165,12 @@ pub fn copy_provider_skills(
     let total = names.len() as u32;
 
     for (index, skill_name) in names.iter().enumerate() {
-        match resolve_owned_source(source_provider_id, &source_dir, skill_name) {
+        match resolve_bulk_source(
+            source_provider_id,
+            &source_dir,
+            universal_dir.as_deref(),
+            skill_name,
+        ) {
             Err(message) => {
                 for (result, root) in targets.iter_mut() {
                     if root.is_some() {
@@ -220,26 +231,27 @@ fn target_root(provider_id: &str, ctx: &ScanContext) -> Result<PathBuf, String> 
         .ok_or_else(|| format!("Unknown or unresolvable provider '{provider_id}'"))
 }
 
-/// The source bundle must be a real directory the source provider owns.
-/// A symlink there is a projection of someone else's content, and copying it on
-/// would attribute another provider's (or Universal's) skill to this one.
-fn resolve_owned_source(
+/// Resolve one skill of the batch to the bundle the destinations will link to.
+///
+/// The source provider's own directory wins: a real directory is the bundle, a
+/// symlinked entry resolves to its target so destinations link to the real
+/// content instead of chaining through the source's link. A name with no entry
+/// there falls back to Universal, which is how a universal-registry agent's
+/// invokable-but-not-local skills travel.
+fn resolve_bulk_source(
     source_provider_id: &str,
     source_dir: &std::path::Path,
+    universal_dir: Option<&std::path::Path>,
     skill_name: &str,
 ) -> Result<PathBuf, String> {
     validate_skill_dir_name(skill_name)?;
-    let entry_path = source_dir.join(skill_name);
-    let Some(entry) = classify_skill_entry(&entry_path) else {
+    let entry = classify_skill_entry(&source_dir.join(skill_name))
+        .or_else(|| universal_dir.and_then(|dir| classify_skill_entry(&dir.join(skill_name))));
+    let Some(entry) = entry else {
         return Err(format!(
-            "Skill '{skill_name}' is not a directory in {source_provider_id}'s skills folder"
+            "Skill '{skill_name}' is not a directory in {source_provider_id}'s skills folder or Universal"
         ));
     };
-    if entry.original_path.is_some() {
-        return Err(format!(
-            "Skill '{skill_name}' is a symlink in {source_provider_id}'s skills folder, not a skill it owns"
-        ));
-    }
     if !entry.content_root.join("SKILL.md").is_file() {
         return Err(format!("Skill '{skill_name}' has no SKILL.md"));
     }
@@ -429,11 +441,11 @@ mod tests {
         );
     }
 
-    /// A symlinked entry in the source directory is another provider's content
-    /// projected in, not a skill this provider owns.
+    /// A symlinked entry in the source directory copies as a link to its
+    /// resolved target, not as a chain through the source's own link.
     #[test]
     #[cfg(unix)]
-    fn refuses_a_symlinked_entry_as_a_source() {
+    fn resolves_a_symlinked_entry_to_its_target() {
         use std::os::unix::fs::symlink;
 
         let home = temp_home("symlinked-source");
@@ -453,13 +465,39 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(result.targets[0].copied, 0);
-        assert_eq!(result.targets[0].failed, 1);
-        assert!(result.targets[0].issues[0]
-            .message
-            .as_deref()
-            .unwrap()
-            .contains("symlink"));
+        assert_eq!(result.targets[0].copied, 1);
+        assert_eq!(result.targets[0].failed, 0);
+        assert_eq!(
+            fs::read_link(home.join(".codex/skills/code-review")).unwrap(),
+            universal.join("code-review")
+        );
+    }
+
+    /// A skill with no entry in the source directory falls back to Universal:
+    /// a universal-registry agent can invoke it, so the batch includes it.
+    #[test]
+    fn falls_back_to_universal_for_a_name_the_source_dir_lacks() {
+        let home = temp_home("universal-fallback");
+        let universal = home.join(".agents/skills");
+        write_skill(&universal, "shared-skill", "Universal only");
+        let codex = home.join(".codex/skills");
+        write_skill(&codex, "own-skill", "Codex's own");
+        fs::create_dir_all(home.join(".codex")).unwrap();
+
+        let result = copy_provider_skills(
+            "codex",
+            &names(&["own-skill", "shared-skill"]),
+            &names(&["claude-code"]),
+            &scan_ctx(&home),
+            &|_| {},
+        )
+        .unwrap();
+
+        let target = &result.targets[0];
+        assert_eq!(target.copied, 2);
+        assert_eq!(target.failed, 0);
+        assert!(home.join(".claude/skills/own-skill").exists());
+        assert!(home.join(".claude/skills/shared-skill").exists());
     }
 
     #[test]

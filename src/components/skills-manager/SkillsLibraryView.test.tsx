@@ -550,8 +550,23 @@ describe('SkillsLibraryView bulk copy entry point', () => {
     expect(copyToButton()).not.toBeInTheDocument();
   });
 
-  it('hides the button for a provider that owns nothing', () => {
-    // Cursor is detected but its skills directory holds no real folders.
+  it('shows the button for a universal-registry provider with only Universal skills', () => {
+    // Cursor's own directory holds no real folders, but as a universal-registry
+    // agent it can invoke the Universal skills — and those are copyable now.
+    useInstalledSkillsUiStore.setState({ providerFilter: 'cursor' });
+    render(<SkillsLibraryView />);
+    expect(copyToButton()).toBeInTheDocument();
+  });
+
+  it('hides the button for a provider with nothing invokable', () => {
+    useInstalledScanStore.setState({
+      snapshot: {
+        ...MOCK_INSTALLED_SCAN,
+        providers: MOCK_INSTALLED_SCAN.providers.map((provider) =>
+          provider.id === 'cursor' ? { ...provider, universal: false } : provider,
+        ),
+      },
+    });
     useInstalledSkillsUiStore.setState({ providerFilter: 'cursor' });
     render(<SkillsLibraryView />);
     expect(copyToButton()).not.toBeInTheDocument();

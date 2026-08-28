@@ -172,18 +172,18 @@ export function SkillCardOverflowMenu({
                   }}
                 />
               ) : null}
-              <div className="relative mt-2 h-10 overflow-hidden border-t border-border pt-2">
-                {pluginManaged ? (
-                  <div className="absolute inset-x-0 top-2">
-                    <ActionMenuItem
-                      icon={<Puzzle aria-hidden />}
-                      label={t('skills.installed.uninstallPluginManagedItem', {
-                        plugin: owningPlugins,
-                      })}
-                      disabled
-                    />
-                  </div>
-                ) : (
+              {pluginManaged ? (
+                <div className="mt-2 border-t border-border pt-2">
+                  <ActionMenuItem
+                    icon={<Puzzle aria-hidden />}
+                    label={t('skills.installed.uninstallPluginManagedItem', {
+                      plugin: owningPlugins,
+                    })}
+                    disabled
+                  />
+                </div>
+              ) : (
+                <div className="relative mt-2 h-10 overflow-hidden border-t border-border pt-2">
                   <AnimatePresence custom={confirming} mode="popLayout" initial={false}>
                     {!confirming ? (
                       <motion.div
@@ -233,8 +233,8 @@ export function SkillCardOverflowMenu({
                       </motion.div>
                     )}
                   </AnimatePresence>
-                )}
-              </div>
+                </div>
+              )}
             </ActionMenuContent>
           </LayoutGroup>
         </ActionMenuPanel>

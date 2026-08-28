@@ -155,6 +155,39 @@ describe('CopyProviderSkillsDialog', () => {
     expect(screen.getByRole('checkbox', { name: /^codex$/i })).toBeChecked();
   });
 
+  it('names plugin-managed skills as skipped in a popover, and copies without them', async () => {
+    const user = userEvent.setup();
+    const withPlugin = snapshot();
+    withPlugin.skills.push({
+      ...skill('plugin-goodies', ['claude-code'], []),
+      origins: [{ kind: 'claudePlugin', plugin: 'demo-plugin', marketplace: 'demo', version: '1' }],
+    });
+    render(
+      <CopyProviderSkillsDialog
+        sourceProviderId="claude-code"
+        sourceProviderName="Claude Code"
+        snapshot={withPlugin}
+        open
+        onOpenChange={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /1 plugin-managed skill/i }));
+    expect(screen.getByText('plugin-goodies')).toBeInTheDocument();
+
+    vi.spyOn(useInstalledScanStore.getState(), 'rescan').mockResolvedValue();
+    await user.click(screen.getByRole('checkbox', { name: /^codex$/i }));
+    await user.click(screen.getByRole('button', { name: /^copy$/i }));
+    await waitFor(() => {
+      expect(copyMock.copyProviderSkills).toHaveBeenCalledWith(
+        'claude-code',
+        ['code-review', 'tdd'],
+        ['codex'],
+        expect.any(Function),
+      );
+    });
+  });
+
   it('never offers Universal as a destination', () => {
     renderDialog();
     expect(screen.queryByRole('checkbox', { name: /^universal$/i })).not.toBeInTheDocument();

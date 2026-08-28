@@ -16,7 +16,7 @@ import {
   filterSkillSectionsByQuery,
   filterSkillSectionsByView,
   filterSkillsForSelection,
-  ownedSkillsForProvider,
+  bulkCopySourceSkillsForProvider,
   type InstalledSkillView,
 } from './installed-skills-model';
 import { InstalledContent } from './InstalledContent';
@@ -89,7 +89,7 @@ function LocalInstalledSkillsView() {
   const pathInfo = snapshot ? resolveSelectedPath(snapshot, providerFilter) : null;
   const hasActiveSkillQuery = skillQuery.trim().length > 0;
 
-  // A bulk copy needs a concrete source provider that actually owns something:
+  // A bulk copy needs a concrete source provider with something copyable:
   // not "All agents", not Universal, and not a row with nothing to copy.
   const bulkCopySourceId =
     providerFilter !== ALL_AGENTS_FILTER_ID && providerFilter !== UNIVERSAL_PROVIDER_ID
@@ -98,7 +98,7 @@ function LocalInstalledSkillsView() {
   const canBulkCopy =
     snapshot !== null &&
     bulkCopySourceId !== null &&
-    ownedSkillsForProvider(snapshot, bulkCopySourceId).length > 0;
+    bulkCopySourceSkillsForProvider(snapshot, bulkCopySourceId).copyable.length > 0;
 
   return (
     <div className="relative flex h-full flex-col">

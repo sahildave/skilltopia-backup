@@ -326,27 +326,40 @@ export interface BulkCopyTargetOption extends CopyProviderOption {
 export interface BulkCopyDialogModel {
   /** Folder names to copy, in the order the dialog reports them. */
   skillNames: string[];
+  /** Plugin-managed skills left out of the batch, named so the dialog can say which. */
+  pluginSkippedNames: string[];
   targets: BulkCopyTargetOption[];
 }
 
+export interface BulkCopySourceSkills {
+  copyable: ScannedSkill[];
+  pluginSkippedNames: string[];
+}
+
 /**
- * Skills the provider physically owns: a real, non-symlinked directory under
- * its own skills folder. The same rule the toolbar's "Provider" view applies,
- * and the only correct source set for a bulk copy — a symlinked entry is
- * another provider's (or Universal's) content projected in, not this one's.
+ * Source set for a bulk copy: everything the provider can invoke — its own
+ * folders, entries symlinked in, and (for universal-registry agents) Universal
+ * skills — the same set the sidebar badge counts. Plugin-shipped skills are
+ * held out and reported by name instead: their bundles live in the read-only
+ * plugin cache and are the plugin manager's to distribute, not ours.
+ * A provider whose skills dir IS the Universal tree is not a source at all.
  */
-export function ownedSkillsForProvider(
+export function bulkCopySourceSkillsForProvider(
   snapshot: InstalledScanSnapshot,
   providerId: string,
-): ScannedSkill[] {
+): BulkCopySourceSkills {
   const skillsDir = snapshot.providers.find((p) => p.id === providerId)?.skillsDir;
-  if (!skillsDir || skillsDir === snapshot.universal.skillsDir) return [];
+  if (!skillsDir || skillsDir === snapshot.universal.skillsDir) {
+    return { copyable: [], pluginSkippedNames: [] };
+  }
 
-  return sortSkills(
-    snapshot.skills.filter((skill) =>
-      skill.paths.some((entry) => !entry.originalPath && pathUnderDir(entry.path, skillsDir)),
-    ),
-  );
+  const copyable: ScannedSkill[] = [];
+  const pluginSkippedNames: string[] = [];
+  for (const skill of filterSkillsForSelection(snapshot, providerId).primary) {
+    if (isPluginManagedSkill(skill)) pluginSkippedNames.push(skill.name);
+    else copyable.push(skill);
+  }
+  return { copyable, pluginSkippedNames };
 }
 
 /** Direct children of `skillsDir`, keyed by folder name — links included. */
@@ -386,9 +399,22 @@ export function buildBulkCopyDialogModel(
 ): BulkCopyDialogModel {
   const sourceDir = snapshot.providers.find((p) => p.id === sourceProviderId)?.skillsDir ?? null;
   const sourceEntries = entriesInSkillsDir(snapshot, sourceDir);
-  const sourceSkills = ownedSkillsForProvider(snapshot, sourceProviderId);
-  const skillNames = sourceSkills.map((skill) => skill.uninstallName);
+  const universalEntries = entriesInSkillsDir(snapshot, snapshot.universal.skillsDir || null);
+  const { copyable, pluginSkippedNames } = bulkCopySourceSkillsForProvider(
+    snapshot,
+    sourceProviderId,
+  );
+  const skillNames = copyable.map((skill) => skill.uninstallName);
   const sidebar = buildProviderSidebarModel(snapshot);
+
+  // Where the backend will point each destination link: the resolved content
+  // root. A symlinked source entry contributes its target, and a skill only
+  // reachable through Universal contributes the Universal bundle.
+  const resolvedSourcePath = (name: string): string | undefined => {
+    const entry = sourceEntries.get(name) ?? universalEntries.get(name);
+    if (!entry) return undefined;
+    return entry.originalPath ?? entry.path;
+  };
 
   const targets = [...sidebar.activeProviders, ...sidebar.inactiveProviders]
     .filter((item) => item.id !== sourceProviderId && isEligibleCopyDestination(item, snapshot))
@@ -398,7 +424,7 @@ export function buildBulkCopyDialogModel(
         const entry = present.get(name);
         if (!entry) return false;
         if (!entry.originalPath) return true;
-        return entry.originalPath === sourceEntries.get(name)?.path;
+        return entry.originalPath === resolvedSourcePath(name);
       }).length;
       return {
         ...toCopyOption(item),
@@ -408,7 +434,7 @@ export function buildBulkCopyDialogModel(
     })
     .sort((a, b) => b.toCopy - a.toCopy || a.name.localeCompare(b.name));
 
-  return { skillNames, targets };
+  return { skillNames, pluginSkippedNames, targets };
 }
 
 function sortSkills(skills: ScannedSkill[]): ScannedSkill[] {

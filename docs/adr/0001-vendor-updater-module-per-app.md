@@ -8,10 +8,11 @@
 Skilltopia (open source, public GitHub Releases) and Gitsu (private, sold as a
 paid DMG) both need a Tauri v2 auto-updater with the same policy core: a
 serialized check/download/install state machine, a scheduler (startup + periodic
-+ focus), dismissal logic, and a product-styled dialog. The two apps diverge in
-exactly one place — the update *source*: Skilltopia reads a static public
-`latest.json`; Gitsu must call an authenticated feed that checks the subscriber's
-entitlement before returning a signed, short-lived download URL.
+
+- focus), dismissal logic, and a product-styled dialog. The two apps diverge in
+  exactly one place — the update _source_: Skilltopia reads a static public
+  `latest.json`; Gitsu must call an authenticated feed that checks the subscriber's
+  entitlement before returning a signed, short-lived download URL.
 
 We considered three ways to reuse the shared code:
 
@@ -32,7 +33,7 @@ Vendor the module (option 1). Each repo owns a copy of `src/platform/updates/`.
   speculative generality; a package is that generality until a third Tauri app
   exists.
 - The cost is drift: a fix in one copy is not automatically in the other. We
-  accept this and mitigate by keeping the *policy core* (controller, scheduler,
+  accept this and mitigate by keeping the _policy core_ (controller, scheduler,
   state machine, dialog) byte-identical across repos so a diff is a clean
   cherry-pick, and by isolating all per-app difference behind the `UpdateSource`
   port.

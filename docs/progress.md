@@ -21,3 +21,17 @@
 
 
 <!-- /afk:progress:28 -->
+
+<!-- afk:progress:30 -->
+
+## Progress — Skilltopia auto-updater: vendored module, real dialog, hardened release
+
+| ID | Task | Status | Dependencies |
+| --- | --- | --- | --- |
+| 31 | Updater module core + i18n (vendored src/platform/updates) | passed | - |
+| 32 | Release CI hardening + updater-key verification | passed | - |
+| 33 | App-shell integration: controller + scheduler + UpdateDialog in App.tsx | passed | 31 |
+| 34 | Manual check: native menu + command-palette entries | passed | 33 |
+
+
+<!-- /afk:progress:30 -->

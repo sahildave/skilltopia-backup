@@ -93,6 +93,17 @@ export default defineConfig(async () => ({
         target: DEFAULT_BACKEND_PROXY_TARGET,
         changeOrigin: true,
         secure: true,
+        // Frontend modules import shared source from `api/_lib/*` (e.g. taxonomy.ts),
+        // which Vite serves at `/api/_lib/*.ts`. Let Vite handle those source-module
+        // requests instead of proxying them to the Backend API (which returns HTML and
+        // breaks module loading). Real API endpoints are extensionless (`/api/skills`).
+        bypass(req) {
+          // Match the pathname only. A real API request whose query value ends
+          // in `.ts`/`.js` (e.g. `/api/skills?q=foo.ts`) must still be proxied;
+          // Vite's own module suffixes (`?import`, `?t=`) sit on `.ts` paths.
+          const pathname = (req.url ?? '').split('?')[0]
+          if (/\.(ts|tsx|js|jsx|mjs)$/.test(pathname)) return req.url
+        },
       },
     },
   },

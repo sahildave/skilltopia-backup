@@ -6,6 +6,7 @@
  */
 import i18n from '@/i18n/config';
 import { logger } from '@/lib/logger';
+import { requestManualUpdateCheck } from '@/platform/updates';
 import { useUIStore } from '@/store/ui-store';
 import { Menu, MenuItem, PredefinedMenuItem, Submenu } from '@tauri-apps/api/menu';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -28,6 +29,12 @@ export async function buildAppMenu(): Promise<Menu> {
           id: 'about',
           text: t('menu.about', { appName: APP_NAME }),
           action: handleAbout,
+        }),
+        await PredefinedMenuItem.new({ item: 'Separator' }),
+        await MenuItem.new({
+          id: 'check-for-updates',
+          text: t('update.menu.checkForUpdates'),
+          action: handleCheckForUpdates,
         }),
         await PredefinedMenuItem.new({ item: 'Separator' }),
         await PredefinedMenuItem.new({
@@ -117,6 +124,13 @@ export function setupMenuLanguageListener(): () => void {
 function handleAbout(): void {
   logger.info('About menu item clicked');
   void openUrl(GITHUB_REPO_URL);
+}
+
+function handleCheckForUpdates(): void {
+  logger.info('Check for Updates menu item clicked');
+  // Opens the update dialog first, so the answer is visible whether the check
+  // finds a version to install, finds nothing, or fails.
+  void requestManualUpdateCheck();
 }
 
 function handleToggleLeftSidebar(): void {

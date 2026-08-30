@@ -1,4 +1,5 @@
 import type { SimilarSkill } from './qdrant.js';
+import type { SkillCategory } from './taxonomy.js';
 
 export type SearchResult = {
   id: string;
@@ -15,6 +16,7 @@ export type SkillSearchMetadata = {
   source?: string;
   installCount?: number;
   sourceUrl?: string;
+  categories?: SkillCategory[];
 };
 
 const INSTALL_BOOST_SCALE = 0.05;
@@ -53,7 +55,10 @@ export function mergeHybridSearchResults(
       const difference = rankKeywordResult(right, query) - rankKeywordResult(left, query);
       return difference || keywordResults.indexOf(left) - keywordResults.indexOf(right);
     })
-    .map((result) => ({ ...result }));
+    .map((result) => ({
+      ...result,
+      categories: metadataById.get(result.id)?.categories ?? [],
+    }));
 
   const semantic = semanticResults
     .filter((result) => !keywordIds.has(result.skillId))
@@ -70,6 +75,7 @@ export function mergeHybridSearchResults(
           sourceType: 'github',
           installUrl: null,
           url: item.sourceUrl ?? `https://skills.sh/skills/${item.skillId}`,
+          categories: item.categories ?? [],
           semanticScore: rankSemanticResult(result, item.installCount ?? 0),
         },
       ];

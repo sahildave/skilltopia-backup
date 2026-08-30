@@ -3,6 +3,7 @@ import { mergeHybridSearchResults } from '../_lib/hybrid-search.js';
 import { searchSkillsByText } from '../_lib/qdrant.js';
 import { createSupabaseRepositoryFromEnv } from '../_lib/supabase-repository.js';
 import { parseSkillsSearchQuery } from '../_lib/query.js';
+import { toSkillCategories } from '../_lib/taxonomy.js';
 
 /**
  * Searches skills.sh keywords and merges semantic matches from the enriched
@@ -41,9 +42,17 @@ export async function GET(request: Request): Promise<Response> {
   try {
     const semanticResults = await searchSkillsByText(parsed.query.get('q')!, limit, categories);
     const repository = createSupabaseRepositoryFromEnv();
-    const metadata = (
-      await repository.getSkillMetadata(semanticResults.map((result) => result.skillId))
-    ).filter((item) => !owner || item.skillId.split('/')[0] === owner);
+    // Keyword ids are hydrated too: they need their categories in the response
+    // even though they are ranked without help from the enrichment record.
+    const metadataIds = [
+      ...new Set([
+        ...semanticResults.map((result) => result.skillId),
+        ...keywordResults.map((result) => result.id),
+      ]),
+    ];
+    const metadata = (await repository.getSkillMetadata(metadataIds)).filter(
+      (item) => !owner || item.skillId.split('/')[0] === owner,
+    );
     const merged = mergeHybridSearchResults(
       parsed.query.get('q')!,
       keywordResults,
@@ -53,6 +62,7 @@ export async function GET(request: Request): Promise<Response> {
         source: item.repository,
         installCount: item.installCount,
         sourceUrl: item.sourceUrl,
+        categories: toSkillCategories(item.optional?.categories),
       })),
       limit,
     );

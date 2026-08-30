@@ -42,9 +42,9 @@
 
 | ID | Task | Status | Dependencies |
 | --- | --- | --- | --- |
-| 54 | Finalize the skill taxonomy slugs | awaiting_acceptance | - |
+| 54 | Finalize the skill taxonomy slugs | passed | - |
 | 55 | Expose categories in the search API response | passed | - |
-| 56 | Category classification run + eval harness (local Ollama) | pending | 54 |
+| 56 | Category classification run + eval harness (local Ollama) | awaiting_acceptance | 54 |
 | 57 | UI: category icon + label binding | pending | 54 |
 | 58 | Backfill categories onto existing skills | pending | 56 |
 | 59 | UI: category filter control + result pills | pending | 55, 57 |

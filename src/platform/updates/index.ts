@@ -7,8 +7,10 @@ export {
   STARTUP_DELAY_MS,
 } from './scheduler';
 export { createTauriUpdateSource, CHECK_TIMEOUT_MS } from './tauri-source';
+export { createMockUpdateSource } from './mock-source';
 export { connectUpdateStore, requestManualUpdateCheck, useUpdateStore } from './update-store';
 export { UpdateDialog, type UpdateDialogProps } from './UpdateDialog';
+export { StoreUpdateDialog } from './StoreUpdateDialog';
 export {
   UpdateSourceError,
   type CheckReason,

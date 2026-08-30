@@ -15,35 +15,8 @@ import {
   createPublicGitHubUpdateSource,
   createUpdateController,
   startUpdateScheduler,
-  UpdateDialog,
-  useUpdateStore,
+  StoreUpdateDialog,
 } from './platform/updates';
-
-/**
- * The shell's view of the update module: state comes from the store, every
- * action goes back to the controller. No Tauri call and no timer lives here.
- */
-function AppUpdateDialog() {
-  const state = useUpdateStore((s) => s.state);
-  const open = useUpdateStore((s) => s.dialogOpen);
-
-  const dismiss = () => {
-    const { controller, setDialogOpen } = useUpdateStore.getState();
-    controller?.dismiss();
-    setDialogOpen(false);
-  };
-
-  return (
-    <UpdateDialog
-      state={state}
-      open={open}
-      onInstall={() => void useUpdateStore.getState().controller?.install()}
-      onDismiss={dismiss}
-      onRestart={() => void useUpdateStore.getState().controller?.restart()}
-      onRetry={() => void useUpdateStore.getState().controller?.check('manual')}
-    />
-  );
-}
 
 function App() {
   useSquareCornersEffect();
@@ -105,7 +78,7 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider>
         <MainWindow />
-        <AppUpdateDialog />
+        <StoreUpdateDialog />
       </ThemeProvider>
     </ErrorBoundary>
   );

@@ -40,8 +40,15 @@ export function connectUpdateStore(controller: UpdateController): () => void {
       state.status === 'available' ||
       state.status === 'downloading' ||
       state.status === 'readyToRestart';
+    // A check the user did not ask for closes a dialog an earlier one left
+    // open, so its answer — a failure above all — never lands on a stale panel.
+    const startsQuietCheck = state.status === 'checking' && state.reason !== 'manual';
     useUpdateStore.setState(
-      shouldOpen ? { state, dialogOpen: true } : { state },
+      shouldOpen
+        ? { state, dialogOpen: true }
+        : startsQuietCheck
+          ? { state, dialogOpen: false }
+          : { state },
       undefined,
       `state/${state.status}`,
     );

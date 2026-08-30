@@ -45,9 +45,7 @@ keys, replace only `pubkey` with the public key from step 1):
 {
   "plugins": {
     "updater": {
-      "active": true,
       "endpoints": ["https://github.com/sahildave/skilltopia/releases/latest/download/latest.json"],
-      "dialog": true,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6..."
     }
   }

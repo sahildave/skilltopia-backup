@@ -53,6 +53,27 @@ describe('update store', () => {
     disconnect();
   });
 
+  it('closes a stale dialog when an automatic check starts', async () => {
+    const fake = createFakeSource();
+    const controller = createUpdateController({ source: fake.source });
+    const disconnect = connectUpdateStore(controller);
+
+    const manual = requestManualUpdateCheck();
+    fake.resolveCheck(null);
+    await manual;
+    expect(useUpdateStore.getState().dialogOpen).toBe(true);
+
+    const automatic = controller.check('periodic');
+    expect(useUpdateStore.getState().dialogOpen).toBe(false);
+    fake.rejectCheck(new Error('offline'));
+    await automatic;
+
+    expect(useUpdateStore.getState().state.status).toBe('failed');
+    expect(useUpdateStore.getState().dialogOpen).toBe(false);
+
+    disconnect();
+  });
+
   it('stops mirroring after disconnect', async () => {
     const fake = createFakeSource();
     const controller = createUpdateController({ source: fake.source });

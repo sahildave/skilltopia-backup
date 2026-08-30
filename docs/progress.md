@@ -30,7 +30,7 @@
 | --- | --- | --- | --- |
 | 31 | Updater module core + i18n (vendored src/platform/updates) | passed | - |
 | 32 | Release CI hardening + updater-key verification | passed | - |
-| 33 | App-shell integration: controller + scheduler + UpdateDialog in App.tsx | pending | 31 |
+| 33 | App-shell integration: controller + scheduler + UpdateDialog in App.tsx | passed | 31 |
 | 34 | Manual check: native menu + command-palette entries | pending | 33 |
 
 

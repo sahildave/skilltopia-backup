@@ -6,13 +6,15 @@ export const catalog: CatalogPort = {
     return MOCK_LEADERBOARD.slice(0, perPage);
   },
 
-  async search(query, limit) {
+  async search(query, limit, categories) {
     const q = query.trim().toLowerCase();
     return MOCK_LEADERBOARD.filter(
       (skill) =>
-        skill.name.toLowerCase().includes(q) ||
-        skill.slug.toLowerCase().includes(q) ||
-        skill.source.toLowerCase().includes(q),
+        (skill.name.toLowerCase().includes(q) ||
+          skill.slug.toLowerCase().includes(q) ||
+          skill.source.toLowerCase().includes(q)) &&
+        (categories.length === 0 ||
+          categories.some((category) => skill.categories?.includes(category))),
     ).slice(0, limit);
   },
 

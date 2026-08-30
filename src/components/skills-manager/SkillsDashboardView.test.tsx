@@ -172,7 +172,7 @@ describe('SkillsDashboardView', () => {
     expect(screen.getByText('Searching…')).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(catalog.search).toHaveBeenCalledWith('find', 50);
+      expect(catalog.search).toHaveBeenCalledWith('find', 50, []);
     });
     expect(screen.getByText('Searching…')).toBeInTheDocument();
 
@@ -192,6 +192,27 @@ describe('SkillsDashboardView', () => {
     expect(screen.getByText('Find Skills')).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.queryByText('Searching…')).not.toBeInTheDocument();
+    });
+  });
+
+  it('narrows the search by the selected category facet', async () => {
+    const user = userEvent.setup();
+    render(<SkillsDashboardView />);
+
+    expect(await screen.findByText('Find Skills')).toBeInTheDocument();
+    await user.type(screen.getByRole('textbox', { name: 'Search skills' }), 'find');
+
+    expect(screen.getByText('Find Skills')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Category/ }));
+    await user.click(await screen.findByRole('option', { name: 'Git & GitHub' }));
+
+    await waitFor(() => {
+      expect(catalog.search).toHaveBeenCalledWith('find', 50, ['git-github']);
+    });
+    // The cached leaderboard hit carries no categories, so the facet drops it.
+    await waitFor(() => {
+      expect(screen.queryByText('Find Skills')).not.toBeInTheDocument();
     });
   });
 

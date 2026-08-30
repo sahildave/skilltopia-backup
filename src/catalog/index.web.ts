@@ -19,11 +19,12 @@ export const catalog: CatalogPort = {
     return json.data;
   },
 
-  async search(query, limit) {
+  async search(query, limit, categories) {
     const params = new URLSearchParams({
       q: query,
       limit: String(limit),
     });
+    if (categories.length) params.set('category', categories.join(','));
     const json = await readJson<{ data: SkillsShSkill[] }>(
       await fetch(`/api/skills/search?${params}`),
     );

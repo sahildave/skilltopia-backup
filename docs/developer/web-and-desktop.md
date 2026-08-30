@@ -2,7 +2,7 @@
 
 One repo, one `package.json`, one shared React skills UI. Two runtimes: a **Tauri desktop app** and a **browser web app**. Both call the same **Backend API**. Clients hold no Backend secrets.
 
-This is the agent source of truth for dual-client work. Do not invent a monorepo, CORS on `/api/*`, or Tauri imports in shared UI. See the epic: `docs/tasks-todo/task-x-web-desktop-dual-client.md`.
+This is the agent source of truth for dual-client work. Do not invent a monorepo, CORS on `/api/*`, or Tauri imports in shared UI.
 
 ## Mental model
 

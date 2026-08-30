@@ -47,6 +47,8 @@
     "tauri:dev:local": "source ~/.cargo/env && infisical run --env=local -- env SKILLS_PROXY_BASE_URL=http://127.0.0.1:3000 npm run tauri -- dev",
     "proxy:dev": "infisical run --env=dev -- env VERCEL_TELEMETRY_DISABLED=1 npx vercel dev --yes",
     "enrich:local": "infisical run --env=dev -- node scripts/with-ingest-oidc.mjs node --import tsx/esm scripts/enrich.mjs",
+    "enrich:ollama": "infisical run --env=dev -- node scripts/with-ingest-oidc.mjs node scripts/with-ollama.mjs node --import tsx/esm scripts/enrich.mjs",
+    "eval:categories": "infisical run --env=dev -- node scripts/with-ingest-oidc.mjs node scripts/with-ollama.mjs node --import tsx/esm scripts/eval-categories.mjs",
     "scrape:local": "infisical run --env=dev -- node scripts/with-ingest-oidc.mjs node --import tsx/esm scripts/scrape.mjs",
     "rotate:local": "infisical run --env=dev -- node scripts/with-ingest-oidc.mjs node --import tsx/esm scripts/rotate.mjs",
     "list-snapshots:local": "infisical run --env=dev -- node scripts/with-ingest-oidc.mjs node --import tsx/esm scripts/list-snapshots.mjs",

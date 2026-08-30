@@ -48,6 +48,22 @@ describe('skillsShQueryKeys', () => {
   });
 
   it('builds stable search keys', () => {
-    expect(skillsShQueryKeys.search('react', 50)).toEqual(['skills-sh', 'search', 'react', 50]);
+    expect(skillsShQueryKeys.search('react', 50, [])).toEqual([
+      'skills-sh',
+      'search',
+      'react',
+      50,
+      '',
+    ]);
+  });
+
+  it('keys a category-filtered search apart from the unfiltered one', () => {
+    expect(skillsShQueryKeys.search('react', 50, ['git-github', 'cli-utilities'])).toEqual([
+      'skills-sh',
+      'search',
+      'react',
+      50,
+      'git-github,cli-utilities',
+    ]);
   });
 });

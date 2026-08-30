@@ -73,8 +73,15 @@ export function mergeLocalAndApiSkills(
   local: SkillsShSkill[],
   api: SkillsShSkill[],
 ): SkillsShSkill[] {
+  const apiById = new Map(api.map((skill) => [skill.id, skill]));
+  // A local hit comes from the cached leaderboard, which carries no categories.
+  // Take them from the API's copy of the same skill so its pills still render.
+  const enriched = local.map((skill) => {
+    const categories = apiById.get(skill.id)?.categories;
+    return categories?.length ? { ...skill, categories } : skill;
+  });
   const seen = new Set(local.map((skill) => skill.id));
-  return [...local, ...api.filter((skill) => !seen.has(skill.id))];
+  return [...enriched, ...api.filter((skill) => !seen.has(skill.id))];
 }
 
 /** Merge only when debounced query equals current input (avoid mid-typing stale merges). */

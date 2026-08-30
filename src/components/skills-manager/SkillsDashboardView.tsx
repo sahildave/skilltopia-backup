@@ -32,9 +32,11 @@ import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
 import { useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Search } from 'lucide-react';
 import { useState } from 'react';
+import type { SkillCategory } from '../../../api/_lib/taxonomy';
 import { useTranslation } from 'react-i18next';
 import { CatalogSkillCard, CatalogSkillListRow } from './CatalogSkillCard';
 import { InstalledToolbar } from './InstalledToolbar';
+import { SkillCategoryFilter } from './SkillCategoryFilter';
 import {
   findScannedSkillForCatalog,
   installedSkillKeysFromSnapshot,
@@ -181,11 +183,13 @@ export function SkillsDashboardView() {
   const layoutMode = useInstalledSkillsUiStore((state) => state.layoutMode);
   const setLayoutMode = useInstalledSkillsUiStore((state) => state.setLayoutMode);
   const [searchInput, setSearchInput] = useState('');
+  const [categories, setCategories] = useState<SkillCategory[]>([]);
   const isSearchView = searchInput.trim().length >= 2;
   const debouncedApiQuery = useDebouncedValue(searchInput, API_SEARCH_DEBOUNCE_MS);
   const apiInSync = shouldMergeApiResults(searchInput, debouncedApiQuery);
   const search = useSkillsSearch(debouncedApiQuery, {
     enabled: isSearchView && apiInSync,
+    categories,
   });
   const leaderboard = useSkillsLeaderboard({
     view: viewId,
@@ -194,7 +198,10 @@ export function SkillsDashboardView() {
   });
 
   const cachedCorpus = collectCachedLeaderboardSkillsFromClient(queryClient, leaderboard.data);
-  const localSkills = isSearchView ? filterSkillsLocally(cachedCorpus, searchInput) : [];
+  // Cached leaderboard entries carry no categories, so they cannot honour the
+  // facet — with one selected, only the API's filtered results are shown.
+  const localSkills =
+    isSearchView && categories.length === 0 ? filterSkillsLocally(cachedCorpus, searchInput) : [];
   const canMergeApi = apiInSync && Boolean(search.data) && !search.isPlaceholderData;
   const skills = isSearchView
     ? canMergeApi && search.data
@@ -233,6 +240,11 @@ export function SkillsDashboardView() {
           searchLabel={t('skills.dashboard.searchLabel')}
           clearSearchLabel={t('skills.dashboard.clearSearch')}
           showInstalledControls={false}
+          viewTrailingAction={
+            isSearchView ? (
+              <SkillCategoryFilter selected={categories} onChange={setCategories} />
+            ) : null
+          }
           leadingAction={
             <ContinuousTabs
               value={viewId}

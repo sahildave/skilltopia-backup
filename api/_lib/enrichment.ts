@@ -1,7 +1,13 @@
 import { generateObject, type LanguageModel } from 'ai';
 import { z } from 'zod';
 import type { EnrichmentRequired, SkillEnrichmentRecord } from './supabase-repository.js';
-import { SKILL_CATEGORIES } from './taxonomy.js';
+import { CATEGORY_GLOSS, SKILL_CATEGORIES } from './taxonomy.js';
+
+// The taxonomy, as `slug — gloss` lines, so the classifier disambiguates
+// neighbouring categories from their definitions rather than the slug alone.
+const CATEGORY_REFERENCE = SKILL_CATEGORIES.map(
+  (slug) => `- ${slug}: ${CATEGORY_GLOSS[slug]}`,
+).join('\n');
 
 export type ExtractedEnrichment = {
   required: EnrichmentRequired;
@@ -93,7 +99,7 @@ export async function enrichWithModel(
     new Promise<void>((resolve) => setTimeout(resolve, milliseconds)),
   onModelFailure?: (failure: EnrichModelFailure) => void,
 ): Promise<ExtractedEnrichment> {
-  const prompt = `Extract structured metadata from this skill document. Preserve only facts supported by the document. For "categories", pick 1-3 that best describe the skill, most representative first (the first is the primary category).\n\n${markdown.slice(0, 24000)}`;
+  const prompt = `Extract structured metadata from this skill document. Preserve only facts supported by the document. For "categories", pick 1-3 from the taxonomy below that best describe the skill, most representative first (the first is the primary category).\n\nTaxonomy:\n${CATEGORY_REFERENCE}\n\n${markdown.slice(0, 24000)}`;
   let lastError: unknown;
 
   for (const [index, model] of models.entries()) {

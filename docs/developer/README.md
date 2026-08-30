@@ -49,6 +49,7 @@ Technical documentation for building and extending this app. These docs describe
 | [Audit Cache](./audit-cache.md)                         | skills.sh `/audit` proxy, 7-day cache, async persist             |
 | [List Snapshots Pipeline](./list-snapshots-pipeline.md) | Local `list-snapshots:local` daily list install history          |
 | [Qdrant Embeddings](./qdrant.md)                        | Server-only Cloud Inference vectors and nearest-neighbor helpers |
+| [Category Enrichment Runbook](./category-enrichment-runbook.md) | Local model classification + corpus backfill (epic #53 gates)    |
 | [Provider Registry](./provider-registry.md)             | Vendored skills.sh provider definitions, probes, weekly sync     |
 | [Provider Scan](./provider-scan.md)                     | Desktop global skill scan snapshot, reveal, Rust FS boundary     |
 

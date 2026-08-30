@@ -35,3 +35,20 @@
 
 
 <!-- /afk:progress:30 -->
+
+<!-- afk:progress:53 -->
+
+## Progress — Skill taxonomy + faceted semantic search
+
+| ID | Task | Status | Dependencies |
+| --- | --- | --- | --- |
+| 54 | Finalize the skill taxonomy slugs | passed | - |
+| 55 | Expose categories in the search API response | passed | - |
+| 56 | Category classification run + eval harness (local Ollama) | awaiting_acceptance | 54 |
+| 57 | UI: category icon + label binding | passed | 54 |
+| 58 | Backfill categories onto existing skills | pending | 56 |
+| 59 | UI: category filter control + result pills | passed | 55, 57 |
+| 60 | Ops: launchd timer for local ingest freshness | pending | 56 |
+
+
+<!-- /afk:progress:53 -->

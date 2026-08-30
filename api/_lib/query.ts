@@ -1,3 +1,5 @@
+import { isSkillCategory } from './taxonomy.js';
+
 export type QueryErrorBody = {
   error: string;
   message: string;
@@ -9,7 +11,7 @@ export type QueryParseResult =
 
 const LEADERBOARD_VIEWS = new Set(['all-time', 'trending', 'hot']);
 const LEADERBOARD_KEYS = new Set(['view', 'page', 'per_page']);
-const SEARCH_KEYS = new Set(['q', 'limit', 'owner']);
+const SEARCH_KEYS = new Set(['q', 'limit', 'owner', 'category']);
 const DETAIL_KEYS = new Set(['skill_id']);
 const PAGE_CACHE_BATCH_KEYS = new Set(['skill_ids']);
 
@@ -106,6 +108,18 @@ export function parseSkillsSearchQuery(params: URLSearchParams): QueryParseResul
   const owner = params.get('owner');
   if (owner !== null) {
     cleaned.set('owner', owner);
+  }
+
+  const category = params.get('category');
+  if (category !== null) {
+    const slugs = category
+      .split(',')
+      .map((slug) => slug.trim())
+      .filter(Boolean);
+    for (const slug of slugs) {
+      if (!isSkillCategory(slug)) return invalid(`Unknown category: ${slug}`);
+    }
+    if (slugs.length) cleaned.set('category', slugs.join(','));
   }
 
   return { ok: true, query: cleaned };

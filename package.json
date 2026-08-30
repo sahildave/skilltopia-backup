@@ -66,8 +66,6 @@
     "build:analyze": "vite build && echo '\\n📊 Bundle analysis complete. Check dist/ folder sizes or use a tool like webpack-bundle-analyzer on the dist folder.'",
     "release:prepare": "node scripts/prepare-release.js",
     "sync:readme-downloads": "node scripts/sync-readme-downloads.mjs",
-    "task:complete": "node scripts/complete-task.js",
-    "task:rename-done": "node scripts/complete-task.js --rename-existing",
     "knip": "knip",
     "jscpd": "jscpd",
     "ast:lint": "ast-grep scan",

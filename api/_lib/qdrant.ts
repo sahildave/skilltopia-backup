@@ -172,6 +172,7 @@ export async function ensureQdrantCollection(
 export async function upsertSkillEmbedding(
   skillId: string,
   distilledText: string,
+  categories: readonly string[] = [],
   config: QdrantConfig = getQdrantConfig(),
 ): Promise<void> {
   if (!skillId.trim()) throw new Error('skillId must not be empty');
@@ -190,7 +191,10 @@ export async function upsertSkillEmbedding(
               model: config.embeddingModel,
             },
           },
-          payload: { skill_id: skillId },
+          payload: {
+            skill_id: skillId,
+            ...(categories.length ? { categories: [...categories] } : {}),
+          },
         },
       ],
     }),
@@ -264,6 +268,7 @@ async function searchQdrantPoints(
 export async function searchSkillsByText(
   text: string,
   limit = 10,
+  categories: readonly string[] = [],
   config: QdrantConfig = getQdrantConfig(),
 ): Promise<SimilarSkill[]> {
   if (!text.trim()) throw new Error('text must not be empty');
@@ -276,6 +281,11 @@ export async function searchSkillsByText(
     {
       query: { text, model: config.embeddingModel },
       limit,
+      // Pre-filter: rank only within the requested categories so `limit` is
+      // filled from matching skills rather than trimmed after the fact.
+      ...(categories.length
+        ? { filter: { must: [{ key: 'categories', match: { any: [...categories] } }] } }
+        : {}),
     },
     config,
   );

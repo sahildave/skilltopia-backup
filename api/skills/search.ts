@@ -19,7 +19,11 @@ export async function GET(request: Request): Promise<Response> {
     return Response.json(parsed.body, { status: parsed.status });
   }
 
-  const keywordResponse = await proxySkillsRequest('/skills/search', parsed.query);
+  // `category` is our own semantic-side facet; skills.sh keyword search does
+  // not understand it, so keep it out of the proxied query.
+  const keywordQuery = new URLSearchParams(parsed.query);
+  keywordQuery.delete('category');
+  const keywordResponse = await proxySkillsRequest('/skills/search', keywordQuery);
   if (!keywordResponse.ok) return keywordResponse;
 
   const keywordBody = (await keywordResponse.json()) as { data?: unknown[] };
@@ -32,9 +36,10 @@ export async function GET(request: Request): Promise<Response> {
   );
   const limit = Number(parsed.query.get('limit') ?? 50);
   const owner = parsed.query.get('owner');
+  const categories = parsed.query.get('category')?.split(',') ?? [];
 
   try {
-    const semanticResults = await searchSkillsByText(parsed.query.get('q')!, limit);
+    const semanticResults = await searchSkillsByText(parsed.query.get('q')!, limit, categories);
     const repository = createSupabaseRepositoryFromEnv();
     const metadata = (
       await repository.getSkillMetadata(semanticResults.map((result) => result.skillId))

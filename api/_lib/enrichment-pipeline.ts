@@ -17,6 +17,7 @@ import {
   type SkillSourceMetadata,
 } from './supabase-repository.js';
 import { upsertSkillEmbedding } from './qdrant.js';
+import { toSkillCategories } from './taxonomy.js';
 
 export { MAX_ENRICHED, MAX_ENRICHED_DEFAULT, maxEnrichedFromEnv };
 type Repository = ReturnType<typeof createSupabaseRepositoryFromEnv>;
@@ -204,7 +205,11 @@ export async function runEnrichmentPipeline(
         estimatedReadTimeMinutes: estimateReadTimeMinutes(markdown),
       });
       log(`${step}: upserting Qdrant embedding…`, 'step');
-      await embed(detail.id, distilledEnrichmentText(enrichment, { skillId: detail.id }));
+      await embed(
+        detail.id,
+        distilledEnrichmentText(enrichment, { skillId: detail.id }),
+        toSkillCategories(enrichment.optional.categories),
+      );
       result.enriched += 1;
       log(`${step}: enriched`, 'ok');
     } catch (error) {

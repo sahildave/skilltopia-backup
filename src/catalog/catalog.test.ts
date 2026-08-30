@@ -10,7 +10,7 @@ describe('CatalogPort mock', () => {
   });
 
   it('filters search results by name', async () => {
-    const skills = await mockCatalog.search('frontend', 10);
+    const skills = await mockCatalog.search('frontend', 10, []);
     expect(skills).toEqual([MOCK_LEADERBOARD[1]]);
   });
 
@@ -56,10 +56,25 @@ describe('CatalogPort web', () => {
       }),
     );
 
-    const skills = await webCatalog.search('find', 50);
+    const skills = await webCatalog.search('find', 50, []);
 
     expect(fetch).toHaveBeenCalledWith('/api/skills/search?q=find&limit=50');
     expect(skills).toEqual([MOCK_LEADERBOARD[0]]);
+  });
+
+  it('passes the selected categories as the category facet', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ data: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await webCatalog.search('find', 50, ['git-github', 'cli-utilities']);
+
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/skills/search?q=find&limit=50&category=git-github%2Ccli-utilities',
+    );
   });
 
   it('throws when the catalog response is not ok', async () => {

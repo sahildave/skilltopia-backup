@@ -68,6 +68,29 @@ function ScanBackedCard({ skill }: { skill: SkillsShSkill }) {
   );
 }
 
+describe('CatalogSkillCard categories', () => {
+  it('shows a pill per category, primary first', () => {
+    const skill = MOCK_LEADERBOARD[0];
+    if (!skill) throw new Error('expected MOCK_LEADERBOARD[0]');
+
+    render(
+      <CatalogSkillCard
+        skill={{ ...skill, categories: ['git-github', 'cli-utilities'] }}
+        installedKeys={new Set()}
+        snapshot={null}
+        scannedSkill={undefined}
+      />,
+    );
+
+    expect(
+      [...document.querySelectorAll('[data-category]')].map((pill) =>
+        pill.getAttribute('data-category'),
+      ),
+    ).toEqual(['git-github', 'cli-utilities']);
+    expect(screen.getByText('Git & GitHub')).toBeInTheDocument();
+  });
+});
+
 describe('CatalogSkillCard detail dialog', () => {
   beforeEach(() => {
     vi.mocked(catalog.fetchDetail).mockResolvedValue(MOCK_DETAIL);

@@ -1,4 +1,5 @@
 import type { SkillsShSkill } from '@/catalog/types';
+import type { SkillCategory } from '../../api/_lib/taxonomy';
 import { getSeedDetail, getSeedForView } from '@/data/skills-seed';
 import { logger } from '@/lib/logger';
 import { catalog } from '@catalog';
@@ -8,8 +9,8 @@ export const skillsShQueryKeys = {
   all: ['skills-sh'] as const,
   leaderboard: (view: string, perPage: number) =>
     [...skillsShQueryKeys.all, 'leaderboard', view, perPage] as const,
-  search: (query: string, limit: number) =>
-    [...skillsShQueryKeys.all, 'search', query, limit] as const,
+  search: (query: string, limit: number, categories: readonly SkillCategory[]) =>
+    [...skillsShQueryKeys.all, 'search', query, limit, categories.join(',')] as const,
   detail: (skillId: string) => [...skillsShQueryKeys.all, 'detail', skillId] as const,
   audits: (skillId: string) => [...skillsShQueryKeys.all, 'audits', skillId] as const,
 };
@@ -21,6 +22,9 @@ export const DISCOVERY_VIEWS = [
 ] as const;
 
 export type DiscoveryViewId = (typeof DISCOVERY_VIEWS)[number]['id'];
+
+/** Stable identity so an unfiltered search keeps one query key. */
+const EMPTY_CATEGORIES: SkillCategory[] = [];
 
 const LEADERBOARD_STALE_MS = 1000 * 60;
 const SEARCH_STALE_MS = 1000 * 30;
@@ -50,16 +54,20 @@ export function useSkillsLeaderboard(options?: {
   });
 }
 
-export function useSkillsSearch(query: string, options?: { limit?: number; enabled?: boolean }) {
+export function useSkillsSearch(
+  query: string,
+  options?: { limit?: number; enabled?: boolean; categories?: SkillCategory[] },
+) {
   const limit = options?.limit ?? 50;
+  const categories = options?.categories ?? EMPTY_CATEGORIES;
   const trimmed = query.trim();
   const enabled = (options?.enabled ?? true) && trimmed.length >= 2;
 
   return useQuery({
-    queryKey: skillsShQueryKeys.search(trimmed, limit),
+    queryKey: skillsShQueryKeys.search(trimmed, limit, categories),
     queryFn: async (): Promise<SkillsShSkill[]> => {
-      logger.debug('Searching skills.sh', { query: trimmed, limit });
-      const skills = await catalog.search(trimmed, limit);
+      logger.debug('Searching skills.sh', { query: trimmed, limit, categories });
+      const skills = await catalog.search(trimmed, limit, categories);
       logger.info('skills.sh search complete', { count: skills.length });
       return skills;
     },

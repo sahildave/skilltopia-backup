@@ -112,6 +112,16 @@ describe('mergeLocalAndApiSkills', () => {
     ]);
     expect(mergeLocalAndApiSkills(local, api)[1]?.name).toBe('B');
   });
+
+  it('takes categories from the API copy of a skill the local cache also matched', () => {
+    const local = [skill({ id: 'local/b', name: 'B' })];
+    const api = [skill({ id: 'local/b', name: 'B from API', categories: ['git-github'] })];
+
+    expect(mergeLocalAndApiSkills(local, api)[0]).toMatchObject({
+      name: 'B',
+      categories: ['git-github'],
+    });
+  });
 });
 
 describe('shouldMergeApiResults', () => {

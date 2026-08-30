@@ -18,6 +18,7 @@ import {
 } from './CatalogSkillActions';
 import { SkillDetailBody } from './SkillDetailDialog';
 import { DETAIL_CONTENT_CLASS, MORPH_TRANSITION } from './skill-detail-chrome';
+import { SkillCategoryPills } from './SkillCategoryPills';
 import { SkillProviderBadges } from './SkillProviderBadges';
 import { SkillSurfaceCard } from './SkillSurfaceCard';
 import { SkillSurfaceListRow } from './SkillSurfaceListRow';
@@ -46,7 +47,12 @@ export function CatalogSkillCard({
         <div>
           <SkillSurfaceCard
             title={<MorphingDialogTitle>{skill.name}</MorphingDialogTitle>}
-            subtitle={<MorphingDialogSubtitle>{skill.source}</MorphingDialogSubtitle>}
+            subtitle={
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <MorphingDialogSubtitle>{skill.source}</MorphingDialogSubtitle>
+                <SkillCategoryPills categories={skill.categories ?? []} />
+              </div>
+            }
             headerTrailing={
               <Badge
                 variant="secondary"
@@ -121,7 +127,12 @@ export function CatalogSkillListRow({
                 </Badge>
               </div>
             }
-            subtitle={<MorphingDialogSubtitle>{skill.source}</MorphingDialogSubtitle>}
+            subtitle={
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <MorphingDialogSubtitle>{skill.source}</MorphingDialogSubtitle>
+                <SkillCategoryPills categories={skill.categories ?? []} />
+              </div>
+            }
             trailing={
               <>
                 <CatalogExternalInfoButton skill={skill} />

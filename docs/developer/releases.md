@@ -22,15 +22,15 @@ tauri signer generate -w ~/.tauri/skilltopia.key
 ```
 
 Use a password for the private key and store both values outside the repository.
-The updater is disabled in `src-tauri/tauri.conf.json` until the generated public
-key replaces the placeholder. Release prep rejects placeholder keys and
-placeholder endpoints.
+This is a one-time setup: the repository already ships a real updater public key,
+so only run this when rotating the keypair. `npm run release:prepare` refuses to
+run if the config is left with an unreplaced key or endpoint.
 
 ### 2. Configure GitHub Repository
 
 Add these secrets (Settings → Secrets and variables → Actions):
 
-- `TAURI_PRIVATE_KEY`: Content of `~/.tauri/skilltopia.key`
+- `TAURI_SIGNING_PRIVATE_KEY`: Content of `~/.tauri/skilltopia.key`
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: Password for the private key
 
 The release workflow requires both secret names before building updater
@@ -38,7 +38,8 @@ artifacts, so generate a password-protected private key.
 
 ### 3. Update Configuration
 
-**`src-tauri/tauri.conf.json`:**
+**`src-tauri/tauri.conf.json`** (this is the committed configuration; when rotating
+keys, replace only `pubkey` with the public key from step 1):
 
 ```json
 {
@@ -46,8 +47,8 @@ artifacts, so generate a password-protected private key.
     "updater": {
       "active": true,
       "endpoints": ["https://github.com/sahildave/skilltopia/releases/latest/download/latest.json"],
-      "dialog": false,
-      "pubkey": "YOUR_PUBLIC_KEY_FROM_STEP_1"
+      "dialog": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6..."
     }
   }
 }
@@ -204,6 +205,21 @@ All updates are cryptographically signed:
 1. Private key signs releases during build
 2. Public key in config verifies downloads
 3. Invalid signatures are automatically rejected
+
+Before it builds, the release workflow runs `scripts/verify-updater-key.mjs`. That
+signs a throwaway artifact with the CI private key and verifies the resulting
+signature against the public key committed in `tauri.conf.json`, so a half-finished
+key rotation fails the release instead of shipping updates every installed client
+rejects. Run it locally the same way:
+
+```bash
+TAURI_SIGNING_PRIVATE_KEY="$(cat ~/.tauri/skilltopia.key)" \
+  TAURI_SIGNING_PRIVATE_KEY_PASSWORD='...' \
+  node scripts/verify-updater-key.mjs
+```
+
+The workflow pins `tauri-apps/tauri-action` to a reviewed commit SHA rather than a
+branch, because that action receives the signing key.
 
 The Skills Explorer updater keypair is product-specific. Rotate by generating a
 new `~/.tauri/skilltopia.key`, replacing only the public key in

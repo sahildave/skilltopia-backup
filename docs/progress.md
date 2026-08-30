@@ -47,7 +47,7 @@
 | 56 | Category classification run + eval harness (local Ollama) | awaiting_acceptance | 54 |
 | 57 | UI: category icon + label binding | passed | 54 |
 | 58 | Backfill categories onto existing skills | pending | 56 |
-| 59 | UI: category filter control + result pills | pending | 55, 57 |
+| 59 | UI: category filter control + result pills | passed | 55, 57 |
 | 60 | Ops: launchd timer for local ingest freshness | pending | 56 |
 
 

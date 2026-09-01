@@ -1,14 +1,6 @@
 import type { SkillsShSkill } from '@/catalog/types';
 import { Button } from '@/components/ui/button';
-import {
-  MorphingDialog,
-  MorphingDialogClose,
-  MorphingDialogContainer,
-  MorphingDialogContent,
-  MorphingDialogSubtitle,
-  MorphingDialogTitle,
-  MorphingDialogTrigger,
-} from '@/components/ui/morphing-dialog';
+import { DialogTitle } from '@/components/ui/dialog';
 import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
 import { platform } from '@platform';
 import { FolderOpen } from 'lucide-react';
@@ -18,7 +10,7 @@ import { installedSkillKeysFromSkills } from './catalog-installed-match';
 import { CatalogInstalledMenu } from './CatalogSkillActions';
 import type { ProviderFilterId } from './installed-skills-model';
 import { SkillDetailBody } from './SkillDetailDialog';
-import { DETAIL_CONTENT_CLASS, MORPH_TRANSITION } from './skill-detail-chrome';
+import { SkillDetailDialogShell } from './SkillDetailDialogShell';
 import { SkillProviderBadges } from './SkillProviderBadges';
 
 const DETAIL_SECTION_CLASS =
@@ -40,12 +32,10 @@ function LocalSkillDetailBody({
     <div className="relative flex flex-col gap-3">
       <div className="flex items-start justify-between gap-3 px-3 pt-2 pb-2 pe-8">
         <div className="flex min-w-0 flex-col gap-1.5">
-          <MorphingDialogTitle className="text-lg leading-none font-semibold text-balance">
-            {skill.name}
-          </MorphingDialogTitle>
-          <MorphingDialogSubtitle className="text-muted-foreground text-sm text-pretty">
+          <DialogTitle className="text-lg leading-none text-balance">{skill.name}</DialogTitle>
+          <div className="text-muted-foreground text-sm text-pretty">
             {t('skills.detail.localOnly')}
-          </MorphingDialogSubtitle>
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           <SkillProviderBadges skill={skill} snapshot={snapshot} />
@@ -97,7 +87,7 @@ function LocalSkillDetailBody({
 }
 
 /**
- * Wraps an installed skill card / row in the same morphing detail dialog Explore
+ * Wraps an installed skill card / row in the same detail dialog the catalog
  * uses. Catalog-matched skills get the full catalog body; local-only skills get
  * a body built from the scan.
  */
@@ -115,30 +105,18 @@ export function InstalledSkillDialog({
   children: ReactNode;
 }) {
   return (
-    <MorphingDialog transition={MORPH_TRANSITION}>
-      <MorphingDialogTrigger asChild>
-        <div>{children}</div>
-      </MorphingDialogTrigger>
-      <MorphingDialogContainer>
-        <MorphingDialogContent className={DETAIL_CONTENT_CLASS}>
-          {catalogSkill ? (
-            <SkillDetailBody
-              skill={catalogSkill}
-              installedKeys={installedSkillKeysFromSkills([skill])}
-              snapshot={snapshot}
-              scannedSkill={skill}
-              providerFilter={providerFilter}
-            />
-          ) : (
-            <LocalSkillDetailBody
-              skill={skill}
-              snapshot={snapshot}
-              providerFilter={providerFilter}
-            />
-          )}
-          <MorphingDialogClose />
-        </MorphingDialogContent>
-      </MorphingDialogContainer>
-    </MorphingDialog>
+    <SkillDetailDialogShell trigger={children}>
+      {catalogSkill ? (
+        <SkillDetailBody
+          skill={catalogSkill}
+          installedKeys={installedSkillKeysFromSkills([skill])}
+          snapshot={snapshot}
+          scannedSkill={skill}
+          providerFilter={providerFilter}
+        />
+      ) : (
+        <LocalSkillDetailBody skill={skill} snapshot={snapshot} providerFilter={providerFilter} />
+      )}
+    </SkillDetailDialogShell>
   );
 }

@@ -182,8 +182,8 @@ describe('installed skill detail dialog', () => {
     await user.click(await screen.findByRole('menuitem', { name: /uninstall/i }));
     await user.click(await screen.findByRole('button', { name: /^yes/i }));
 
-    // The dialog hands the skill back to its card mid-flight, so the card — not
-    // the dismissed dialog — has to carry the pending state to the rescan.
+    // The dialog is dismissed mid-flight, so the card behind it — not the closed
+    // dialog — has to carry the pending state through the rescan.
     await waitFor(() => expect(dialogEl()).toBeNull());
     expect(screen.getByRole('button', { name: /uninstalling/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^installed$/i })).not.toBeInTheDocument();

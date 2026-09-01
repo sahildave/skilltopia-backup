@@ -157,7 +157,7 @@ async fetchSkillsLeaderboard(view: string | null, page: number | null, perPage: 
 /**
  * Searches skills by name/description (min 2 characters on the API).
  */
-async searchSkills(q: string, limit: number | null, categories: string[] | null) : Promise<Result<SkillsShSkill[], string>> {
+async searchSkills(q: string, limit: number | null, categories: string[] | null) : Promise<Result<SkillsSearchResult, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("search_skills", { q, limit, categories }) };
 } catch (e) {
@@ -450,10 +450,11 @@ export type SkillTargetStatus =
  * The destination is inside the read-only Claude plugin cache.
  */
 "refused" | "failed"
+export type SkillsSearchResult = { skills: SkillsShSkill[]; semanticUnavailable?: boolean }
 export type SkillsShSkill = { id: string; slug: string; name: string; source: string; installs: number; sourceType: string; installUrl?: string | null; url: string; isDuplicate?: boolean | null; 
 /**
  * Taxonomy slugs from the enrichment record, most representative first.
- * Only the search response carries them; the leaderboard omits the field.
+ * Missing categories mean the catalog row could not be enriched.
  */
 categories?: string[] }
 export type TAURI_CHANNEL<TSend> = null

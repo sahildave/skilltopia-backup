@@ -140,27 +140,22 @@ describe('CatalogSkillCard detail dialog', () => {
     await user.click(
       await within(dialog as HTMLElement).findByRole('button', { name: /^install$/i }),
     );
-    // A modal menu marks every other layer aria-hidden and takes a body-level
-    // pointer-events lock; inside a dialog that hides the dialog itself.
-    expect((dialogEl() as HTMLElement).closest('[aria-hidden="true"]')).toBeNull();
-
     await user.click(await screen.findByRole('menuitem', { name: /global/i }));
 
-    // The install menu is portaled outside the dialog; choosing an item used to
-    // read as an outside click and tore the dialog down mid-install.
+    // The install menu is portaled outside the dialog content; choosing an item
+    // must not read as an outside click and tear the dialog down mid-install.
     await waitFor(() => expect(platformMock.install).toHaveBeenCalled());
     expect(dialogEl()).not.toBeNull();
     expect(within(dialogEl() as HTMLElement).getByText(/installing/i)).toBeInTheDocument();
-
-    // Radix's modal lock must not outlive the menu: unmounting the trigger from
-    // onSelect used to strand `pointer-events: none` / aria-hidden on the app.
-    expect(document.body.style.pointerEvents).not.toBe('none');
-    expect((dialogEl() as HTMLElement).closest('[aria-hidden="true"]')).toBeNull();
 
     settleInstall({ results: [] });
     await waitFor(() =>
       expect(within(dialogEl() as HTMLElement).queryByText(/installing/i)).not.toBeInTheDocument(),
     );
+    // Closing the modal dialog restores the body's interactivity.
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(dialogEl()).toBeNull());
+    expect(document.body.style.pointerEvents).not.toBe('none');
   });
 
   it('dismisses the dialog when uninstalling from it', async () => {
@@ -191,9 +186,8 @@ describe('CatalogSkillCard detail dialog', () => {
 
     await waitFor(() => expect(platformMock.uninstall).toHaveBeenCalled());
 
-    // The dialog morphs out of this skill's own card. Leaving it open while the
-    // rescan reshapes that card hands the morph back to the card: the dialog
-    // goes invisible but stays open, stranding its backdrop over the whole app.
+    // Uninstalling from the dialog closes it before the rescan reshapes the card
+    // behind it, so no backdrop or scroll lock is left stranded over the app.
     await waitFor(() => expect(dialogEl()).toBeNull());
     expect(document.body.classList.contains('overflow-hidden')).toBe(false);
   });

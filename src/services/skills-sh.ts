@@ -1,4 +1,4 @@
-import type { SkillsShSkill } from '@/catalog/types';
+import type { CatalogSearchResult, SkillsShSkill } from '@/catalog/types';
 import type { SkillCategory } from '../../api/_lib/taxonomy';
 import { getSeedDetail, getSeedForView } from '@/data/skills-seed';
 import { logger } from '@/lib/logger';
@@ -65,11 +65,14 @@ export function useSkillsSearch(
 
   return useQuery({
     queryKey: skillsShQueryKeys.search(trimmed, limit, categories),
-    queryFn: async (): Promise<SkillsShSkill[]> => {
+    queryFn: async (): Promise<CatalogSearchResult> => {
       logger.debug('Searching skills.sh', { query: trimmed, limit, categories });
-      const skills = await catalog.search(trimmed, limit, categories);
-      logger.info('skills.sh search complete', { count: skills.length });
-      return skills;
+      const result = await catalog.search(trimmed, limit, categories);
+      logger.info('skills.sh search complete', {
+        count: result.skills.length,
+        semanticUnavailable: result.semanticUnavailable,
+      });
+      return result;
     },
     enabled,
     placeholderData: keepPreviousData,

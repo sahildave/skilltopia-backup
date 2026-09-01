@@ -1,9 +1,9 @@
 import type { SkillsShSkill } from '@/catalog/types';
-import { MorphingDialogTitle } from '@/components/ui/morphing-dialog';
 import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
 import { CatalogInstalledMenu } from './CatalogSkillActions';
 import type { ProviderFilterId } from './installed-skills-model';
 import { InstalledSkillDialog } from './InstalledSkillDialog';
+import { SkillCardTitle } from './skill-card-text';
 import { SkillProviderBadges } from './SkillProviderBadges';
 import { SkillSurfaceCard } from './SkillSurfaceCard';
 
@@ -26,7 +26,7 @@ export function SkillCard({
       catalogSkill={catalogSkill}
     >
       <SkillSurfaceCard
-        title={<MorphingDialogTitle>{skill.name}</MorphingDialogTitle>}
+        title={<SkillCardTitle>{skill.name}</SkillCardTitle>}
         subtitle={
           <div className="text-muted-foreground line-clamp-2 text-sm text-pretty">
             {skill.description}

@@ -91,7 +91,7 @@ describe('skills proxy routes', () => {
     );
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ data: [] });
+    expect(await response.json()).toEqual({ data: [], count: 0, semanticUnavailable: true });
     expect(response.headers.get('Cache-Control')).toBe('public, max-age=60');
     expect(response.headers.get('Authorization')).toBeNull();
     expect(fetchMock).toHaveBeenCalledWith(
@@ -103,6 +103,101 @@ describe('skills proxy routes', () => {
         },
       },
     );
+  });
+
+  it('hydrates leaderboard rows with verified categories from Supabase', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: [
+            { id: 'owner/git-skill', name: 'Git Skill' },
+            { id: 'owner/uncategorized', name: 'Uncategorized' },
+          ],
+        }),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    createSupabaseRepositoryFromEnv.mockReturnValue({
+      getSkillMetadata: vi.fn().mockResolvedValue([
+        {
+          skillId: 'owner/git-skill',
+          optional: { categories: ['git-github'] },
+        },
+      ]),
+    });
+
+    const response = await getSkills(
+      new Request('https://proxy.test/api/skills?view=trending&per_page=2'),
+    );
+
+    expect(await response.json()).toEqual({
+      data: [
+        { id: 'owner/git-skill', name: 'Git Skill', categories: ['git-github'] },
+        { id: 'owner/uncategorized', name: 'Uncategorized', categories: [] },
+      ],
+    });
+  });
+
+  it('filters keyword results by category when semantic search is unavailable', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: [
+            { id: 'owner/git-skill', installs: 10 },
+            { id: 'owner/pdf-skill', installs: 20 },
+          ],
+        }),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    createSupabaseRepositoryFromEnv.mockReturnValue({
+      getSkillMetadata: vi.fn().mockResolvedValue([
+        {
+          skillId: 'owner/git-skill',
+          optional: { categories: ['git-github'] },
+        },
+        {
+          skillId: 'owner/pdf-skill',
+          optional: { categories: ['pdf-documents'] },
+        },
+      ]),
+    });
+
+    const response = await searchSkills(
+      new Request('https://proxy.test/api/skills/search?q=skill&limit=5&category=git-github'),
+    );
+
+    expect(await response.json()).toEqual({
+      data: [{ id: 'owner/git-skill', installs: 10, categories: ['git-github'] }],
+      count: 1,
+      semanticUnavailable: true,
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://skills.sh/api/v1/skills/search?q=skill&limit=20',
+      expect.anything(),
+    );
+  });
+
+  it('fails closed when category metadata cannot be loaded', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ data: [{ id: 'owner/skill', installs: 10 }] })),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    createSupabaseRepositoryFromEnv.mockReturnValue({
+      getSkillMetadata: vi.fn().mockRejectedValue(new Error('database unavailable')),
+    });
+
+    const response = await searchSkills(
+      new Request('https://proxy.test/api/skills/search?q=skill&category=git-github'),
+    );
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({
+      error: 'category_metadata_unavailable',
+      message: 'Category metadata is temporarily unavailable. Try again shortly.',
+    });
   });
 
   it('serves cached audits without upstream OIDC when fresh', async () => {

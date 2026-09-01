@@ -4,12 +4,7 @@ import {
   MOCK_LEADERBOARD,
   MOCK_UNCACHED_DETAIL,
 } from '@/catalog/fixtures';
-import {
-  MorphingDialog,
-  MorphingDialogContainer,
-  MorphingDialogContent,
-  MorphingDialogTrigger,
-} from '@/components/ui/morphing-dialog';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { render, screen, waitFor } from '@/test/test-utils';
 import { catalog } from '@catalog';
 import userEvent from '@testing-library/user-event';
@@ -28,19 +23,17 @@ vi.mock('@catalog', () => ({
 async function renderOpenDetail(skill: (typeof MOCK_LEADERBOARD)[number]) {
   const user = userEvent.setup();
   render(
-    <MorphingDialog>
-      <MorphingDialogTrigger>Open skill</MorphingDialogTrigger>
-      <MorphingDialogContainer>
-        <MorphingDialogContent>
-          <SkillDetailBody
-            skill={skill}
-            installedKeys={new Set()}
-            snapshot={null}
-            scannedSkill={undefined}
-          />
-        </MorphingDialogContent>
-      </MorphingDialogContainer>
-    </MorphingDialog>,
+    <Dialog>
+      <DialogTrigger>Open skill</DialogTrigger>
+      <DialogContent aria-describedby={undefined}>
+        <SkillDetailBody
+          skill={skill}
+          installedKeys={new Set()}
+          snapshot={null}
+          scannedSkill={undefined}
+        />
+      </DialogContent>
+    </Dialog>,
   );
   await user.click(screen.getByRole('button', { name: 'Open skill' }));
   return user;

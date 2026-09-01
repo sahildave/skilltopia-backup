@@ -10,8 +10,8 @@ describe('CatalogPort mock', () => {
   });
 
   it('filters search results by name', async () => {
-    const skills = await mockCatalog.search('frontend', 10, []);
-    expect(skills).toEqual([MOCK_LEADERBOARD[1]]);
+    const result = await mockCatalog.search('frontend', 10, []);
+    expect(result).toEqual({ skills: [MOCK_LEADERBOARD[1]], semanticUnavailable: false });
   });
 
   it('returns fixture detail for known skill id', async () => {
@@ -56,10 +56,10 @@ describe('CatalogPort web', () => {
       }),
     );
 
-    const skills = await webCatalog.search('find', 50, []);
+    const result = await webCatalog.search('find', 50, []);
 
     expect(fetch).toHaveBeenCalledWith('/api/skills/search?q=find&limit=50');
-    expect(skills).toEqual([MOCK_LEADERBOARD[0]]);
+    expect(result).toEqual({ skills: [MOCK_LEADERBOARD[0]], semanticUnavailable: false });
   });
 
   it('passes the selected categories as the category facet', async () => {

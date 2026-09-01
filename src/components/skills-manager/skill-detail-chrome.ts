@@ -1,10 +1,9 @@
-/** Shared morphing-dialog chrome for every skill detail surface (catalog + installed). */
+/** Shared dialog chrome for every skill detail surface (catalog + installed). */
 
 /**
- * An eased tween, not a spring: the underdamped spring this replaced overshot,
- * so shared title/subtitle text blew past its final size before settling back.
+ * Overrides on the standard DialogContent: wider than the default `sm:max-w-lg`
+ * and internally scrollable, with the scrollbar hidden. DialogContent already
+ * supplies the material, border, radius, padding, and shadow.
  */
-export const MORPH_TRANSITION = { type: 'tween', duration: 0.3, ease: 'easeOut' } as const;
-
 export const DETAIL_CONTENT_CLASS =
-  'app-material-strong bg-background relative max-h-[85vh] w-full max-w-[calc(100%-2rem)] overflow-y-auto rounded-[min(var(--radius-4xl),24px)] border p-6 scrollbar-none shadow-lg sm:max-w-2xl';
+  'max-h-[95vh] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:max-w-2xl';

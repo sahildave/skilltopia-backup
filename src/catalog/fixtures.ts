@@ -10,6 +10,7 @@ export const MOCK_LEADERBOARD: SkillsShSkill[] = [
     sourceType: 'github',
     installUrl: 'https://skills.sh/vercel-labs/agent-skills/find-skills',
     url: 'https://skills.sh/vercel-labs/agent-skills/find-skills',
+    categories: ['git-github', 'search-research'],
   },
   {
     id: 'anthropics/skills/frontend-design',
@@ -20,6 +21,7 @@ export const MOCK_LEADERBOARD: SkillsShSkill[] = [
     sourceType: 'github',
     installUrl: 'https://skills.sh/anthropics/skills/frontend-design',
     url: 'https://skills.sh/anthropics/skills/frontend-design',
+    categories: ['web-frontend-development'],
   },
 ];
 

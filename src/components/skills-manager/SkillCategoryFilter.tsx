@@ -1,79 +1,97 @@
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useSkillCategories } from '@/hooks/use-skill-categories';
 import { cn } from '@/lib/utils';
-import { Check, ListFilter } from 'lucide-react';
-import { useState } from 'react';
+import { Layers3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { SkillCategory } from '../../../api/_lib/taxonomy';
+import type { SkillCategoryCounts } from './skill-category-model';
 
-/** Multi-select facet over the skill taxonomy. Selection order is preserved. */
-export function SkillCategoryFilter({
+const ALL_CATEGORY_ID = 'all';
+
+/** Two-row, horizontally scrollable single-select category rail for Explore. */
+export function SkillCategoryRail({
   selected,
+  counts,
+  totalCount,
   onChange,
 }: {
-  selected: SkillCategory[];
-  onChange: (categories: SkillCategory[]) => void;
+  selected: SkillCategory | null;
+  counts: SkillCategoryCounts;
+  totalCount: number;
+  onChange: (category: SkillCategory | null) => void;
 }) {
   const { t } = useTranslation();
   const bindings = useSkillCategories();
-  const [open, setOpen] = useState(false);
-  const selectedKeys = new Set(selected);
+  const value = selected ?? ALL_CATEGORY_ID;
 
-  const toggle = (key: SkillCategory) => {
-    onChange(
-      selectedKeys.has(key) ? selected.filter((category) => category !== key) : [...selected, key],
-    );
+  const handleValueChange = (nextValue: string) => {
+    if (!nextValue || nextValue === ALL_CATEGORY_ID) {
+      onChange(null);
+      return;
+    }
+
+    const nextCategory = bindings.find((binding) => binding.key === nextValue)?.key;
+    onChange(nextCategory ?? null);
   };
 
+  const items = [
+    <ToggleGroupItem
+      key={ALL_CATEGORY_ID}
+      value={ALL_CATEGORY_ID}
+      aria-label={t('skills.dashboard.allCategories')}
+      className="gap-1.5 rounded-lg px-2.5"
+    >
+      <Layers3 aria-hidden />
+      <span>{t('skills.dashboard.allCategories')}</span>
+      <Badge variant="secondary" size="xs" className="tabular-nums">
+        {totalCount}
+      </Badge>
+    </ToggleGroupItem>,
+    ...bindings.map(({ key, icon: Icon, label }) => (
+      <ToggleGroupItem
+        key={key}
+        value={key}
+        aria-label={`${label} (${counts[key] ?? 0})`}
+        className={cn('gap-1.5 rounded-lg px-2.5', selected === key && 'data-[state=on]:bg-accent')}
+      >
+        <Icon aria-hidden />
+        <span>{label}</span>
+        <Badge variant="secondary" size="xs" className="tabular-nums">
+          {counts[key] ?? 0}
+        </Badge>
+      </ToggleGroupItem>
+    )),
+  ];
+
+  // Split row-major into two rows: top row holds the first half in reading order.
+  const topCount = Math.ceil(items.length / 2);
+  const rows = [items.slice(0, topCount), items.slice(topCount)];
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <ListFilter data-icon="inline-start" />
-          {t('skills.dashboard.categoryFilter')}
-          {selected.length ? (
-            <Badge variant="secondary" size="sm" className="tabular-nums">
-              {selected.length}
-            </Badge>
-          ) : null}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-64 p-0">
-        <Command>
-          <CommandInput placeholder={t('skills.dashboard.categorySearch')} />
-          <CommandList>
-            <CommandEmpty>{t('skills.dashboard.noCategories')}</CommandEmpty>
-            <CommandGroup>
-              {bindings.map(({ key, icon: Icon, label }) => (
-                <CommandItem key={key} value={label} onSelect={() => toggle(key)}>
-                  <Check
-                    className={cn('size-4', selectedKeys.has(key) ? 'opacity-100' : 'opacity-0')}
-                  />
-                  <Icon aria-hidden />
-                  {label}
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-          {selected.length ? (
-            <div className="border-t p-1">
-              <Button variant="ghost" size="sm" className="w-full" onClick={() => onChange([])}>
-                {t('skills.dashboard.clearCategories')}
-              </Button>
-            </div>
-          ) : null}
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <div
+      data-testid="skill-category-rail"
+      className="min-w-0 px-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden overscroll-x-contain"
+      aria-label={t('skills.dashboard.categoryFilterLabel')}
+    >
+      <ToggleGroup
+        type="single"
+        value={value}
+        onValueChange={handleValueChange}
+        aria-label={t('skills.dashboard.categoryFilterLabel')}
+        variant="outline"
+        size="sm"
+        spacing={2}
+        className="flex w-max flex-col items-start gap-2 rounded-none bg-transparent p-0"
+      >
+        {rows.map((row, index) => (
+          <div key={index} className="flex w-max flex-row gap-2">
+            {row}
+          </div>
+        ))}
+      </ToggleGroup>
+    </div>
   );
 }
+
+export { ALL_CATEGORY_ID };

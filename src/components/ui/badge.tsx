@@ -18,6 +18,7 @@ const badgeVariants = cva(
       },
       size: {
         sm: 'px-1.5 py-1 text-xs text-muted-foreground',
+        xs: 'px-1 rounded-sm py-0.25 text-xs text-muted-foreground',
         md: 'px-2 py-1 text-sm',
       },
     },

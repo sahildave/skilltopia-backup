@@ -1,14 +1,5 @@
 import type { SkillsShSkill } from '@/catalog/types';
 import { Badge } from '@/components/ui/badge';
-import {
-  MorphingDialog,
-  MorphingDialogClose,
-  MorphingDialogContainer,
-  MorphingDialogContent,
-  MorphingDialogSubtitle,
-  MorphingDialogTitle,
-  MorphingDialogTrigger,
-} from '@/components/ui/morphing-dialog';
 import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
 import { isCatalogSkillInstalled } from './catalog-installed-match';
 import {
@@ -16,8 +7,9 @@ import {
   CatalogInstalledMenu,
   SkillInstallMenu,
 } from './CatalogSkillActions';
+import { SkillCardSubtitle, SkillCardTitle } from './skill-card-text';
 import { SkillDetailBody } from './SkillDetailDialog';
-import { DETAIL_CONTENT_CLASS, MORPH_TRANSITION } from './skill-detail-chrome';
+import { SkillDetailDialogShell } from './SkillDetailDialogShell';
 import { SkillCategoryPills } from './SkillCategoryPills';
 import { SkillProviderBadges } from './SkillProviderBadges';
 import { SkillSurfaceCard } from './SkillSurfaceCard';
@@ -42,55 +34,49 @@ export function CatalogSkillCard({
   const manageable = isInstalled && snapshot !== null && scannedSkill !== undefined;
 
   return (
-    <MorphingDialog transition={MORPH_TRANSITION}>
-      <MorphingDialogTrigger asChild>
-        <div>
-          <SkillSurfaceCard
-            title={<MorphingDialogTitle>{skill.name}</MorphingDialogTitle>}
-            subtitle={
-              <div className="flex min-w-0 flex-col gap-1.5">
-                <MorphingDialogSubtitle>{skill.source}</MorphingDialogSubtitle>
-                <SkillCategoryPills categories={skill.categories ?? []} />
-              </div>
-            }
-            headerTrailing={
-              <Badge
-                variant="secondary"
-                size="sm"
-                className="font-semibold text-muted-foreground font-mono"
-              >
-                {formatInstalls(skill.installs)}
-              </Badge>
-            }
-            footerLeading={
-              manageable ? (
-                <SkillProviderBadges skill={scannedSkill} snapshot={snapshot} />
-              ) : (
-                <CatalogExternalInfoButton skill={skill} />
-              )
-            }
-            footerTrailing={
-              manageable ? (
-                <CatalogInstalledMenu snapshot={snapshot} scannedSkill={scannedSkill} />
-              ) : (
-                <SkillInstallMenu skill={skill} installedKeys={installedKeys} />
-              )
-            }
-          />
-        </div>
-      </MorphingDialogTrigger>
-      <MorphingDialogContainer>
-        <MorphingDialogContent className={DETAIL_CONTENT_CLASS}>
-          <SkillDetailBody
-            skill={skill}
-            installedKeys={installedKeys}
-            snapshot={snapshot}
-            scannedSkill={scannedSkill}
-          />
-          <MorphingDialogClose />
-        </MorphingDialogContent>
-      </MorphingDialogContainer>
-    </MorphingDialog>
+    <SkillDetailDialogShell
+      trigger={
+        <SkillSurfaceCard
+          title={<SkillCardTitle>{skill.name}</SkillCardTitle>}
+          subtitle={
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <SkillCardSubtitle>{skill.source}</SkillCardSubtitle>
+              <SkillCategoryPills categories={skill.categories ?? []} />
+            </div>
+          }
+          headerTrailing={
+            <Badge
+              variant="secondary"
+              size="sm"
+              className="font-semibold text-muted-foreground font-mono"
+            >
+              {formatInstalls(skill.installs)}
+            </Badge>
+          }
+          footerLeading={
+            manageable ? (
+              <SkillProviderBadges skill={scannedSkill} snapshot={snapshot} />
+            ) : (
+              <CatalogExternalInfoButton skill={skill} />
+            )
+          }
+          footerTrailing={
+            manageable ? (
+              <CatalogInstalledMenu snapshot={snapshot} scannedSkill={scannedSkill} />
+            ) : (
+              <SkillInstallMenu skill={skill} installedKeys={installedKeys} />
+            )
+          }
+        />
+      }
+    >
+      <SkillDetailBody
+        skill={skill}
+        installedKeys={installedKeys}
+        snapshot={snapshot}
+        scannedSkill={scannedSkill}
+      />
+    </SkillDetailDialogShell>
   );
 }
 
@@ -111,13 +97,13 @@ export function CatalogSkillListRow({
     scannedSkill !== undefined;
 
   return (
-    <MorphingDialog transition={MORPH_TRANSITION}>
-      <MorphingDialogTrigger asChild>
+    <SkillDetailDialogShell
+      trigger={
         <div data-slot="catalog-skill-list-row">
           <SkillSurfaceListRow
             title={
               <div className="flex min-w-0 h-6.5 items-center gap-2">
-                <MorphingDialogTitle className="min-w-0 truncate">{skill.name}</MorphingDialogTitle>
+                <SkillCardTitle className="min-w-0">{skill.name}</SkillCardTitle>
                 <Badge
                   variant="secondary"
                   size="sm"
@@ -129,7 +115,7 @@ export function CatalogSkillListRow({
             }
             subtitle={
               <div className="flex min-w-0 flex-wrap items-center gap-2">
-                <MorphingDialogSubtitle>{skill.source}</MorphingDialogSubtitle>
+                <SkillCardSubtitle>{skill.source}</SkillCardSubtitle>
                 <SkillCategoryPills categories={skill.categories ?? []} />
               </div>
             }
@@ -145,19 +131,14 @@ export function CatalogSkillListRow({
             }
           />
         </div>
-      </MorphingDialogTrigger>
-
-      <MorphingDialogContainer>
-        <MorphingDialogContent className={DETAIL_CONTENT_CLASS}>
-          <SkillDetailBody
-            skill={skill}
-            installedKeys={installedKeys}
-            snapshot={snapshot}
-            scannedSkill={scannedSkill}
-          />
-          <MorphingDialogClose />
-        </MorphingDialogContent>
-      </MorphingDialogContainer>
-    </MorphingDialog>
+      }
+    >
+      <SkillDetailBody
+        skill={skill}
+        installedKeys={installedKeys}
+        snapshot={snapshot}
+        scannedSkill={scannedSkill}
+      />
+    </SkillDetailDialogShell>
   );
 }

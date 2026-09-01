@@ -235,6 +235,12 @@ provider and kind badges. Discovery rails and search results should share the
 same restrained card vocabulary and keep existing results visible during
 refreshes instead of using page-load choreography.
 
+The Explore category rail is a single-select toggle group with localized icons,
+labels, and count badges. It may wrap into two horizontal, keyboard-scrollable
+rows so the complete taxonomy stays discoverable without turning the toolbar
+into a popover. Category pills on individual skill cards remain informational;
+the rail owns filtering and exposes an `All` state for clearing the selection.
+
 ### Motion and Materials
 
 Interaction feedback should be immediate and modest. Pressable controls use a

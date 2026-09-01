@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button';
-import { useMorphingDialogClose } from '@/components/ui/morphing-dialog';
 import { Spinner } from '@/components/ui/spinner';
 
 import {
@@ -29,6 +28,7 @@ import {
 } from './installed-skills-model';
 import { isPermissionError, isPluginManaged } from './library-errors';
 import { SKILL_ACTION_PILL_CLASS } from './skill-chip';
+import { useSkillDetailDialogClose } from './skill-detail-dialog-close';
 import { summarizeTargetResults } from './target-results';
 export function SkillCardOverflowMenu({
   skill,
@@ -53,11 +53,9 @@ export function SkillCardOverflowMenu({
   const copiesCommand = platform.copiesInstallCommand;
   const canCopy = platform.hasLocalLibrary;
   const rescan = useInstalledScanStore((state) => state.rescan);
-  // A no-op on a plain card. Inside the detail dialog it must run before the
-  // rescan: the dialog morphs from this skill's own card, so mutating that card
-  // under an open dialog makes motion hand the morph back to it — the dialog
-  // goes invisible while still open, leaving its backdrop over the whole app.
-  const closeDetailDialog = useMorphingDialogClose();
+  // A no-op on a plain card. Inside the detail dialog, close it before the
+  // rescan so the card's pending state shows on the surface behind the dialog.
+  const closeDetailDialog = useSkillDetailDialogClose();
   const rowVariants = panelRowSlideVariants(Boolean(reduceMotion));
   // The plugin cache is read-only, so Rust refuses this uninstall. Don't offer
   // an action that can only fail — say who owns the skill instead.

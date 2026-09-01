@@ -27,7 +27,7 @@ describe('SkillsDashboardView', () => {
       refreshing: false,
     });
     vi.mocked(catalog.fetchLeaderboard).mockResolvedValue(MOCK_LEADERBOARD);
-    vi.mocked(catalog.search).mockResolvedValue([]);
+    vi.mocked(catalog.search).mockResolvedValue({ skills: [], semanticUnavailable: false });
     vi.mocked(catalog.fetchDetail).mockResolvedValue({
       skillId: '',
       pageSnapshot: null,
@@ -126,7 +126,34 @@ describe('SkillsDashboardView', () => {
     expect(screen.getByTestId('discovery-skill-container')).toHaveAttribute('data-layout', 'list');
   });
 
-  it('opens skill detail in a morphing dialog when a card is clicked', async () => {
+  it('shows category counts and filters both layouts with one active category', async () => {
+    const user = userEvent.setup();
+    render(<SkillsDashboardView />);
+
+    expect(await screen.findByText('Find Skills')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'All' })).toHaveAttribute('data-state', 'on');
+    await waitFor(() => {
+      expect(screen.getByRole('radio', { name: /Git & GitHub/ })).toHaveTextContent('1');
+    });
+    expect(screen.getByRole('radio', { name: /DevOps & Cloud/ })).toHaveTextContent('0');
+
+    const gitCategory = screen.getByRole('radio', { name: /Git & GitHub/ });
+    await user.click(gitCategory);
+
+    expect(screen.getByText('Find Skills')).toBeInTheDocument();
+    expect(screen.queryByText('Frontend Design')).not.toBeInTheDocument();
+    expect(gitCategory).toHaveAttribute('data-state', 'on');
+
+    await user.click(screen.getByRole('radio', { name: 'List' }));
+    expect(screen.getByTestId('discovery-skill-container')).toHaveAttribute('data-layout', 'list');
+    expect(screen.getByText('Find Skills')).toBeInTheDocument();
+
+    await user.click(gitCategory);
+    expect(screen.getByRole('radio', { name: 'All' })).toHaveAttribute('data-state', 'on');
+    expect(screen.getByText('Frontend Design')).toBeInTheDocument();
+  });
+
+  it('opens skill detail in a dialog when a card is clicked', async () => {
     MotionGlobalConfig.skipAnimations = true;
 
     try {
@@ -143,7 +170,7 @@ describe('SkillsDashboardView', () => {
 
       expect(trigger).toHaveAttribute('aria-expanded', 'true');
       expect(screen.getByRole('dialog')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Close dialog' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
       expect(screen.getByText('Loading skill details...')).toBeInTheDocument();
     } finally {
       MotionGlobalConfig.skipAnimations = false;
@@ -151,7 +178,10 @@ describe('SkillsDashboardView', () => {
   });
 
   it('shows local cache hits immediately and Searching while the API is outstanding', async () => {
-    let resolveSearch!: (value: typeof MOCK_LEADERBOARD) => void;
+    let resolveSearch!: (value: {
+      skills: typeof MOCK_LEADERBOARD;
+      semanticUnavailable: boolean;
+    }) => void;
     vi.mocked(catalog.search).mockImplementation(
       () =>
         new Promise((resolve) => {
@@ -176,23 +206,41 @@ describe('SkillsDashboardView', () => {
     });
     expect(screen.getByText('Searching…')).toBeInTheDocument();
 
-    resolveSearch([
-      {
-        id: 'api-only/skills/extra',
-        slug: 'extra',
-        name: 'Extra API Skill',
-        source: 'api-only/skills',
-        installs: 9,
-        sourceType: 'github',
-        url: 'https://skills.sh/api-only/skills/extra',
-      },
-    ]);
+    resolveSearch({
+      skills: [
+        {
+          id: 'api-only/skills/extra',
+          slug: 'extra',
+          name: 'Extra API Skill',
+          source: 'api-only/skills',
+          installs: 9,
+          sourceType: 'github',
+          url: 'https://skills.sh/api-only/skills/extra',
+        },
+      ],
+      semanticUnavailable: false,
+    });
 
     expect(await screen.findByText('Extra API Skill')).toBeInTheDocument();
     expect(screen.getByText('Find Skills')).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.queryByText('Searching…')).not.toBeInTheDocument();
     });
+  });
+
+  it('shows a warning when semantic search falls back to keyword results', async () => {
+    vi.mocked(catalog.search).mockResolvedValue({
+      skills: MOCK_LEADERBOARD.slice(0, 1),
+      semanticUnavailable: true,
+    });
+
+    const user = userEvent.setup();
+    render(<SkillsDashboardView />);
+
+    await user.type(screen.getByRole('textbox', { name: 'Search skills' }), 'find');
+
+    expect(await screen.findByText('Semantic results are unavailable')).toBeInTheDocument();
+    expect(screen.getByText('Showing matching keyword results only.')).toBeInTheDocument();
   });
 
   it('narrows the search by the selected category facet', async () => {
@@ -204,15 +252,14 @@ describe('SkillsDashboardView', () => {
 
     expect(screen.getByText('Find Skills')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /Category/ }));
-    await user.click(await screen.findByRole('option', { name: 'Git & GitHub' }));
+    await user.click(screen.getByRole('radio', { name: /Git & GitHub/ }));
 
     await waitFor(() => {
       expect(catalog.search).toHaveBeenCalledWith('find', 50, ['git-github']);
     });
-    // The cached leaderboard hit carries no categories, so the facet drops it.
+    // The verified cached hit remains visible while the API contributes semantic matches.
     await waitFor(() => {
-      expect(screen.queryByText('Find Skills')).not.toBeInTheDocument();
+      expect(screen.getByText('Find Skills')).toBeInTheDocument();
     });
   });
 

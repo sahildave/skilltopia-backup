@@ -68,4 +68,24 @@ describe('mergeHybridSearchResults', () => {
       ['owner/testing', ['coding-agents-ides']],
     ]);
   });
+
+  it('filters keyword and semantic results by any requested category', () => {
+    const results = mergeHybridSearchResults(
+      'react',
+      [
+        { id: 'owner/react', installs: 10 },
+        { id: 'owner/forms', installs: 100 },
+      ],
+      [{ skillId: 'owner/testing', score: 0.8 }],
+      [
+        { skillId: 'owner/react', categories: ['web-frontend-development'] },
+        { skillId: 'owner/forms', categories: ['pdf-documents'] },
+        { skillId: 'owner/testing', categories: ['coding-agents-ides'] },
+      ],
+      10,
+      ['coding-agents-ides'],
+    );
+
+    expect(results.map((result) => result.id)).toEqual(['owner/testing']);
+  });
 });

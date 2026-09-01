@@ -6,7 +6,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useMorphingDialogClose } from '@/components/ui/morphing-dialog';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
@@ -27,6 +26,7 @@ import {
 } from './library-errors';
 import { SkillCardOverflowMenu } from './SkillCardOverflowMenu';
 import { SKILL_ACTION_PILL_CLASS } from './skill-chip';
+import { useSkillDetailDialogClose } from './skill-detail-dialog-close';
 import { summarizeTargetResults } from './target-results';
 import type { InstallScope } from './types';
 
@@ -75,7 +75,7 @@ export function SkillInstallMenu({
 }) {
   const { t } = useTranslation();
   const [installing, setInstalling] = useState(false);
-  const closeDetailDialog = useMorphingDialogClose();
+  const closeDetailDialog = useSkillDetailDialogClose();
   const copiesCommand = platform.copiesInstallCommand;
   const isInstalled = isCatalogSkillInstalled(skill, installedKeys);
   const installName = catalogInstallName(skill);

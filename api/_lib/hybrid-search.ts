@@ -47,6 +47,7 @@ export function mergeHybridSearchResults(
   semanticResults: SimilarSkill[],
   metadata: SkillSearchMetadata[],
   limit: number,
+  categories: readonly SkillCategory[] = [],
 ): EnrichedSearchResult[] {
   const metadataById = new Map(metadata.map((item) => [item.skillId, item]));
   const keywordIds = new Set(keywordResults.map((result) => result.id));
@@ -58,13 +59,24 @@ export function mergeHybridSearchResults(
     .map((result) => ({
       ...result,
       categories: metadataById.get(result.id)?.categories ?? [],
-    }));
+    }))
+    .filter(
+      (result) =>
+        categories.length === 0 ||
+        result.categories.some((category) => categories.includes(category)),
+    );
 
   const semantic = semanticResults
     .filter((result) => !keywordIds.has(result.skillId))
     .flatMap((result) => {
       const item = metadataById.get(result.skillId);
       if (!item) return [];
+      if (
+        categories.length > 0 &&
+        !item.categories?.some((category) => categories.includes(category))
+      ) {
+        return [];
+      }
       return [
         {
           id: item.skillId,

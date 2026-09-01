@@ -1,9 +1,9 @@
 import type { SkillsShSkill } from '@/catalog/types';
-import { MorphingDialogTitle } from '@/components/ui/morphing-dialog';
 import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
 import { CatalogInstalledMenu } from './CatalogSkillActions';
 import type { ProviderFilterId } from './installed-skills-model';
 import { InstalledSkillDialog } from './InstalledSkillDialog';
+import { SkillCardTitle } from './skill-card-text';
 import { SkillProviderBadges } from './SkillProviderBadges';
 import { SkillSurfaceListRow } from './SkillSurfaceListRow';
 
@@ -29,7 +29,7 @@ export function SkillListRow({
         <SkillSurfaceListRow
           title={
             <div className="flex min-w-0 h-6.5 items-center gap-2">
-              <MorphingDialogTitle className="min-w-0 truncate">{skill.name}</MorphingDialogTitle>
+              <SkillCardTitle className="min-w-0">{skill.name}</SkillCardTitle>
             </div>
           }
           subtitle={

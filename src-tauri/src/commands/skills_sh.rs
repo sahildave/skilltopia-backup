@@ -27,7 +27,7 @@ pub struct SkillsShSkill {
     #[serde(rename = "isDuplicate", default)]
     pub is_duplicate: Option<bool>,
     /// Taxonomy slugs from the enrichment record, most representative first.
-    /// Only the search response carries them; the leaderboard omits the field.
+    /// Missing categories mean the catalog row could not be enriched.
     #[serde(default)]
     pub categories: Vec<String>,
 }
@@ -46,6 +46,15 @@ pub struct SkillsSearchResponse {
     pub search_type: Option<String>,
     #[serde(default)]
     pub count: Option<i32>,
+    #[serde(rename = "semanticUnavailable", default)]
+    pub semantic_unavailable: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SkillsSearchResult {
+    pub skills: Vec<SkillsShSkill>,
+    #[serde(rename = "semanticUnavailable", default)]
+    pub semantic_unavailable: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -288,7 +297,7 @@ pub async fn search_skills(
     q: String,
     limit: Option<i32>,
     categories: Option<Vec<String>>,
-) -> Result<Vec<SkillsShSkill>, String> {
+) -> Result<SkillsSearchResult, String> {
     let trimmed = q.trim().to_string();
     if trimmed.chars().count() < 2 {
         return Err("Search query must be at least 2 characters.".to_string());
@@ -305,7 +314,10 @@ pub async fn search_skills(
     };
 
     let response: SkillsSearchResponse = get_json(&path).await?;
-    Ok(filter_duplicates(response.data))
+    Ok(SkillsSearchResult {
+        skills: filter_duplicates(response.data),
+        semantic_unavailable: response.semantic_unavailable,
+    })
 }
 
 /// Fetches enrichment and related skills for a catalog skill.

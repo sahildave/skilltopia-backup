@@ -3,7 +3,7 @@ import { Sparkline } from '@/components/dither-kit';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MorphingDialogSubtitle, MorphingDialogTitle } from '@/components/ui/morphing-dialog';
+import { DialogTitle } from '@/components/ui/dialog';
 import { entranceEase, layoutDuration, opacityTransition } from '@/lib/animation';
 import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
 import { useSkillAudits, useSkillDetail } from '@/services/skills-sh';
@@ -117,10 +117,9 @@ function AuditsSection({
 }
 
 /**
- * True height tween via CSS (not Motion). The parent MorphingDialog MotionConfig
- * transition merges into Motion height tweens and overrides their ease; layoutId
- * projection on the shell also fights Motion layout/height. CSS transitions
- * retarget from the current height and stay outside that tree.
+ * Height tween via CSS (not Motion), so the dialog grows smoothly as the async
+ * detail loads. A CSS transition retargets from the current height on each
+ * content change without any Motion layout tree involved.
  */
 function AnimateAutoHeight({
   children,
@@ -186,7 +185,7 @@ function AnimateAutoHeight({
   );
 }
 
-/** Detail panel body for MorphingDialog — page cache + on-demand audits. */
+/** Detail panel body for the skill detail dialog — page cache + on-demand audits. */
 export function SkillDetailBody({
   skill,
   installedKeys,
@@ -235,10 +234,8 @@ export function SkillDetailBody({
       <div className="relative flex flex-col gap-3">
         <div className="flex items-start justify-between gap-3 pe-12 px-3 pb-2 pt-2">
           <div className="flex min-w-0 flex-col gap-1.5">
-            <MorphingDialogTitle className="text-lg leading-none font-semibold text-balance">
-              {skill.name}
-            </MorphingDialogTitle>
-            <MorphingDialogSubtitle className="text-muted-foreground text-sm text-pretty">
+            <DialogTitle className="text-lg leading-none text-balance">{skill.name}</DialogTitle>
+            <div className="text-muted-foreground text-sm text-pretty">
               {originHref ? (
                 <button
                   type="button"
@@ -253,7 +250,7 @@ export function SkillDetailBody({
                   {originValue}/{skill.name}
                 </p>
               )}
-            </MorphingDialogSubtitle>
+            </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             {manageable ? (

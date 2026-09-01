@@ -60,6 +60,8 @@
     "providers:generate": "node scripts/generate-provider-registry.mjs",
     "dev:local": "npm run tauri:dev",
     "dev:local:proxy": "concurrently -n proxy,tauri -c cyan,magenta --kill-others-on-fail \"npm run proxy:dev\" \"npm run tauri:dev:local\"",
+    "dev:web:local": "cross-env TARGET=web SKILLS_PROXY_BASE_URL=http://127.0.0.1:3000 vite",
+    "dev:web:proxy": "concurrently -n proxy,web -c cyan,magenta --kill-others-on-fail \"npm run proxy:dev\" \"npm run dev:web:local\"",
     "tauri:build": "npm run tauri build",
     "tauri:check": "npm run typecheck && npm run tauri build --check",
     "test:all": "npm run test:run && npm run rust:test",

@@ -8,7 +8,7 @@ export const catalog: CatalogPort = {
 
   async search(query, limit, categories) {
     const q = query.trim().toLowerCase();
-    return MOCK_LEADERBOARD.filter(
+    const skills = MOCK_LEADERBOARD.filter(
       (skill) =>
         (skill.name.toLowerCase().includes(q) ||
           skill.slug.toLowerCase().includes(q) ||
@@ -16,6 +16,7 @@ export const catalog: CatalogPort = {
         (categories.length === 0 ||
           categories.some((category) => skill.categories?.includes(category))),
     ).slice(0, limit);
+    return { skills, semanticUnavailable: false };
   },
 
   async fetchDetail(skillId) {

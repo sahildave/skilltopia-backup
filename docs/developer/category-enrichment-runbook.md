@@ -17,8 +17,12 @@ category-specific run procedure.
   constrains output to `z.enum(SKILL_CATEGORIES)`. Categories are one field in
   the existing `generateObject` call; there is no separate classifier pass.
 - `api/skills/search.ts` / `api/_lib/qdrant.ts` — search pre-filters on the
-  `categories` payload facet. The vector is untouched, so adding categories
-  needs no re-embedding.
+  `categories` payload facet. Keyword results are hydrated from Supabase and
+  filtered with the same verified labels; the vector is untouched, so adding
+  categories needs no re-embedding.
+- `api/skills.ts` — leaderboard rows are hydrated with the same category
+  metadata. Missing enrichment leaves a row visible with an empty category
+  list, so discovery does not fail closed.
 
 Because categories ride the existing enrichment call, classification runs by
 **pointing the existing pipeline at a local model via env overrides** — no new
@@ -28,11 +32,11 @@ code path.
 
 The default chain is hosted (`groq/…,gemini/…`). To run locally through Ollama:
 
-| Env | Value | Why |
-| --- | --- | --- |
-| `ENRICHMENT_MODEL_CHAIN` | `openai/qwen3:14b` | `openai/` routes to the `createOpenAI` provider; `qwen3:14b` is the Ollama tag |
-| `OPENAI_BASE_URL` | `http://localhost:11434/v1` | Ollama's OpenAI-compatible endpoint |
-| `MAX_ENRICHED` | batch size (default 500, hard cap 1500) | bound the run |
+| Env                      | Value                                   | Why                                                                            |
+| ------------------------ | --------------------------------------- | ------------------------------------------------------------------------------ |
+| `ENRICHMENT_MODEL_CHAIN` | `openai/qwen3:14b`                      | `openai/` routes to the `createOpenAI` provider; `qwen3:14b` is the Ollama tag |
+| `OPENAI_BASE_URL`        | `http://localhost:11434/v1`             | Ollama's OpenAI-compatible endpoint                                            |
+| `MAX_ENRICHED`           | batch size (default 500, hard cap 1500) | bound the run                                                                  |
 
 `enrich:local` wraps the run in `infisical run --env=dev`, so Supabase and Qdrant
 creds come from Infisical `dev`.
@@ -75,6 +79,7 @@ Run all commands from the branch checkout. Check these first and stop if any fai
    tweak, or descope) **before** touching the production corpus.
 
 Release when satisfied:
+
 ```bash
 afk epic 53 --accept=56
 ```
@@ -97,6 +102,7 @@ afk epic 53 --accept=56
 3. **Spot-check a few Qdrant points** to confirm the `categories` payload is set.
 
 Release:
+
 ```bash
 afk epic 53 --accept=58
 ```
@@ -108,10 +114,12 @@ afk epic 53 --accept=58
   #58, or scope #60 to installing the timer without a live end-to-end run.
 - Then `afk finish` prints the closeout and the `gh pr merge` command.
 
-## Known open blocker (separate from #56/#58)
+## Search facet behavior
 
-The category facet does not filter the keyword half of search:
-`api/skills/search.ts` strips the `category` param before proxying to skills.sh,
-and the `catch` branch returns keyword hits unfiltered. Fix separately — it is
-not part of running these gates, but the shipped facet under-filters until it is
-addressed.
+`api/skills/search.ts` strips the `category` parameter before proxying to
+skills.sh, then over-fetches keyword results and filters them against verified
+Supabase category metadata. Qdrant applies the same category constraint to its
+semantic leg. If Qdrant is unavailable, the endpoint returns filtered keyword
+matches with `semanticUnavailable: true`; if category metadata itself is
+unavailable, the category-filtered request fails closed with a `503` rather
+than returning unverified or unfiltered rows.

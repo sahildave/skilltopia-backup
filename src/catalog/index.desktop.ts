@@ -1,7 +1,16 @@
 import { commands, unwrapResult } from '@/lib/tauri-bindings';
-import type { SkillsShSkill as BindingsSkillsShSkill } from '@/lib/bindings';
+import type {
+  SkillsSearchResult as BindingsSkillsSearchResult,
+  SkillsShSkill as BindingsSkillsShSkill,
+} from '@/lib/bindings';
 import { toSkillCategories } from '../../api/_lib/taxonomy';
-import type { CatalogPort, SkillAuditsData, SkillDetailData, SkillsShSkill } from './types';
+import type {
+  CatalogPort,
+  CatalogSearchResult,
+  SkillAuditsData,
+  SkillDetailData,
+  SkillsShSkill,
+} from './types';
 
 /**
  * Rust carries the taxonomy slugs untyped. Narrowing keeps their order, so the
@@ -18,8 +27,14 @@ export const catalog: CatalogPort = {
   },
 
   async search(query, limit, categories) {
-    const skills = unwrapResult(await commands.searchSkills(query, limit, categories));
-    return skills.map(narrowCategories);
+    const result = unwrapResult(
+      await commands.searchSkills(query, limit, categories),
+    ) as BindingsSkillsSearchResult;
+    const response: CatalogSearchResult = {
+      skills: result.skills.map(narrowCategories),
+      semanticUnavailable: result.semanticUnavailable === true,
+    };
+    return response;
   },
 
   async fetchDetail(skillId) {

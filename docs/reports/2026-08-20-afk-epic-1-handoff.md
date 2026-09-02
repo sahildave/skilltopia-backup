@@ -1,12 +1,12 @@
 # AFK epic #1 — handoff, 2026-08-20
 
 The unattended run on
-[epic #1](https://github.com/sahildave/skilltopia-backup/issues/1) is **halted by the
+epic #1 (backup-repo issue; repo consolidated into `sahildave/skilltopia`, Sept 2026 — see `docs/archive/backup-repo/README.md`) is **halted by the
 circuit breaker**, not finished. This is what landed, what broke, and the exact commands to
 pick it back up.
 
 Branch: `feat/1-skill-lifecycle-rearchitecture` · PR
-[#16](https://github.com/sahildave/skilltopia-backup/pull/16) · `max_parallel: 2`
+#16 (backup-repo PR, archived off-GitHub at consolidation) · `max_parallel: 2`
 
 ## Where each task stands
 

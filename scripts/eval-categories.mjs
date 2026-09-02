@@ -20,13 +20,18 @@ const outPath = process.env.OUT ?? '/tmp/eval-categories-results.json';
 
 const models = createModelsFromEnv();
 if (models.length === 0) {
-  console.error('FATAL: no models resolved from env — check ENRICHMENT_MODEL_CHAIN/OPENAI_API_KEY/OPENAI_BASE_URL');
+  console.error(
+    'FATAL: no models resolved from env — check ENRICHMENT_MODEL_CHAIN/OPENAI_API_KEY/OPENAI_BASE_URL',
+  );
   process.exit(2);
 }
-console.error(`models: ${models.map((m) => ('modelId' in m ? String(m.modelId) : '?')).join(' → ')}`);
+console.error(
+  `models: ${models.map((m) => ('modelId' in m ? String(m.modelId) : '?')).join(' → ')}`,
+);
 
 const jaccard = (a, b) => {
-  const A = new Set(a), B = new Set(b);
+  const A = new Set(a),
+    B = new Set(b);
   const inter = [...A].filter((x) => B.has(x)).length;
   const union = new Set([...a, ...b]).size;
   return union === 0 ? 1 : inter / union;
@@ -40,7 +45,8 @@ for (const [i, skill] of items.entries()) {
   let error = null;
   try {
     const detail = await fetchSkillDetail(skill.id);
-    const md = (detail.files ?? []).find((f) => f.path.toLowerCase() === 'skill.md')?.contents ?? '';
+    const md =
+      (detail.files ?? []).find((f) => f.path.toLowerCase() === 'skill.md')?.contents ?? '';
     if (!md.trim()) throw new Error('no SKILL.md');
     const enrichment = await enrichWithModel(md, models, undefined, undefined, (f) =>
       process.stderr.write(`\n  model ${f.modelId} failed: ${f.message}\n`),
@@ -58,18 +64,29 @@ for (const [i, skill] of items.entries()) {
   // needsReview: model couldn't run (rule-based/error) OR primary disagrees with gold.
   const needsReview = confidence !== 'llm' || !primaryCorrect;
   rows.push({
-    id: skill.id, fuzzy: !!skill.fuzzy, confidence, error,
-    gold: goldCats, model: modelCats,
-    primaryCorrect, primaryInGold, exact, overlap: Number(overlap.toFixed(3)), needsReview,
+    id: skill.id,
+    fuzzy: !!skill.fuzzy,
+    confidence,
+    error,
+    gold: goldCats,
+    model: modelCats,
+    primaryCorrect,
+    primaryInGold,
+    exact,
+    overlap: Number(overlap.toFixed(3)),
+    needsReview,
   });
-  process.stderr.write(`${confidence} model=[${modelCats.join(', ')}] gold=[${goldCats.join(', ')}] ${primaryCorrect ? 'OK' : 'DIFF'}\n`);
+  process.stderr.write(
+    `${confidence} model=[${modelCats.join(', ')}] gold=[${goldCats.join(', ')}] ${primaryCorrect ? 'OK' : 'DIFF'}\n`,
+  );
 }
 
 const n = rows.length;
 const ran = rows.filter((r) => r.confidence === 'llm').length;
 const pct = (x) => `${((x / n) * 100).toFixed(1)}%`;
 const summary = {
-  n, modelRan: ran,
+  n,
+  modelRan: ran,
   primaryAccuracy: pct(rows.filter((r) => r.primaryCorrect).length),
   primaryInGold: pct(rows.filter((r) => r.primaryInGold).length),
   exactMatch: pct(rows.filter((r) => r.exact).length),
@@ -78,7 +95,9 @@ const summary = {
   // Same metrics excluding the fuzzy (weak-taxonomy-fit) skills:
   primaryAccuracyNonFuzzy: (() => {
     const nf = rows.filter((r) => !r.fuzzy);
-    return nf.length ? `${((nf.filter((r) => r.primaryCorrect).length / nf.length) * 100).toFixed(1)}%` : 'n/a';
+    return nf.length
+      ? `${((nf.filter((r) => r.primaryCorrect).length / nf.length) * 100).toFixed(1)}%`
+      : 'n/a';
   })(),
 };
 writeFileSync(outPath, JSON.stringify({ summary, rows }, null, 2));

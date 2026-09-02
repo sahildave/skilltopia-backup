@@ -3,35 +3,126 @@
   "labelledBy": "human (manual review of each SKILL.md head)",
   "taxonomySource": "api/_lib/taxonomy.ts",
   "skills": [
-    { "rank": 1, "id": "vercel-labs/skills/find-skills", "categories": ["coding-agents-ides", "search-research"] },
-    { "rank": 2, "id": "mattpocock/skills/grill-me", "categories": ["productivity-tasks"], "fuzzy": true },
-    { "rank": 3, "id": "mattpocock/skills/grill-with-docs", "categories": ["productivity-tasks", "notes-pkm"], "fuzzy": true },
-    { "rank": 4, "id": "anthropics/skills/frontend-design", "categories": ["web-frontend-development"] },
-    { "rank": 5, "id": "mattpocock/skills/improve-codebase-architecture", "categories": ["coding-agents-ides"] },
+    {
+      "rank": 1,
+      "id": "vercel-labs/skills/find-skills",
+      "categories": ["coding-agents-ides", "search-research"]
+    },
+    {
+      "rank": 2,
+      "id": "mattpocock/skills/grill-me",
+      "categories": ["productivity-tasks"],
+      "fuzzy": true
+    },
+    {
+      "rank": 3,
+      "id": "mattpocock/skills/grill-with-docs",
+      "categories": ["productivity-tasks", "notes-pkm"],
+      "fuzzy": true
+    },
+    {
+      "rank": 4,
+      "id": "anthropics/skills/frontend-design",
+      "categories": ["web-frontend-development"]
+    },
+    {
+      "rank": 5,
+      "id": "mattpocock/skills/improve-codebase-architecture",
+      "categories": ["coding-agents-ides"]
+    },
     { "rank": 6, "id": "mattpocock/skills/tdd", "categories": ["coding-agents-ides"] },
-    { "rank": 7, "id": "vercel-labs/agent-browser/agent-browser", "categories": ["browser-automation", "cli-utilities"] },
-    { "rank": 8, "id": "mattpocock/skills/setup-matt-pocock-skills", "categories": ["coding-agents-ides", "git-github"] },
-    { "rank": 9, "id": "mattpocock/skills/handoff", "categories": ["coding-agents-ides"], "fuzzy": true },
-    { "rank": 10, "id": "mattpocock/skills/triage", "categories": ["git-github", "productivity-tasks"] },
-    { "rank": 11, "id": "mattpocock/skills/prototype", "categories": ["coding-agents-ides", "web-frontend-development"] },
-    { "rank": 12, "id": "vercel-labs/agent-skills/vercel-react-best-practices", "categories": ["web-frontend-development"] },
+    {
+      "rank": 7,
+      "id": "vercel-labs/agent-browser/agent-browser",
+      "categories": ["browser-automation", "cli-utilities"]
+    },
+    {
+      "rank": 8,
+      "id": "mattpocock/skills/setup-matt-pocock-skills",
+      "categories": ["coding-agents-ides", "git-github"]
+    },
+    {
+      "rank": 9,
+      "id": "mattpocock/skills/handoff",
+      "categories": ["coding-agents-ides"],
+      "fuzzy": true
+    },
+    {
+      "rank": 10,
+      "id": "mattpocock/skills/triage",
+      "categories": ["git-github", "productivity-tasks"]
+    },
+    {
+      "rank": 11,
+      "id": "mattpocock/skills/prototype",
+      "categories": ["coding-agents-ides", "web-frontend-development"]
+    },
+    {
+      "rank": 12,
+      "id": "vercel-labs/agent-skills/vercel-react-best-practices",
+      "categories": ["web-frontend-development"]
+    },
     { "rank": 13, "id": "open.feishu.cn/lark-doc", "categories": ["pdf-documents"] },
     { "rank": 14, "id": "open.feishu.cn/lark-base", "categories": ["data-analytics"] },
-    { "rank": 15, "id": "open.feishu.cn/lark-drive", "categories": ["productivity-tasks"], "fuzzy": true },
+    {
+      "rank": 15,
+      "id": "open.feishu.cn/lark-drive",
+      "categories": ["productivity-tasks"],
+      "fuzzy": true
+    },
     { "rank": 16, "id": "open.feishu.cn/lark-approval", "categories": ["productivity-tasks"] },
-    { "rank": 17, "id": "open.feishu.cn/lark-shared", "categories": ["security-passwords", "cli-utilities"] },
+    {
+      "rank": 17,
+      "id": "open.feishu.cn/lark-shared",
+      "categories": ["security-passwords", "cli-utilities"]
+    },
     { "rank": 18, "id": "open.feishu.cn/lark-im", "categories": ["communication"] },
     { "rank": 19, "id": "open.feishu.cn/lark-calendar", "categories": ["calendar-scheduling"] },
-    { "rank": 20, "id": "open.feishu.cn/lark-contact", "categories": ["communication"], "fuzzy": true },
+    {
+      "rank": 20,
+      "id": "open.feishu.cn/lark-contact",
+      "categories": ["communication"],
+      "fuzzy": true
+    },
     { "rank": 21, "id": "open.feishu.cn/lark-sheets", "categories": ["data-analytics", "finance"] },
-    { "rank": 22, "id": "open.feishu.cn/lark-minutes", "categories": ["speech-transcription"], "fuzzy": true },
+    {
+      "rank": 22,
+      "id": "open.feishu.cn/lark-minutes",
+      "categories": ["speech-transcription"],
+      "fuzzy": true
+    },
     { "rank": 23, "id": "open.feishu.cn/lark-wiki", "categories": ["notes-pkm"] },
-    { "rank": 24, "id": "open.feishu.cn/lark-event", "categories": ["self-hosted-automation"], "fuzzy": true },
-    { "rank": 25, "id": "open.feishu.cn/lark-attendance", "categories": ["productivity-tasks"], "fuzzy": true },
-    { "rank": 26, "id": "open.feishu.cn/lark-whiteboard", "categories": ["productivity-tasks"], "fuzzy": true },
+    {
+      "rank": 24,
+      "id": "open.feishu.cn/lark-event",
+      "categories": ["self-hosted-automation"],
+      "fuzzy": true
+    },
+    {
+      "rank": 25,
+      "id": "open.feishu.cn/lark-attendance",
+      "categories": ["productivity-tasks"],
+      "fuzzy": true
+    },
+    {
+      "rank": 26,
+      "id": "open.feishu.cn/lark-whiteboard",
+      "categories": ["productivity-tasks"],
+      "fuzzy": true
+    },
     { "rank": 27, "id": "open.feishu.cn/lark-task", "categories": ["productivity-tasks"] },
-    { "rank": 28, "id": "open.feishu.cn/lark-slides", "categories": ["pdf-documents"], "fuzzy": true },
-    { "rank": 29, "id": "open.feishu.cn/lark-openapi-explorer", "categories": ["cli-utilities"], "fuzzy": true },
+    {
+      "rank": 28,
+      "id": "open.feishu.cn/lark-slides",
+      "categories": ["pdf-documents"],
+      "fuzzy": true
+    },
+    {
+      "rank": 29,
+      "id": "open.feishu.cn/lark-openapi-explorer",
+      "categories": ["cli-utilities"],
+      "fuzzy": true
+    },
     { "rank": 30, "id": "open.feishu.cn/lark-mail", "categories": ["communication"] }
   ]
 }

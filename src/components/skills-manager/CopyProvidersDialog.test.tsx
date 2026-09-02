@@ -81,6 +81,7 @@ function snapshotWithAvailableProviders(): {
           description: 'Other',
           scope: 'global',
           providerIds: ['claude-code'],
+          origins: [{ kind: 'providerDirectory', providerId: 'claude-code' }],
           paths: [{ path: '/Users/mock/.claude/skills/other-skill' }],
         },
         {
@@ -89,6 +90,7 @@ function snapshotWithAvailableProviders(): {
           description: 'Another',
           scope: 'global',
           providerIds: ['codex'],
+          origins: [{ kind: 'providerDirectory', providerId: 'codex' }],
           paths: [{ path: '/Users/mock/.codex/skills/another-skill' }],
         },
       ],
@@ -164,6 +166,28 @@ describe('CopyProvidersDialog', () => {
 
     await user.click(screen.getByRole('button', { name: /^copy$/i }));
     expect(copyMock.copySkillToProviders).toHaveBeenCalledWith('frontend-design', ['claude-code']);
+  });
+
+  it('filters providers by search and scopes the group checkbox to visible rows', async () => {
+    const user = userEvent.setup();
+    const { skill, snapshot } = snapshotWithAvailableProviders();
+
+    render(<CopyProvidersDialog skill={skill} snapshot={snapshot} open onOpenChange={vi.fn()} />);
+
+    await user.type(screen.getByRole('textbox', { name: /search providers/i }), 'codex');
+    expect(screen.queryByRole('checkbox', { name: /^claude code$/i })).not.toBeInTheDocument();
+
+    // Select-all only touches what the query left visible.
+    await user.click(screen.getByRole('checkbox', { name: /available providers/i }));
+    expect(screen.getByRole('checkbox', { name: /^codex$/i })).toBeChecked();
+
+    await user.click(screen.getByRole('button', { name: /clear provider search/i }));
+    expect(screen.getByRole('checkbox', { name: /^codex$/i })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /^claude code$/i })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /available providers/i })).toHaveAttribute(
+      'aria-checked',
+      'mixed',
+    );
   });
 
   it('shows indeterminate on Available providers when only some children are selected', async () => {

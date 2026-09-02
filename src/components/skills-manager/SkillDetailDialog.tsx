@@ -3,14 +3,23 @@ import { Sparkline } from '@/components/dither-kit';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MorphingDialogSubtitle, MorphingDialogTitle } from '@/components/ui/morphing-dialog';
+import { DialogTitle } from '@/components/ui/dialog';
 import { entranceEase, layoutDuration, opacityTransition } from '@/lib/animation';
+import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
 import { useSkillAudits, useSkillDetail } from '@/services/skills-sh';
 import { platform } from '@platform';
 import { AlertCircle, ExternalLink, LoaderCircle } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { isCatalogSkillInstalled } from './catalog-installed-match';
+import {
+  CatalogExternalInfoButton,
+  CatalogInstalledMenu,
+  SkillInstallMenu,
+} from './CatalogSkillActions';
+import { ALL_AGENTS_FILTER_ID, type ProviderFilterId } from './installed-skills-model';
+import { SkillProviderBadges } from './SkillProviderBadges';
 
 function DetailList({ values }: { values: string[] }) {
   const { t } = useTranslation();
@@ -108,10 +117,9 @@ function AuditsSection({
 }
 
 /**
- * True height tween via CSS (not Motion). Parent MorphingDialog MotionConfig uses a
- * spring (`type: 'spring'`) that merges into Motion height tweens and kills the ease;
- * layoutId projection on the shell also fights Motion layout/height. CSS transitions
- * retarget from the current height and stay outside that tree.
+ * Height tween via CSS (not Motion), so the dialog grows smoothly as the async
+ * detail loads. A CSS transition retargets from the current height on each
+ * content change without any Motion layout tree involved.
  */
 function AnimateAutoHeight({
   children,
@@ -177,8 +185,20 @@ function AnimateAutoHeight({
   );
 }
 
-/** Detail panel body for MorphingDialog — page cache + on-demand audits. */
-export function SkillDetailBody({ skill }: { skill: SkillsShSkill }) {
+/** Detail panel body for the skill detail dialog — page cache + on-demand audits. */
+export function SkillDetailBody({
+  skill,
+  installedKeys,
+  snapshot,
+  scannedSkill,
+  providerFilter = ALL_AGENTS_FILTER_ID,
+}: {
+  skill: SkillsShSkill;
+  installedKeys: Set<string>;
+  snapshot: InstalledScanSnapshot | null;
+  scannedSkill: ScannedSkill | undefined;
+  providerFilter?: ProviderFilterId;
+}) {
   const { t } = useTranslation();
   const reduceMotion = useReducedMotion() ?? false;
   const fadeTransition = opacityTransition(reduceMotion);
@@ -204,30 +224,50 @@ export function SkillDetailBody({ skill }: { skill: SkillsShSkill }) {
   const summary = pageSnapshot?.summary;
   const auditEntries = auditsQuery.data?.audits?.audits;
   const detailPhase = detailQuery.isLoading ? 'loading' : detailQuery.error ? 'error' : 'ready';
+  const manageable =
+    isCatalogSkillInstalled(skill, installedKeys) &&
+    snapshot !== null &&
+    scannedSkill !== undefined;
 
   return (
     <AnimateAutoHeight reduceMotion={reduceMotion}>
       <div className="relative flex flex-col gap-3">
-        <div className="flex flex-col gap-1.5 pe-8 px-3 pb-2 pt-2">
-          <MorphingDialogTitle className="text-lg leading-none font-semibold text-balance">
-            {skill.name}
-          </MorphingDialogTitle>
-          <MorphingDialogSubtitle className="text-muted-foreground text-sm text-pretty">
-            {originHref ? (
-              <button
-                type="button"
-                className="text-muted-foreground flex-row flex items-center gap-1 hover:text-foreground text-start text-sm break-all underline-offset-2 hover:underline"
-                onClick={() => void platform.openExternal(originHref)}
-              >
-                {originValue}/{skill.name}
-                <ExternalLink size={12} />
-              </button>
+        <div className="flex items-start justify-between gap-3 pe-12 px-3 pb-2 pt-2">
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <DialogTitle className="text-lg leading-none text-balance">{skill.name}</DialogTitle>
+            <div className="text-muted-foreground text-sm text-pretty">
+              {originHref ? (
+                <button
+                  type="button"
+                  className="text-muted-foreground flex-row flex items-center gap-1 hover:text-foreground text-start text-sm break-all underline-offset-2 hover:underline"
+                  onClick={() => void platform.openExternal(originHref)}
+                >
+                  {originValue}/{skill.name}
+                  <ExternalLink size={12} />
+                </button>
+              ) : (
+                <p className="text-muted-foreground text-sm break-all">
+                  {originValue}/{skill.name}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {manageable ? (
+              <SkillProviderBadges skill={scannedSkill} snapshot={snapshot} />
             ) : (
-              <p className="text-muted-foreground text-sm break-all">
-                {originValue}/{skill.name}
-              </p>
+              <CatalogExternalInfoButton skill={skill} className="opacity-100" />
             )}
-          </MorphingDialogSubtitle>
+            {manageable ? (
+              <CatalogInstalledMenu
+                snapshot={snapshot}
+                scannedSkill={scannedSkill}
+                providerFilter={providerFilter}
+              />
+            ) : (
+              <SkillInstallMenu skill={skill} installedKeys={installedKeys} />
+            )}
+          </div>
         </div>
 
         <AnimatePresence mode="popLayout" initial={false}>

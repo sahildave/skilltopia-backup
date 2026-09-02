@@ -48,6 +48,44 @@ describe('mergeHybridSearchResults', () => {
         [],
         10,
       ),
-    ).toEqual([{ id: 'owner/keyword', installs: 1 }]);
+    ).toEqual([{ id: 'owner/keyword', installs: 1, categories: [] }]);
+  });
+
+  it('carries each result its categories from the enrichment metadata', () => {
+    const results = mergeHybridSearchResults(
+      'react',
+      [{ id: 'owner/react', installs: 10 }],
+      [{ skillId: 'owner/testing', score: 0.8 }],
+      [
+        { skillId: 'owner/react', categories: ['web-frontend-development'] },
+        { skillId: 'owner/testing', installCount: 100, categories: ['coding-agents-ides'] },
+      ],
+      10,
+    );
+
+    expect(results.map((result) => [result.id, result.categories])).toEqual([
+      ['owner/react', ['web-frontend-development']],
+      ['owner/testing', ['coding-agents-ides']],
+    ]);
+  });
+
+  it('filters keyword and semantic results by any requested category', () => {
+    const results = mergeHybridSearchResults(
+      'react',
+      [
+        { id: 'owner/react', installs: 10 },
+        { id: 'owner/forms', installs: 100 },
+      ],
+      [{ skillId: 'owner/testing', score: 0.8 }],
+      [
+        { skillId: 'owner/react', categories: ['web-frontend-development'] },
+        { skillId: 'owner/forms', categories: ['pdf-documents'] },
+        { skillId: 'owner/testing', categories: ['coding-agents-ides'] },
+      ],
+      10,
+      ['coding-agents-ides'],
+    );
+
+    expect(results.map((result) => result.id)).toEqual(['owner/testing']);
   });
 });

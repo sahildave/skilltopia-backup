@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   fetchAllLeaderboard,
+  createCatalogFetcher,
+  fetchJson,
   fetchLeaderboard,
   fetchLeaderboardPage,
   fetchSkillAudits,
@@ -64,23 +66,18 @@ describe('classifySkillOrigin', () => {
 });
 
 describe('resolveBatchOidcToken', () => {
-  it('prefers VERCEL_OIDC_TOKEN_SECONDARY when both are set', () => {
+  it('reads VERCEL_OIDC_TOKEN_SECONDARY', () => {
     vi.stubEnv('VERCEL_OIDC_TOKEN_SECONDARY', ' secondary-token ');
-    vi.stubEnv('VERCEL_OIDC_TOKEN', 'fallback-token');
     expect(resolveBatchOidcToken()).toBe('secondary-token');
   });
 
-  it('falls back to VERCEL_OIDC_TOKEN when secondary is unset or blank', () => {
+  it('never falls back to the app project VERCEL_OIDC_TOKEN', () => {
     vi.stubEnv('VERCEL_OIDC_TOKEN_SECONDARY', '  ');
-    vi.stubEnv('VERCEL_OIDC_TOKEN', ' fallback-token ');
-    expect(resolveBatchOidcToken()).toBe('fallback-token');
-
-    vi.unstubAllEnvs();
-    vi.stubEnv('VERCEL_OIDC_TOKEN', 'only-fallback');
-    expect(resolveBatchOidcToken()).toBe('only-fallback');
+    vi.stubEnv('VERCEL_OIDC_TOKEN', 'app-token');
+    expect(resolveBatchOidcToken()).toBeUndefined();
   });
 
-  it('returns undefined when neither token is set', () => {
+  it('returns undefined when the secondary token is not set', () => {
     expect(resolveBatchOidcToken()).toBeUndefined();
   });
 });
@@ -223,5 +220,95 @@ describe('skills catalog client', () => {
     await expect(fetchAllLeaderboard('hot', 2, fetcher)).resolves.toHaveLength(3);
     expect(urls).toHaveLength(2);
     expect(urls[0]).toContain('view=hot');
+  });
+});
+
+describe('fetchJson retries', () => {
+  function jsonResponse(status: number) {
+    return { ok: status < 400, status, json: async () => ({ data: [] }) } as Response;
+  }
+
+  /**
+   * Attach the assertion before advancing timers. Awaiting the timers first
+   * leaves the rejection unhandled, which vitest reports as a run-level error
+   * even though every test passes.
+   */
+  async function settle<T>(assertion: Promise<T>): Promise<T> {
+    await vi.runAllTimersAsync();
+    return assertion;
+  }
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it('retries a 500 and succeeds', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(500))
+      .mockResolvedValueOnce(jsonResponse(200));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await settle(expect(fetchJson('https://skills.sh/x')).resolves.toEqual({ data: [] }));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries a 429', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(429))
+      .mockResolvedValueOnce(jsonResponse(200));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await settle(expect(fetchJson('https://skills.sh/x')).resolves.toEqual({ data: [] }));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry a 401 — a bad token will not fix itself', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(401));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await settle(expect(fetchJson('https://skills.sh/x')).rejects.toThrow('401'));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives up after the last attempt and reports the status', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(503));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await settle(expect(fetchJson('https://skills.sh/x')).rejects.toThrow('503'));
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('createCatalogFetcher sends the caller token and shares the retry loop', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse(500))
+      .mockResolvedValueOnce(jsonResponse(200));
+    vi.stubGlobal('fetch', fetchMock);
+    const fetcher = createCatalogFetcher(async () => 'app-token');
+
+    await settle(expect(fetcher('https://skills.sh/x')).resolves.toEqual({ data: [] }));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const headers = new Headers(fetchMock.mock.calls[0]![1].headers);
+    expect(headers.get('Authorization')).toBe('Bearer app-token');
+  });
+
+  it('retries a network error', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('ECONNRESET'))
+      .mockResolvedValueOnce(jsonResponse(200));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await settle(expect(fetchJson('https://skills.sh/x')).resolves.toEqual({ data: [] }));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

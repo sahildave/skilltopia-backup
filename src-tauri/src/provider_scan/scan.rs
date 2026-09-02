@@ -11,10 +11,13 @@ use super::paths::{
     evaluate_detection, load_registry, resolve_global_skills_dir, universal_skills_dir,
     GlobalSkillsDir, ProbeContext, RegistryFile,
 };
+use super::plugin::read_plugin_bundle;
+use super::plugin_guard::PluginGuard;
+use super::plugin_manifest::read_installed_plugins;
 use super::types::{
     InstalledScanSnapshot, ProjectInfo, ProviderRegistrySourceMeta, ScanWarning, ScanWarningCode,
-    ScannedProvider, ScannedSkill, ScannedSkillPath, UniversalScanInfo, PROJECT_AGENTS_PROVIDER_ID,
-    UNIVERSAL_PROVIDER_ID,
+    ScannedProvider, ScannedSkill, ScannedSkillPath, SkillOrigin, UniversalScanInfo,
+    CLAUDE_CODE_PROVIDER_ID, PROJECT_AGENTS_PROVIDER_ID, UNIVERSAL_PROVIDER_ID,
 };
 
 #[derive(Debug, Clone)]
@@ -142,8 +145,116 @@ pub(crate) fn classify_skill_entry(path: &Path) -> Option<SkillDirEntry> {
     }
 }
 
-fn is_hidden_dir_name(name: &str) -> bool {
-    name.starts_with('.')
+fn is_hermes_excluded_dir_name(name: &str, parent_has_skill_md: bool) -> bool {
+    matches!(
+        name,
+        "venv" | "node_modules" | "site-packages" | "__pycache__"
+    ) || (parent_has_skill_md && matches!(name, "references" | "templates" | "assets" | "scripts"))
+}
+
+pub(crate) struct ProviderSkillWalk {
+    pub(crate) entries: Vec<SkillDirEntry>,
+    pub(crate) control_paths: Vec<PathBuf>,
+    pub(crate) recursive: bool,
+}
+
+fn sorted_visible_dir_names(dir: &Path) -> Vec<std::ffi::OsString> {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return Vec::new();
+    };
+    let mut names = entries
+        .flatten()
+        .map(|entry| entry.file_name())
+        .filter(|name| !name.to_string_lossy().starts_with('.'))
+        .collect::<Vec<_>>();
+    names.sort();
+    names
+}
+
+fn flat_skill_entries(dir: &Path) -> Vec<SkillDirEntry> {
+    sorted_visible_dir_names(dir)
+        .into_iter()
+        .filter_map(|name| classify_skill_entry(&dir.join(name)))
+        .collect()
+}
+
+fn read_active_hermes_org(marker: &Path) -> Option<String> {
+    let active_org = fs::read_to_string(marker).ok()?.trim().to_string();
+    validate_skill_dir_name(&active_org).ok()?;
+    Some(active_org)
+}
+
+struct HermesWalkContext<'a> {
+    skills_root: &'a Path,
+    org_root: PathBuf,
+    active_org: Option<String>,
+    visited: BTreeSet<PathBuf>,
+    entries: Vec<SkillDirEntry>,
+}
+
+fn walk_hermes_dir(logical_dir: &Path, content_dir: &Path, ctx: &mut HermesWalkContext<'_>) {
+    let current_has_skill_md = content_dir.join("SKILL.md").is_file();
+
+    for name in sorted_visible_dir_names(content_dir) {
+        let Some(name_str) = name.to_str() else {
+            continue;
+        };
+        if is_hermes_excluded_dir_name(name_str, current_has_skill_md) {
+            continue;
+        }
+        if logical_dir == ctx.skills_root && name_str == "_org" && ctx.active_org.is_none() {
+            continue;
+        }
+        if logical_dir == ctx.org_root
+            && ctx
+                .active_org
+                .as_deref()
+                .is_some_and(|active| active != name_str)
+        {
+            continue;
+        }
+
+        let logical_path = logical_dir.join(&name);
+        let Some(entry) = classify_skill_entry(&logical_path) else {
+            continue;
+        };
+        let canonical =
+            fs::canonicalize(&entry.content_root).unwrap_or_else(|_| entry.content_root.clone());
+        if !ctx.visited.insert(canonical) {
+            continue;
+        }
+
+        let nested_logical_dir = entry.entry_path.clone();
+        let nested_content_dir = entry.content_root.clone();
+        ctx.entries.push(entry);
+        walk_hermes_dir(&nested_logical_dir, &nested_content_dir, ctx);
+    }
+}
+
+pub(crate) fn walk_provider_skill_entries(dir: &Path, provider_id: &str) -> ProviderSkillWalk {
+    if provider_id != "hermes-agent" {
+        return ProviderSkillWalk {
+            entries: flat_skill_entries(dir),
+            control_paths: Vec::new(),
+            recursive: false,
+        };
+    }
+
+    let org_marker = dir.join("_org/.active_org");
+    let mut ctx = HermesWalkContext {
+        skills_root: dir,
+        org_root: dir.join("_org"),
+        active_org: read_active_hermes_org(&org_marker),
+        visited: BTreeSet::from([fs::canonicalize(dir).unwrap_or_else(|_| dir.to_path_buf())]),
+        entries: Vec::new(),
+    };
+    walk_hermes_dir(dir, dir, &mut ctx);
+
+    ProviderSkillWalk {
+        entries: ctx.entries,
+        control_paths: vec![org_marker],
+        recursive: true,
+    }
 }
 
 struct DirScanOutcome {
@@ -156,67 +267,77 @@ fn scan_skills_dir(
     include_internal: bool,
     provider_id_for_warnings: Option<&str>,
 ) -> DirScanOutcome {
+    scan_skill_entries(
+        flat_skill_entries(dir),
+        include_internal,
+        provider_id_for_warnings,
+        false,
+    )
+}
+
+fn scan_provider_skills_dir(
+    dir: &Path,
+    include_internal: bool,
+    provider_id: &str,
+) -> DirScanOutcome {
+    let walk = walk_provider_skill_entries(dir, provider_id);
+    scan_skill_entries(
+        walk.entries,
+        include_internal,
+        Some(provider_id),
+        walk.recursive,
+    )
+}
+
+fn scan_skill_entries(
+    entries: Vec<SkillDirEntry>,
+    include_internal: bool,
+    provider_id_for_warnings: Option<&str>,
+    recursive: bool,
+) -> DirScanOutcome {
     let mut skills = Vec::new();
     let mut warnings = Vec::new();
 
-    let entries = match fs::read_dir(dir) {
-        Ok(entries) => entries,
-        Err(_) => {
-            return DirScanOutcome { skills, warnings };
-        }
-    };
-
-    for entry in entries.flatten() {
-        let path = entry.path();
-        let Some(name) = path.file_name().and_then(|n| n.to_str()) else {
-            continue;
-        };
-        if is_hidden_dir_name(name) {
-            continue;
-        }
-
-        let Some(entry) = classify_skill_entry(&path) else {
-            continue;
-        };
-
+    for entry in entries {
         let skill_md = entry.content_root.join("SKILL.md");
-        let Ok(raw) = fs::read_to_string(&skill_md) else {
-            warnings.push(ScanWarning {
-                code: ScanWarningCode::EntrySkipped,
-                message: format!(
-                    "Missing SKILL.md in {}",
-                    normalize_path_for_serialization(&entry.entry_path)
-                ),
-                provider_id: provider_id_for_warnings.map(str::to_string),
-                path: Some(normalize_path_for_serialization(&entry.entry_path)),
-            });
-            continue;
-        };
-
-        let Some(parsed) = parse_skill_md(&raw) else {
-            warnings.push(ScanWarning {
-                code: ScanWarningCode::EntrySkipped,
-                message: format!(
-                    "Invalid SKILL.md frontmatter in {}",
-                    normalize_path_for_serialization(&entry.entry_path)
-                ),
-                provider_id: provider_id_for_warnings.map(str::to_string),
-                path: Some(normalize_path_for_serialization(&entry.entry_path)),
-            });
-            continue;
-        };
-
-        if parsed.internal && !include_internal {
-            warnings.push(ScanWarning {
-                code: ScanWarningCode::EntrySkipped,
-                message: format!("Skipped internal skill '{}'", parsed.name),
-                provider_id: provider_id_for_warnings.map(str::to_string),
-                path: Some(normalize_path_for_serialization(&entry.entry_path)),
-            });
-            continue;
+        match fs::read_to_string(&skill_md) {
+            Ok(raw) => {
+                if let Some(parsed) = parse_skill_md(&raw) {
+                    if parsed.internal && !include_internal {
+                        warnings.push(ScanWarning {
+                            code: ScanWarningCode::EntrySkipped,
+                            message: format!("Skipped internal skill '{}'", parsed.name),
+                            provider_id: provider_id_for_warnings.map(str::to_string),
+                            path: Some(normalize_path_for_serialization(&entry.entry_path)),
+                        });
+                    } else {
+                        skills.push((parsed.name, parsed.description, entry));
+                    }
+                } else {
+                    warnings.push(ScanWarning {
+                        code: ScanWarningCode::EntrySkipped,
+                        message: format!(
+                            "Invalid SKILL.md frontmatter in {}",
+                            normalize_path_for_serialization(&entry.entry_path)
+                        ),
+                        provider_id: provider_id_for_warnings.map(str::to_string),
+                        path: Some(normalize_path_for_serialization(&entry.entry_path)),
+                    });
+                }
+            }
+            Err(_) if !recursive || skill_md.exists() => {
+                warnings.push(ScanWarning {
+                    code: ScanWarningCode::EntrySkipped,
+                    message: format!(
+                        "Missing SKILL.md in {}",
+                        normalize_path_for_serialization(&entry.entry_path)
+                    ),
+                    provider_id: provider_id_for_warnings.map(str::to_string),
+                    path: Some(normalize_path_for_serialization(&entry.entry_path)),
+                });
+            }
+            Err(_) => {}
         }
-
-        skills.push((parsed.name, parsed.description, entry));
     }
 
     DirScanOutcome { skills, warnings }
@@ -235,7 +356,6 @@ fn merge_skill(
         .and_then(|value| value.to_str())
         .unwrap_or(&name)
         .to_string();
-    let skill_key = format!("global:{name}");
     let skill_path = ScannedSkillPath {
         path: normalize_path_for_serialization(&entry.entry_path),
         original_path: entry
@@ -243,9 +363,40 @@ fn merge_skill(
             .as_ref()
             .map(|p| normalize_path_for_serialization(p)),
     };
+    merge_global_skill(
+        map,
+        name,
+        description,
+        uninstall_name,
+        Some(provider_id),
+        SkillOrigin::ProviderDirectory {
+            provider_id: provider_id.to_string(),
+        },
+        skill_path,
+    );
+}
+
+/// One skill name, one entry — regardless of how many directories or plugins
+/// ship it. Every source folds into the same record, adding its provider id (if
+/// it has one), its origin and its path.
+fn merge_global_skill(
+    map: &mut BTreeMap<String, ScannedSkill>,
+    name: String,
+    description: String,
+    uninstall_name: String,
+    provider_id: Option<&str>,
+    origin: SkillOrigin,
+    skill_path: ScannedSkillPath,
+) {
+    let skill_key = format!("global:{name}");
     if let Some(existing) = map.get_mut(&skill_key) {
-        if !existing.provider_ids.iter().any(|id| id == provider_id) {
-            existing.provider_ids.push(provider_id.to_string());
+        if let Some(provider_id) = provider_id {
+            if !existing.provider_ids.iter().any(|id| id == provider_id) {
+                existing.provider_ids.push(provider_id.to_string());
+            }
+        }
+        if !existing.origins.contains(&origin) {
+            existing.origins.push(origin);
         }
         if !existing.paths.iter().any(|p| p.path == skill_path.path) {
             existing.paths.push(skill_path);
@@ -258,10 +409,61 @@ fn merge_skill(
                 uninstall_name,
                 description,
                 scope: "global".into(),
-                provider_ids: vec![provider_id.to_string()],
+                provider_ids: provider_id.map(str::to_string).into_iter().collect(),
+                origins: vec![origin],
                 paths: vec![skill_path],
             },
         );
+    }
+}
+
+/// Fold every skill shipped by the active plugin installs into the same map the
+/// provider directories filled. A skill present in both places gains a second
+/// origin rather than a second entry.
+///
+/// Plugin skills are tagged with the Claude Code provider id because that agent
+/// really does load them; without it the sidebar row for Claude Code would hide
+/// the skills it invokes. They keep a `ClaudePlugin` origin, never a
+/// `ProviderDirectory` one — the tag says who can invoke it, the origin says
+/// where it came from.
+fn merge_plugin_skills(
+    map: &mut BTreeMap<String, ScannedSkill>,
+    warnings: &mut Vec<ScanWarning>,
+    home: &Path,
+) {
+    let scan = read_installed_plugins(&home.join(".claude").join("plugins"));
+    warnings.extend(scan.warnings);
+
+    for install in scan.installs {
+        let bundle = read_plugin_bundle(&install.install_path);
+        let version = install
+            .version
+            .clone()
+            .or_else(|| bundle.manifest.version.clone())
+            .unwrap_or_default();
+        for skill in bundle.skills {
+            let uninstall_name = Path::new(&skill.path)
+                .file_name()
+                .and_then(|value| value.to_str())
+                .unwrap_or(&skill.name)
+                .to_string();
+            merge_global_skill(
+                map,
+                skill.name,
+                skill.description,
+                uninstall_name,
+                Some(CLAUDE_CODE_PROVIDER_ID),
+                SkillOrigin::ClaudePlugin {
+                    plugin: install.plugin.clone(),
+                    marketplace: install.marketplace.clone().unwrap_or_default(),
+                    version: version.clone(),
+                },
+                ScannedSkillPath {
+                    path: skill.path,
+                    original_path: None,
+                },
+            );
+        }
     }
 }
 
@@ -270,7 +472,7 @@ pub fn scan_installed(ctx: &ScanContext) -> Result<InstalledScanSnapshot, String
     let mut skills_map: BTreeMap<String, ScannedSkill> = BTreeMap::new();
     let mut warnings: Vec<ScanWarning> = Vec::new();
 
-    let universal_dir = universal_skills_dir(&ctx.probe);
+    let universal_dir = universal_skills_dir(&registry, &ctx.probe)?;
     let universal_exists = universal_dir.is_dir();
     let mut universal_count = 0u32;
 
@@ -341,11 +543,14 @@ pub fn scan_installed(ctx: &ScanContext) -> Result<InstalledScanSnapshot, String
                     && !skill.provider_ids.iter().any(|id| id == &provider.id)
                 {
                     skill.provider_ids.push(provider.id.clone());
+                    skill.origins.push(SkillOrigin::ProviderDirectory {
+                        provider_id: provider.id.clone(),
+                    });
                 }
             }
         } else if let Some(ref dir) = skills_dir {
             if skills_dir_exists {
-                let outcome = scan_skills_dir(dir, ctx.include_internal, Some(&provider.id));
+                let outcome = scan_provider_skills_dir(dir, ctx.include_internal, &provider.id);
                 warnings.extend(outcome.warnings);
                 for (name, description, path) in outcome.skills {
                     skill_count += 1;
@@ -397,6 +602,28 @@ pub fn scan_installed(ctx: &ScanContext) -> Result<InstalledScanSnapshot, String
             skills_dir_exists,
             skill_count,
         });
+    }
+
+    // Plugin skills join after the provider directories so a skill found in both
+    // keeps its provider-directory record and merely gains a plugin origin.
+    merge_plugin_skills(&mut skills_map, &mut warnings, &ctx.probe.home);
+
+    // A plugin is not a skills dir, so the directory walk above never counted it.
+    // Claude Code loads plugin skills all the same, so its count is every skill
+    // tagged with it — deduped, so a skill in both places is still counted once.
+    if let Some(claude) = providers
+        .iter_mut()
+        .find(|provider| provider.id == CLAUDE_CODE_PROVIDER_ID)
+    {
+        claude.skill_count = skills_map
+            .values()
+            .filter(|skill| {
+                skill
+                    .provider_ids
+                    .iter()
+                    .any(|id| id == CLAUDE_CODE_PROVIDER_ID)
+            })
+            .count() as u32;
     }
 
     providers.sort_by(|a, b| {
@@ -460,7 +687,7 @@ fn count_project_skills(
         if skills_dir == universal_dir || !skills_dir.is_dir() {
             continue;
         }
-        let outcome = scan_skills_dir(&skills_dir, include_internal, None);
+        let outcome = scan_provider_skills_dir(&skills_dir, include_internal, &provider.id);
         for (name, _, _) in outcome.skills {
             names.insert(name);
         }
@@ -590,7 +817,7 @@ pub fn scan_project(
             // Do not tag project `.agents` skills with global provider ids (cursor,
             // claude-code, registry `universal`, …). Those ids mean home installs.
         } else if exists {
-            let outcome = scan_skills_dir(&skills_dir, ctx.include_internal, Some(&provider.id));
+            let outcome = scan_provider_skills_dir(&skills_dir, ctx.include_internal, &provider.id);
             warnings.extend(outcome.warnings);
             for (name, description, path) in outcome.skills {
                 count += 1;
@@ -650,9 +877,15 @@ fn merge_project_skill(
             .map(|p| normalize_path_for_serialization(p)),
     };
     let key = format!("project:{name}");
+    let origin = SkillOrigin::ProviderDirectory {
+        provider_id: provider_id.to_string(),
+    };
     if let Some(existing) = map.get_mut(&key) {
         if !existing.provider_ids.iter().any(|id| id == provider_id) {
             existing.provider_ids.push(provider_id.to_string());
+        }
+        if !existing.origins.contains(&origin) {
+            existing.origins.push(origin);
         }
         if !existing.paths.iter().any(|p| p.path == skill_path.path) {
             existing.paths.push(skill_path);
@@ -672,6 +905,7 @@ fn merge_project_skill(
                 description,
                 scope: "project".into(),
                 provider_ids: vec![provider_id.to_string()],
+                origins: vec![origin],
                 paths: vec![skill_path],
             },
         );
@@ -683,10 +917,10 @@ pub fn resolve_provider_skills_dir(
     provider_id: &str,
     ctx: &ScanContext,
 ) -> Result<Option<PathBuf>, String> {
-    if provider_id == UNIVERSAL_PROVIDER_ID {
-        return Ok(Some(universal_skills_dir(&ctx.probe)));
-    }
     let registry = load_registry()?;
+    if provider_id == UNIVERSAL_PROVIDER_ID {
+        return Ok(Some(universal_skills_dir(&registry, &ctx.probe)?));
+    }
     let Some(provider) = registry.providers.iter().find(|p| p.id == provider_id) else {
         return Ok(None);
     };
@@ -716,8 +950,11 @@ pub(crate) fn validate_skill_dir_name(uninstall_name: &str) -> Result<(), String
 pub fn delete_universal_skill_dir(uninstall_name: &str, ctx: &ScanContext) -> Result<bool, String> {
     validate_skill_dir_name(uninstall_name)?;
 
-    let universal_dir = universal_skills_dir(&ctx.probe);
+    let universal_dir = universal_skills_dir(&load_registry()?, &ctx.probe)?;
     let target = universal_dir.join(uninstall_name);
+    // A Universal root that resolves into the plugin cache would make this a
+    // delete against content we do not own.
+    PluginGuard::for_context(ctx).refuse_write(&target)?;
     let metadata = match fs::symlink_metadata(&target) {
         Ok(metadata) => metadata,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
@@ -903,6 +1140,18 @@ mod tests {
             .contains(&UNIVERSAL_PROVIDER_ID.to_string()));
         assert!(find.provider_ids.contains(&"claude-code".to_string()));
         assert_eq!(find.paths.len(), 2);
+        // One provider-directory origin per directory the skill was found in.
+        assert_eq!(
+            find.origins,
+            vec![
+                SkillOrigin::ProviderDirectory {
+                    provider_id: UNIVERSAL_PROVIDER_ID.to_string(),
+                },
+                SkillOrigin::ProviderDirectory {
+                    provider_id: "claude-code".to_string(),
+                },
+            ]
+        );
 
         let review = snapshot
             .skills
@@ -910,6 +1159,61 @@ mod tests {
             .find(|s| s.name == "code-review")
             .expect("code-review");
         assert_eq!(review.provider_ids, vec!["claude-code".to_string()]);
+        assert_eq!(
+            review.origins,
+            vec![SkillOrigin::ProviderDirectory {
+                provider_id: "claude-code".to_string(),
+            }]
+        );
+    }
+
+    /// The six registry providers whose `globalSkillsDir` is the Universal root.
+    /// They must be attributed to the Universal scan, never re-scanned.
+    #[test]
+    fn attributes_universal_sharing_providers_without_rescanning() {
+        let home = temp_home("shared-universal");
+        let universal = home.join(".agents/skills");
+        write_skill(&universal, "shared-skill", "shared-skill", "Shared");
+
+        // Detection markers, one per provider (zed probes configHome, not $HOME).
+        for marker in [".cline", ".dexto", ".kimi-code", ".loaf", ".warp"] {
+            fs::create_dir_all(home.join(marker)).unwrap();
+        }
+        fs::create_dir_all(home.join(".config/zed")).unwrap();
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        let universal_dir = normalize_path_for_serialization(&universal);
+        assert_eq!(snapshot.universal.skill_count, 1);
+
+        let skill = snapshot
+            .skills
+            .iter()
+            .find(|s| s.name == "shared-skill")
+            .expect("shared-skill");
+        // One path, not six: the shared tree was walked exactly once.
+        assert_eq!(skill.paths.len(), 1);
+
+        for id in ["cline", "dexto", "kimi-code-cli", "loaf", "warp", "zed"] {
+            let provider = snapshot
+                .providers
+                .iter()
+                .find(|p| p.id == id)
+                .unwrap_or_else(|| panic!("{id} missing from snapshot"));
+            assert!(provider.detected, "{id} should be detected");
+            assert_eq!(provider.skills_dir.as_deref(), Some(universal_dir.as_str()));
+            assert_eq!(provider.skill_count, 1, "{id} should reuse Universal count");
+            assert!(
+                skill.provider_ids.iter().any(|p| p == id),
+                "{id} should be attributed to the Universal skill"
+            );
+            assert!(
+                !snapshot
+                    .warnings
+                    .iter()
+                    .any(|w| w.provider_id.as_deref() == Some(id)),
+                "{id} should inherit Universal warnings, not raise its own"
+            );
+        }
     }
 
     #[test]
@@ -998,6 +1302,189 @@ mod tests {
             w.code == ScanWarningCode::ProviderEmpty
                 && w.provider_id.as_deref() == Some("codebuddy")
         }));
+    }
+
+    #[test]
+    fn scans_hermes_category_directories_recursively() {
+        let home = temp_home("hermes-categories");
+        let hermes_skills = home.join(".hermes/skills");
+        let category = hermes_skills.join("mlops/inference");
+        write_skill(
+            &category,
+            "serving-llms-vllm",
+            "serving-llms-vllm",
+            "Serve language models",
+        );
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        let hermes = snapshot
+            .providers
+            .iter()
+            .find(|provider| provider.id == "hermes-agent")
+            .expect("Hermes detected");
+        let skill = snapshot
+            .skills
+            .iter()
+            .find(|skill| skill.name == "serving-llms-vllm")
+            .expect("nested Hermes skill");
+
+        assert_eq!(hermes.skill_count, 1);
+        assert!(skill.provider_ids.contains(&"hermes-agent".to_string()));
+        assert!(snapshot.warnings.iter().all(|warning| {
+            warning.provider_id.as_deref() != Some("hermes-agent")
+                || warning.path.as_deref()
+                    != Some(normalize_path_for_serialization(&category).as_str())
+        }));
+    }
+
+    #[test]
+    fn scans_nested_hermes_skill_below_another_skill() {
+        let home = temp_home("hermes-nested-skill");
+        let hermes_skills = home.join(".hermes/skills");
+        write_skill(&hermes_skills, "toolbox", "toolbox", "Parent skill");
+        write_skill(
+            &hermes_skills.join("toolbox"),
+            "nested-tool",
+            "nested-tool",
+            "Nested skill",
+        );
+        write_skill(
+            &hermes_skills.join("toolbox/references"),
+            "archived-tool",
+            "archived-tool",
+            "Archived support file",
+        );
+        write_skill(
+            &hermes_skills.join("toolbox/node_modules"),
+            "dependency-tool",
+            "dependency-tool",
+            "Dependency support file",
+        );
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        let hermes_skill_names = snapshot
+            .skills
+            .iter()
+            .filter(|skill| skill.provider_ids.contains(&"hermes-agent".to_string()))
+            .map(|skill| skill.name.as_str())
+            .collect::<BTreeSet<_>>();
+
+        assert_eq!(
+            hermes_skill_names,
+            BTreeSet::from(["nested-tool", "toolbox"])
+        );
+    }
+
+    #[test]
+    fn does_not_warn_for_empty_hermes_category() {
+        let home = temp_home("hermes-empty-category");
+        let category = home.join(".hermes/skills/creative");
+        fs::create_dir_all(&category).unwrap();
+        fs::write(category.join("DESCRIPTION.md"), "Creative skills").unwrap();
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+
+        assert!(snapshot.warnings.iter().all(|warning| {
+            warning.code != ScanWarningCode::EntrySkipped
+                || warning.path.as_deref()
+                    != Some(normalize_path_for_serialization(&category).as_str())
+        }));
+    }
+
+    #[test]
+    fn invalid_hermes_parent_warns_without_hiding_nested_skill() {
+        let home = temp_home("hermes-invalid-parent");
+        let parent = home.join(".hermes/skills/toolbox");
+        fs::create_dir_all(&parent).unwrap();
+        fs::write(parent.join("SKILL.md"), "# Missing frontmatter").unwrap();
+        write_skill(&parent, "nested-tool", "nested-tool", "Nested skill");
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+
+        assert!(snapshot
+            .skills
+            .iter()
+            .any(|skill| skill.name == "nested-tool"));
+        assert!(snapshot.warnings.iter().any(|warning| {
+            warning.message.starts_with("Invalid SKILL.md frontmatter")
+                && warning.path.as_deref()
+                    == Some(normalize_path_for_serialization(&parent).as_str())
+        }));
+    }
+
+    #[test]
+    fn does_not_scan_inactive_hermes_org_mirrors() {
+        let home = temp_home("hermes-inactive-org");
+        write_skill(
+            &home.join(".hermes/skills/_org/stale-org"),
+            "private-skill",
+            "private-skill",
+            "Stale org skill",
+        );
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+
+        assert!(!snapshot
+            .skills
+            .iter()
+            .any(|skill| skill.name == "private-skill"));
+    }
+
+    #[test]
+    fn scans_only_the_active_hermes_org_mirror() {
+        let home = temp_home("hermes-active-org");
+        let org_root = home.join(".hermes/skills/_org");
+        write_skill(
+            &org_root.join("current-org"),
+            "current-skill",
+            "current-skill",
+            "Current org skill",
+        );
+        write_skill(
+            &org_root.join("stale-org"),
+            "stale-skill",
+            "stale-skill",
+            "Stale org skill",
+        );
+        fs::write(org_root.join(".active_org"), "current-org\n").unwrap();
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+
+        assert!(snapshot
+            .skills
+            .iter()
+            .any(|skill| skill.name == "current-skill"));
+        assert!(!snapshot
+            .skills
+            .iter()
+            .any(|skill| skill.name == "stale-skill"));
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn hermes_symlink_cycle_does_not_duplicate_skill_count() {
+        use std::os::unix::fs::symlink;
+
+        let home = temp_home("hermes-cycle");
+        let hermes_skills = home.join(".hermes/skills");
+        write_skill(&hermes_skills, "cycle-root", "cycle-root", "Cycle root");
+        let cycle_root = hermes_skills.join("cycle-root");
+        symlink(&cycle_root, cycle_root.join("loop")).unwrap();
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        let hermes = snapshot
+            .providers
+            .iter()
+            .find(|provider| provider.id == "hermes-agent")
+            .expect("Hermes detected");
+        let skill = snapshot
+            .skills
+            .iter()
+            .find(|skill| skill.name == "cycle-root")
+            .expect("cycle root skill");
+
+        assert_eq!(hermes.skill_count, 1);
+        assert_eq!(skill.paths.len(), 1);
     }
 
     #[test]
@@ -1131,5 +1618,169 @@ mod tests {
         assert!(delete_universal_skill_dir("linked-skill", &scan_ctx(&home)).unwrap());
         assert!(!universal.join("linked-skill").exists());
         assert!(real.exists());
+    }
+
+    /// Install one plugin under `~/.claude/plugins` with the given skills and
+    /// register it in the manifest. Returns the install path.
+    fn write_plugin(home: &Path, key: &str, version: Option<&str>, skills: &[&str]) -> PathBuf {
+        let install = home
+            .join(".claude/plugins/cache")
+            .join(key.replace('/', "-"));
+        for skill in skills {
+            write_skill(&install.join("skills"), skill, skill, "From a plugin");
+        }
+        fs::create_dir_all(install.join(".claude-plugin")).unwrap();
+        fs::write(
+            install.join(".claude-plugin/plugin.json"),
+            r#"{"name":"manifest-name","version":"9.9.9"}"#,
+        )
+        .unwrap();
+
+        let version_field = version
+            .map(|v| format!(r#""version":"{v}","#))
+            .unwrap_or_default();
+        let manifest = format!(
+            r#"{{"version":2,"plugins":{{"{key}":[{{"scope":"user",{version_field}"installPath":"{}","lastUpdated":"2026-01-01T00:00:00.000Z"}}]}}}}"#,
+            install.to_string_lossy()
+        );
+        fs::write(
+            home.join(".claude/plugins/installed_plugins.json"),
+            manifest,
+        )
+        .unwrap();
+        install
+    }
+
+    #[test]
+    fn plugin_skills_join_the_snapshot_with_provenance() {
+        let home = temp_home("plugin-join");
+        write_plugin(&home, "ponytail@official", Some("1.2.0"), &["ponytail"]);
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        let skill = snapshot
+            .skills
+            .iter()
+            .find(|s| s.name == "ponytail")
+            .expect("plugin skill in snapshot");
+        assert_eq!(
+            skill.origins,
+            vec![SkillOrigin::ClaudePlugin {
+                plugin: "ponytail".into(),
+                marketplace: "official".into(),
+                version: "1.2.0".into(),
+            }]
+        );
+        assert_eq!(skill.uninstall_name, "ponytail");
+        // Tagged for Claude Code, which loads it, without gaining a
+        // ProviderDirectory origin — it still came from a plugin.
+        assert_eq!(skill.provider_ids, vec!["claude-code".to_string()]);
+        assert_eq!(skill.paths.len(), 1);
+        assert!(skill.paths[0].path.ends_with("skills/ponytail"));
+    }
+
+    #[test]
+    fn plugin_version_falls_back_to_the_plugin_manifest() {
+        let home = temp_home("plugin-version");
+        write_plugin(&home, "ponytail@official", None, &["ponytail"]);
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        let skill = snapshot
+            .skills
+            .iter()
+            .find(|s| s.name == "ponytail")
+            .unwrap();
+        assert_eq!(
+            skill.origins,
+            vec![SkillOrigin::ClaudePlugin {
+                plugin: "ponytail".into(),
+                marketplace: "official".into(),
+                version: "9.9.9".into(),
+            }]
+        );
+    }
+
+    #[test]
+    fn skill_in_both_a_provider_dir_and_a_plugin_appears_once() {
+        let home = temp_home("plugin-dedupe");
+        let claude_skills = home.join(".claude/skills");
+        write_skill(&claude_skills, "shared", "shared", "From Claude");
+        write_plugin(&home, "ponytail@official", Some("1.2.0"), &["shared"]);
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        let matches: Vec<&ScannedSkill> = snapshot
+            .skills
+            .iter()
+            .filter(|s| s.name == "shared")
+            .collect();
+        assert_eq!(matches.len(), 1, "one entry, two origins");
+        let skill = matches[0];
+        assert_eq!(skill.provider_ids, vec!["claude-code".to_string()]);
+        assert_eq!(
+            skill.origins,
+            vec![
+                SkillOrigin::ProviderDirectory {
+                    provider_id: "claude-code".into(),
+                },
+                SkillOrigin::ClaudePlugin {
+                    plugin: "ponytail".into(),
+                    marketplace: "official".into(),
+                    version: "1.2.0".into(),
+                },
+            ]
+        );
+        assert_eq!(skill.paths.len(), 2);
+        // Counted once, not twice, despite living in both places.
+        let claude = snapshot
+            .providers
+            .iter()
+            .find(|p| p.id == "claude-code")
+            .expect("claude-code");
+        assert_eq!(claude.skill_count, 1);
+    }
+
+    #[test]
+    fn claude_code_counts_and_lists_the_plugin_skills_it_loads() {
+        let home = temp_home("plugin-provider-count");
+        write_skill(&home.join(".claude/skills"), "own", "own", "From Claude");
+        write_plugin(&home, "ponytail@official", Some("1.2.0"), &["shipped"]);
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+
+        let shipped = snapshot
+            .skills
+            .iter()
+            .find(|s| s.name == "shipped")
+            .expect("plugin skill in the snapshot");
+        assert_eq!(shipped.provider_ids, vec!["claude-code".to_string()]);
+        // Tagged for the agent that loads it, but still a plugin by origin.
+        assert!(matches!(
+            shipped.origins.as_slice(),
+            [SkillOrigin::ClaudePlugin { .. }]
+        ));
+
+        let claude = snapshot
+            .providers
+            .iter()
+            .find(|p| p.id == "claude-code")
+            .expect("claude-code");
+        assert_eq!(claude.skill_count, 2, "its own dir plus the plugin skill");
+    }
+
+    #[test]
+    fn unreadable_plugin_manifest_warns_without_failing_the_scan() {
+        let home = temp_home("plugin-broken-manifest");
+        write_plugin(&home, "ponytail@official", Some("1.2.0"), &["ponytail"]);
+        fs::write(
+            home.join(".claude/plugins/installed_plugins.json"),
+            "{ not json",
+        )
+        .unwrap();
+
+        let snapshot = scan_installed(&scan_ctx(&home)).unwrap();
+        assert!(!snapshot.skills.iter().any(|s| s.name == "ponytail"));
+        assert!(snapshot
+            .warnings
+            .iter()
+            .any(|w| w.message.contains("installed_plugins.json")));
     }
 }

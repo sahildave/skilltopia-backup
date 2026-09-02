@@ -443,22 +443,40 @@ describe('Supabase skill repository', () => {
         error: null,
       }),
     });
-    client.metadata.select.mockReturnValue({
-      order,
-      eq: () => ({
-        order: () => ({
-          limit: async () => ({
-            data: [{ skill_id: 'new/a' }],
-            error: null,
-          }),
+    const queuedIs = vi.fn().mockReturnValue({
+      order: () => ({
+        limit: async () => ({
+          data: [{ skill_id: 'new/a' }],
+          error: null,
         }),
       }),
+    });
+    const oldestIs = vi.fn().mockReturnValue({ order });
+    client.metadata.select.mockReturnValue({
+      is: oldestIs,
+      eq: () => ({ is: queuedIs }),
     });
 
     const repository = createSupabaseRepository(client as never);
     await expect(repository.listOldestPageScraped(2)).resolves.toEqual(['old/a', 'old/b']);
     expect(order).toHaveBeenCalledWith('page_scraped_at', { ascending: true, nullsFirst: true });
+    expect(oldestIs).toHaveBeenCalledWith('delisted_at', null);
 
     await expect(repository.listQueuedDetailSkills(10)).resolves.toEqual(['new/a']);
+    expect(queuedIs).toHaveBeenCalledWith('delisted_at', null);
+  });
+
+  it('tombstones a delisted skill by skill id', async () => {
+    const client = createClient();
+    const eq = vi.fn().mockResolvedValue({ data: null, error: null });
+    client.metadata.update.mockReturnValue({ eq });
+
+    const repository = createSupabaseRepository(client as never);
+    await repository.markSkillDelisted('gone/skill', '2026-08-21T00:00:00.000Z');
+
+    expect(client.metadata.update).toHaveBeenCalledWith({
+      delisted_at: '2026-08-21T00:00:00.000Z',
+    });
+    expect(eq).toHaveBeenCalledWith('skill_id', 'gone/skill');
   });
 });

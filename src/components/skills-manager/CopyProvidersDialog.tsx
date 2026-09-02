@@ -17,35 +17,10 @@ import { ChevronDown } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { buildCopyProviderDialogModel, type CopyProviderOption } from './installed-skills-model';
+import { buildCopyProviderDialogModel, filterProviderOptions } from './installed-skills-model';
 import { isPermissionError } from './library-errors';
-
-function ProviderCheckboxRow({
-  option,
-  checked,
-  disabled,
-  onCheckedChange,
-}: {
-  option: CopyProviderOption;
-  checked: boolean;
-  disabled?: boolean;
-  onCheckedChange?: (checked: boolean) => void;
-}) {
-  const id = `copy-provider-${option.id}`;
-  return (
-    <Field orientation="horizontal" data-disabled={disabled || undefined}>
-      <Checkbox
-        id={id}
-        checked={checked}
-        disabled={disabled}
-        onCheckedChange={(value) => onCheckedChange?.(value === true)}
-      />
-      <FieldLabel htmlFor={id} className="font-normal">
-        {option.name}
-      </FieldLabel>
-    </Field>
-  );
-}
+import { ProviderCheckboxRow } from './ProviderCheckboxRow';
+import { ProviderSearchField } from './ProviderSearchField';
 
 function CollapsibleSection({
   title,
@@ -96,12 +71,22 @@ export function CopyProvidersDialog({
   const rescan = useInstalledScanStore((state) => state.rescan);
   const model = buildCopyProviderDialogModel(skill, snapshot);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [query, setQuery] = useState('');
   const [installedOpen, setInstalledOpen] = useState(false);
   const [otherOpen, setOtherOpen] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
+  // The query only narrows what is listed; hidden rows keep their selection,
+  // and the group checkbox acts on the visible rows alone.
+  const visibleAvailable = filterProviderOptions(model.available, query);
+  const visibleInstalled = filterProviderOptions(model.installed, query);
+  const visibleOther = filterProviderOptions(model.other, query);
+  const hasAnyProviders = model.available.length + model.installed.length + model.other.length > 0;
+  const hasVisibleProviders =
+    visibleAvailable.length + visibleInstalled.length + visibleOther.length > 0;
+
   const selectedCount = selectedIds.size;
-  const availableIds = model.available.map((p) => p.id);
+  const availableIds = visibleAvailable.map((p) => p.id);
   const availableSelectedCount = availableIds.filter((id) => selectedIds.has(id)).length;
   const allAvailableSelected =
     availableIds.length > 0 && availableSelectedCount === availableIds.length;
@@ -114,6 +99,7 @@ export function CopyProvidersDialog({
 
   const resetState = () => {
     setSelectedIds(new Set());
+    setQuery('');
     setInstalledOpen(false);
     setOtherOpen(true);
     setSubmitting(false);
@@ -151,7 +137,7 @@ export function CopyProvidersDialog({
 
   const issueProviderNames = (results: CopyProviderResult[]): string =>
     results
-      .filter((r) => r.status === 'conflict' || r.status === 'failed')
+      .filter((r) => r.status !== 'copied')
       .map((r) => providerLabel(r.providerId))
       .join(', ');
 
@@ -163,9 +149,12 @@ export function CopyProvidersDialog({
       const copied = result.results.filter((r) => r.status === 'copied');
       const conflicts = result.results.filter((r) => r.status === 'conflict');
       const failed = result.results.filter((r) => r.status === 'failed');
+      // A destination that resolves inside the read-only Claude plugin cache.
+      // Rare, but it must read as "managed elsewhere", not as a bare failure.
+      const refused = result.results.filter((r) => r.status === 'refused');
       const issues = issueProviderNames(result.results);
 
-      if (copied.length > 0 && conflicts.length === 0 && failed.length === 0) {
+      if (copied.length > 0 && conflicts.length + failed.length + refused.length === 0) {
         toast.success(
           t('skills.installed.copySuccess', {
             name: skill.name,
@@ -177,12 +166,16 @@ export function CopyProvidersDialog({
           t('skills.installed.copyPartial', {
             name: skill.name,
             copied: copied.length,
-            failed: conflicts.length + failed.length,
+            failed: conflicts.length + failed.length + refused.length,
           }),
           issues
             ? { description: t('skills.installed.copyIssuesDescription', { providers: issues }) }
             : undefined,
         );
+      } else if (refused.length > 0 && conflicts.length + failed.length === 0) {
+        toast.error(t('skills.installed.copyFailed', { name: skill.name }), {
+          description: t('skills.installed.copyRefusedDescription', { providers: issues }),
+        });
       } else {
         toast.error(t('skills.installed.copyFailed', { name: skill.name }), {
           description: issues
@@ -219,9 +212,17 @@ export function CopyProvidersDialog({
           <DialogDescription>{t('skills.installed.copyDescription')}</DialogDescription>
         </DialogHeader>
 
+        {hasAnyProviders && <ProviderSearchField query={query} onQueryChange={setQuery} />}
+
         <div className="flex h-[min(60vh,24rem)] flex-col gap-4 overflow-y-auto">
+          {hasAnyProviders && !hasVisibleProviders && (
+            <p className="text-muted-foreground text-sm text-pretty">
+              {t('skills.installed.noMatchingProviders')}
+            </p>
+          )}
+
           <FieldSet>
-            {model.available.length > 0 ? (
+            {visibleAvailable.length > 0 ? (
               <FieldGroup data-slot="checkbox-group" className="gap-3">
                 <Field orientation="horizontal">
                   <Checkbox
@@ -233,7 +234,7 @@ export function CopyProvidersDialog({
                     {t('skills.installed.copyAvailable')}
                   </FieldLabel>
                 </Field>
-                {model.available.map((option) => (
+                {visibleAvailable.map((option) => (
                   <ProviderCheckboxRow
                     key={option.id}
                     option={option}
@@ -251,10 +252,10 @@ export function CopyProvidersDialog({
             title={t('skills.installed.copyInstalled')}
             open={installedOpen}
             onOpenChange={setInstalledOpen}
-            empty={model.installed.length === 0}
+            empty={visibleInstalled.length === 0}
           >
             <FieldGroup data-slot="checkbox-group" className="gap-3 ps-5">
-              {model.installed.map((option) => (
+              {visibleInstalled.map((option) => (
                 <ProviderCheckboxRow key={option.id} option={option} checked disabled />
               ))}
             </FieldGroup>
@@ -264,10 +265,10 @@ export function CopyProvidersDialog({
             title={t('skills.installed.copyOther')}
             open={otherOpen}
             onOpenChange={setOtherOpen}
-            empty={model.other.length === 0}
+            empty={visibleOther.length === 0}
           >
             <FieldGroup data-slot="checkbox-group" className="gap-3 ps-5">
-              {model.other.map((option) => (
+              {visibleOther.map((option) => (
                 <ProviderCheckboxRow
                   key={option.id}
                   option={option}

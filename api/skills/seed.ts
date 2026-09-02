@@ -1,4 +1,4 @@
-import { enforceRateLimit, methodNotAllowed } from '../_lib/proxy.js';
+import { enforceRateLimit, fetchAppCatalogJson, methodNotAllowed } from '../_lib/proxy.js';
 import { fetchLeaderboard } from '../_lib/skills-catalog.js';
 import { createSupabaseRepositoryFromEnv } from '../_lib/supabase-repository.js';
 
@@ -8,7 +8,7 @@ export async function GET(request: Request): Promise<Response> {
   const limited = enforceRateLimit(request);
   if (limited) return limited;
 
-  const skills = (await fetchLeaderboard(SEED_COUNT)).slice(0, SEED_COUNT);
+  const skills = (await fetchLeaderboard(SEED_COUNT, fetchAppCatalogJson)).slice(0, SEED_COUNT);
   const repository = createSupabaseRepositoryFromEnv();
   const enrichment = await repository.getSkillMetadata(skills.map((skill) => skill.id));
   const enrichmentById = new Map(enrichment.map((item) => [item.skillId, item]));

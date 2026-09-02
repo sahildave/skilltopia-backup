@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import type { InstalledScanSnapshot, ScanWarning } from '@/platform/types';
 import type { LibraryLayoutMode } from '@/store/installed-skills-ui-store';
 import { ShieldAlert } from 'lucide-react';
+import type { Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FilteredSkillSections, ProviderFilterId } from './installed-skills-model';
 import { emptyMessage, warningKey } from './library-path';
@@ -18,6 +19,8 @@ import { ScanWarningBanner } from './ScanWarningBanner';
 import { SkillCardContainer } from './SkillCardContainer';
 
 export function InstalledContent({
+  viewportRef,
+  contentOffset = 0,
   snapshot,
   error,
   showPermissionCard,
@@ -29,6 +32,8 @@ export function InstalledContent({
   hasActiveSkillQuery = false,
   onRescan,
 }: {
+  viewportRef?: Ref<HTMLDivElement>;
+  contentOffset?: number;
   snapshot: InstalledScanSnapshot | null;
   error: string | null;
   showPermissionCard: boolean;
@@ -71,8 +76,8 @@ export function InstalledContent({
         </div>
       ) : null}
 
-      <ScrollArea className="h-full">
-        <div className="flex flex-col gap-6 p-6">
+      <ScrollArea viewportRef={viewportRef} className="h-full">
+        <div className="flex flex-col gap-6 px-6 pb-6" style={{ paddingTop: contentOffset + 24 }}>
           {error && !showPermissionCard ? (
             <Card className="border-destructive/40">
               <CardHeader>

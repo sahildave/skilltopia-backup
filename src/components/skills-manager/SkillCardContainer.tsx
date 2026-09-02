@@ -1,6 +1,13 @@
+import { getSeedForView } from '@/data/skills-seed';
 import { cn } from '@/lib/utils';
 import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
+import { collectCachedLeaderboardSkillsFromClient } from '@/services/local-skills-search';
 import type { LibraryLayoutMode } from '@/store/installed-skills-ui-store';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  catalogSkillsByInstalledKey,
+  findCatalogSkillForInstalled,
+} from './catalog-installed-match';
 import type { ProviderFilterId } from './installed-skills-model';
 import { SkillCard } from './SkillCard';
 import { SkillListRow } from './SkillListRow';
@@ -16,6 +23,13 @@ export function SkillCardContainer({
   providerFilter: ProviderFilterId;
   layoutMode: LibraryLayoutMode;
 }) {
+  const queryClient = useQueryClient();
+  // Cached catalog rows let an installed skill open the same detail the Explore
+  // card shows; unmatched skills fall back to a local-only detail body.
+  const catalogByKey = catalogSkillsByInstalledKey(
+    collectCachedLeaderboardSkillsFromClient(queryClient, getSeedForView('all-time')),
+  );
+
   return (
     <div
       data-testid="skill-card-container"
@@ -29,6 +43,7 @@ export function SkillCardContainer({
             skill={skill}
             snapshot={snapshot}
             providerFilter={providerFilter}
+            catalogSkill={findCatalogSkillForInstalled(skill, catalogByKey)}
           />
         ) : (
           <SkillListRow
@@ -36,6 +51,7 @@ export function SkillCardContainer({
             skill={skill}
             snapshot={snapshot}
             providerFilter={providerFilter}
+            catalogSkill={findCatalogSkillForInstalled(skill, catalogByKey)}
           />
         ),
       )}

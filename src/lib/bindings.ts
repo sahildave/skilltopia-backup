@@ -157,9 +157,9 @@ async fetchSkillsLeaderboard(view: string | null, page: number | null, perPage: 
 /**
  * Searches skills by name/description (min 2 characters on the API).
  */
-async searchSkills(q: string, limit: number | null) : Promise<Result<SkillsShSkill[], string>> {
+async searchSkills(q: string, limit: number | null, categories: string[] | null) : Promise<Result<SkillsSearchResult, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("search_skills", { q, limit }) };
+    return { status: "ok", data: await TAURI_INVOKE("search_skills", { q, limit, categories }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -189,6 +189,8 @@ async fetchSkillAudits(skillId: string) : Promise<Result<SkillAuditsData, string
 },
 /**
  * Scan global provider + Universal skill directories into one normalized snapshot.
+ * Served from cache while a stat-only fingerprint of those directories is
+ * unchanged, so the Installed tab's rescan-per-activation is not a full walk.
  */
 async scanInstalledSkills() : Promise<Result<InstalledScanSnapshot, string>> {
     try {
@@ -267,6 +269,46 @@ async copySkillToProviders(uninstallName: string, providerIds: string[]) : Promi
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * Copy every named skill owned by one provider into the given target providers.
+ * Sources come from the named provider's own skills directory, so a Universal
+ * copy of the same name never stands in for it. Names already present at a
+ * destination are left untouched and counted as skipped.
+ */
+async copyProviderSkills(sourceProviderId: string, skillNames: string[], targetProviderIds: string[], onProgress: TAURI_CHANNEL<BulkCopyProgress>) : Promise<Result<CopyProviderSkillsResult, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("copy_provider_skills", { sourceProviderId, skillNames, targetProviderIds, onProgress }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Install one skill from `source` into Universal and the given providers.
+ * Acquisition may spawn the resolved Git executable; cache hits do not.
+ * `project_path` selects project scope, `null` installs into the home roots.
+ */
+async installSkill(source: string, skillName: string, providerIds: string[], projectPath: string | null) : Promise<Result<SkillProjectionResult, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("install_skill", { source, skillName, providerIds, projectPath }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Remove one skill from each given target, `universal` included when the
+ * caller lists it. Outcomes are independent: a failing target never stops the
+ * rest, so the Universal cleanup always runs.
+ */
+async uninstallSkill(uninstallName: string, providerIds: string[]) : Promise<Result<SkillProjectionResult, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("uninstall_skill", { uninstallName, providerIds }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -295,8 +337,40 @@ quick_pane_shortcut: string | null;
  * If None, uses system locale detection
  */
 language: string | null }
+/**
+ * One skill that did not copy, named so the summary can say which.
+ */
+export type BulkCopyIssue = { skillName: string; status: BulkCopyStatus; message?: string | null }
+/**
+ * One tick of a bulk copy, emitted after a skill has been handled for every
+ * target. `completed` counts skills finished, not per-target writes, so it
+ * advances once per name regardless of how many destinations are selected.
+ */
+export type BulkCopyProgress = { completed: number; total: number; skillName: string }
+export type BulkCopyStatus = "copied" | 
+/**
+ * Already there: the destination holds this name, or resolves onto the
+ * source itself. Nothing was touched.
+ */
+"skipped" | 
+/**
+ * The destination is inside the read-only Claude plugin cache.
+ */
+"refused" | "failed"
+export type BulkCopyTargetResult = { providerId: string; copied: number; skipped: number; refused: number; failed: number; 
+/**
+ * Failures only. Skipped and refused are counted, not enumerated: a
+ * refused destination refuses every skill, and listing 178 of them says
+ * nothing the count does not.
+ */
+issues: BulkCopyIssue[] }
 export type CopyProviderResult = { providerId: string; status: CopyProviderStatus; message?: string | null }
-export type CopyProviderStatus = "copied" | "conflict" | "failed"
+export type CopyProviderSkillsResult = { targets: BulkCopyTargetResult[] }
+export type CopyProviderStatus = "copied" | "conflict" | 
+/**
+ * The destination is inside the read-only Claude plugin cache.
+ */
+"refused" | "failed"
 export type CopySkillToProvidersResult = { results: CopyProviderResult[] }
 export type InstalledScanSnapshot = { scannedAt: string; source: ProviderRegistrySourceMeta; universal: UniversalScanInfo; providers: ScannedProvider[]; skills: ScannedSkill[]; warnings: ScanWarning[] }
 export type JsonValue = null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }>
@@ -330,7 +404,7 @@ export type RelatedSkill = { skillId: string; score: number; repository: string 
 export type ScanWarning = { code: ScanWarningCode; message: string; providerId?: string | null; path?: string | null }
 export type ScanWarningCode = "provider_empty" | "skills_dir_missing" | "entry_skipped" | "universal_empty"
 export type ScannedProvider = { id: string; name: string; universal: boolean; detected: boolean; skillsDir: string | null; skillsDirExists: boolean; skillCount: number }
-export type ScannedSkill = { name: string; uninstallName: string; description: string; scope: string; providerIds: string[]; paths: ScannedSkillPath[] }
+export type ScannedSkill = { name: string; uninstallName: string; description: string; scope: string; providerIds: string[]; origins: SkillOrigin[]; paths: ScannedSkillPath[] }
 export type ScannedSkillPath = { path: string; originalPath?: string | null }
 export type SkillAuditEntry = { provider: string; slug: string; status: string; summary: string; auditedAt: string; riskLevel?: string | null; categories?: string[] | null }
 export type SkillAuditsData = { skillId: string; audits: SkillAuditsPayload | null; source: string; auditsFetchedAt: string | null }
@@ -338,8 +412,52 @@ export type SkillAuditsPayload = { id: string; source: string; slug: string; aud
 export type SkillDetailData = { skillId: string; pageSnapshot?: SkillPageSnapshot | null; pageScrapedAt?: string | null; repository?: string | null; source?: string | null; installCount?: number | null; sourceUrl?: string | null; installSeries?: number[]; enrichment: SkillEnrichment | null; related: RelatedSkill[] }
 export type SkillEnrichment = { skillId: string; contentHash: string; required: SkillEnrichmentRequired; optional: JsonValue; estimatedReadTimeMinutes: number }
 export type SkillEnrichmentRequired = { primaryGoal: string; requires: string[]; estimatedComplexity: string; bestFor: string[] }
+/**
+ * Where a scanned skill came from. A skill can have several origins at once —
+ * the same skill may sit in `~/.agents/skills` and also ship inside a plugin.
+ */
+export type SkillOrigin = 
+/**
+ * Found directly in a provider (or Universal / project) skills directory.
+ */
+{ kind: "providerDirectory"; providerId: string } | 
+/**
+ * Delivered by a Claude Code plugin.
+ */
+{ kind: "claudePlugin"; plugin: string; marketplace: string; version: string }
 export type SkillPageSnapshot = { summary?: string | null; topics?: string[] | null; repository?: string | null; source?: string | null; stars?: number | null; firstSeen?: string | null; installCommand?: string | null; related?: JsonValue | null; weeklyInstalls?: number[] | null; skillMdPreview?: string | null }
-export type SkillsShSkill = { id: string; slug: string; name: string; source: string; installs: number; sourceType: string; installUrl?: string | null; url: string; isDuplicate?: boolean | null }
+export type SkillProjectionResult = { results: SkillTargetResult[]; 
+/**
+ * Answered from the acquisition cache, with no network request. Always
+ * false for an uninstall.
+ */
+cacheHit: boolean }
+export type SkillTargetResult = { providerId: string; status: SkillTargetStatus; message?: string | null }
+export type SkillTargetStatus = 
+/**
+ * Linked or copied in.
+ */
+"written" | 
+/**
+ * Already correct — including a provider that shares the Universal root.
+ */
+"already_present" | 
+/**
+ * Something we will not delete is in the way.
+ */
+"conflict" | "removed" | "absent" | 
+/**
+ * The destination is inside the read-only Claude plugin cache.
+ */
+"refused" | "failed"
+export type SkillsSearchResult = { skills: SkillsShSkill[]; semanticUnavailable?: boolean }
+export type SkillsShSkill = { id: string; slug: string; name: string; source: string; installs: number; sourceType: string; installUrl?: string | null; url: string; isDuplicate?: boolean | null; 
+/**
+ * Taxonomy slugs from the enrichment record, most representative first.
+ * Missing categories mean the catalog row could not be enriched.
+ */
+categories?: string[] }
+export type TAURI_CHANNEL<TSend> = null
 export type UniversalScanInfo = { skillsDir: string; skillsDirExists: boolean; skillCount: number }
 
 /** tauri-specta globals **/

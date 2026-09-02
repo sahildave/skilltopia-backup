@@ -45,11 +45,14 @@ export const platform: PlatformPort = {
   async install(skill, scope) {
     const command = buildSkillsInstallCommand(skill, scope);
     await navigator.clipboard.writeText(command);
+    // Nothing was written to disk here, so there are no per-target outcomes.
+    return { results: [] };
   },
 
   async uninstall(skillName, options) {
     const command = buildSkillsRemoveCommand(skillName, options);
     await navigator.clipboard.writeText(command);
+    return { results: [] };
   },
 
   async copySkillToProviders(_uninstallName, providerIds) {
@@ -58,6 +61,23 @@ export const platform: PlatformPort = {
         providerId,
         status: 'failed' as const,
         message: 'Copy to providers requires the desktop app',
+      })),
+    };
+  },
+
+  async copyProviderSkills(_sourceProviderId, skillNames, targetProviderIds) {
+    return {
+      targets: targetProviderIds.map((providerId) => ({
+        providerId,
+        copied: 0,
+        skipped: 0,
+        refused: 0,
+        failed: skillNames.length,
+        issues: skillNames.map((skillName) => ({
+          skillName,
+          status: 'failed' as const,
+          message: 'Copy to providers requires the desktop app',
+        })),
       })),
     };
   },

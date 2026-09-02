@@ -48,13 +48,13 @@ describe('PlatformPort mock', () => {
         { id: 'vercel-labs/agent-skills/find-skills', name: 'Find Skills' },
         'global',
       ),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({ results: [] });
   });
 
   it('accepts mocked uninstall without throwing', async () => {
-    await expect(
-      mockPlatform.uninstall('find-skills', { agentScope: 'all' }),
-    ).resolves.toBeUndefined();
+    await expect(mockPlatform.uninstall('find-skills', { agentScope: 'all' })).resolves.toEqual({
+      results: [],
+    });
   });
 
   it('reports copied results for each requested provider', async () => {
@@ -66,6 +66,25 @@ describe('PlatformPort mock', () => {
         { providerId: 'codex', status: 'copied' },
       ],
     });
+  });
+
+  it('reports every bulk-copied skill as copied for each target', async () => {
+    await expect(
+      mockPlatform.copyProviderSkills('claude-code', ['a', 'b'], ['codex']),
+    ).resolves.toEqual({
+      targets: [{ providerId: 'codex', copied: 2, skipped: 0, refused: 0, failed: 0, issues: [] }],
+    });
+  });
+
+  it('emits one synthetic progress tick per skill', async () => {
+    const ticks: unknown[] = [];
+    await mockPlatform.copyProviderSkills('claude-code', ['a', 'b'], ['codex'], (progress) =>
+      ticks.push(progress),
+    );
+    expect(ticks).toEqual([
+      { completed: 1, total: 2, skillName: 'a' },
+      { completed: 2, total: 2, skillName: 'b' },
+    ]);
   });
 });
 
@@ -149,6 +168,29 @@ describe('PlatformPort web', () => {
         ],
       },
     );
+  });
+
+  it('marks copyProviderSkills as unavailable on web', async () => {
+    await expect(
+      webPlatform.copyProviderSkills('claude-code', ['find-skills'], ['codex']),
+    ).resolves.toEqual({
+      targets: [
+        {
+          providerId: 'codex',
+          copied: 0,
+          skipped: 0,
+          refused: 0,
+          failed: 1,
+          issues: [
+            {
+              skillName: 'find-skills',
+              status: 'failed',
+              message: 'Copy to providers requires the desktop app',
+            },
+          ],
+        },
+      ],
+    });
   });
 
   it('opens external urls in a new tab', async () => {

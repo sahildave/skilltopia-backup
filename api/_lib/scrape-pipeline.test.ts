@@ -30,6 +30,7 @@ describe('scrape pipeline', () => {
       upsertInstallSnapshots: vi.fn(),
       getSkillAuditCache: vi.fn().mockResolvedValue(null),
       getSkillPageCache: vi.fn().mockResolvedValue(null),
+      markSkillDelisted: vi.fn(),
       listSkillPageCaches: vi.fn().mockResolvedValue([]),
       upsertSkillAudits: vi.fn(),
       ...overrides,
@@ -52,6 +53,70 @@ describe('scrape pipeline', () => {
 
     expect(repository.upsertSkillMetadata).not.toHaveBeenCalled();
     expect(repository.upsertPageSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('tombstones a skill whose detail 404s instead of failing the run', async () => {
+    const repository = repositoryStub();
+    const gone = Object.assign(new Error('skills.sh request failed: 404'), { status: 404 });
+
+    await expect(
+      runScrapePipeline({
+        repository: repository as never,
+        skillIds: ['gone/skill'],
+        throttleMs: 0,
+        scrapeDate: new Date('2026-08-21T00:00:00.000Z'),
+        loadDetail: async () => {
+          throw gone;
+        },
+        fetchPageHtml: vi.fn(),
+      }),
+    ).resolves.toMatchObject({ attempted: 1, scraped: 0, delisted: 1, failed: [] });
+
+    expect(repository.markSkillDelisted).toHaveBeenCalledWith(
+      'gone/skill',
+      '2026-08-21T00:00:00.000Z',
+    );
+    expect(repository.upsertSkillMetadata).not.toHaveBeenCalled();
+  });
+
+  it('throttles after a delisted skill so dead ids cannot burst the budget', async () => {
+    const repository = repositoryStub();
+    const sleep = vi.fn().mockResolvedValue(undefined);
+    const gone = Object.assign(new Error('skills.sh request failed: 404'), { status: 404 });
+
+    await expect(
+      runScrapePipeline({
+        repository: repository as never,
+        skillIds: ['gone/one', 'gone/two'],
+        throttleMs: 1000,
+        loadDetail: async () => {
+          throw gone;
+        },
+        fetchPageHtml: vi.fn(),
+        sleep,
+      }),
+    ).resolves.toMatchObject({ attempted: 2, delisted: 2 });
+
+    expect(sleep).toHaveBeenCalledTimes(1);
+    expect(sleep).toHaveBeenCalledWith(1000, undefined);
+  });
+
+  it('still fails the run when a detail fetch errors for a non-404 reason', async () => {
+    const repository = repositoryStub();
+
+    await expect(
+      runScrapePipeline({
+        repository: repository as never,
+        skillIds: ['flaky/skill'],
+        throttleMs: 0,
+        loadDetail: async () => {
+          throw Object.assign(new Error('skills.sh request failed: 500'), { status: 500 });
+        },
+        fetchPageHtml: vi.fn(),
+      }),
+    ).resolves.toMatchObject({ attempted: 1, delisted: 0, failed: [{ skillId: 'flaky/skill' }] });
+
+    expect(repository.markSkillDelisted).not.toHaveBeenCalled();
   });
 
   it('retries scrape once then clears page_snapshot to null for later rotation', async () => {

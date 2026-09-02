@@ -1,21 +1,29 @@
 //! Tauri commands for installed-skill scanning and reveal.
 
+use tauri::ipc::Channel;
+use tauri::{AppHandle, Manager};
+
 use crate::provider_scan::{
+    copy_provider_skills as copy_provider_skills_impl,
     copy_skill_to_providers as copy_skill_to_providers_impl, delete_universal_skill_dir,
-    list_projects as list_projects_impl, resolve_provider_skills_dir, reveal_skills_dir,
-    scan_installed, scan_project, CopySkillToProvidersResult, InstalledScanSnapshot, ProjectInfo,
-    ScanContext,
+    install_skill as install_skill_impl, list_projects as list_projects_impl,
+    resolve_provider_skills_dir, reveal_skills_dir, scan_installed_cached, scan_project,
+    uninstall_skill as uninstall_skill_impl, BulkCopyProgress, CopyProviderSkillsResult,
+    CopySkillToProvidersResult, InstalledScanSnapshot, ProjectInfo, ScanContext,
+    SkillProjectionResult,
 };
 
 /// Scan global provider + Universal skill directories into one normalized snapshot.
-#[tauri::command]
+/// Served from cache while a stat-only fingerprint of those directories is
+/// unchanged, so the Installed tab's rescan-per-activation is not a full walk.
+#[tauri::command(async)]
 #[specta::specta]
 pub fn scan_installed_skills() -> Result<InstalledScanSnapshot, String> {
-    scan_installed(&ScanContext::from_environment())
+    scan_installed_cached(&ScanContext::from_environment())
 }
 
 /// Enumerate project directories at depth one or two below an explicitly selected root.
-#[tauri::command]
+#[tauri::command(async)]
 #[specta::specta]
 pub fn list_projects(root: String) -> Result<Vec<ProjectInfo>, String> {
     list_projects_impl(
@@ -25,7 +33,7 @@ pub fn list_projects(root: String) -> Result<Vec<ProjectInfo>, String> {
 }
 
 /// Scan project-local Universal and provider skill folders.
-#[tauri::command]
+#[tauri::command(async)]
 #[specta::specta]
 pub fn scan_project_skills(project_path: String) -> Result<InstalledScanSnapshot, String> {
     scan_project(
@@ -56,7 +64,7 @@ pub fn reveal_path(path: String) -> Result<bool, String> {
 
 /// Delete one skill folder from the Universal `~/.agents/skills` cache.
 /// Returns `false` when the folder is already missing.
-#[tauri::command]
+#[tauri::command(async)]
 #[specta::specta]
 pub fn delete_universal_skill(uninstall_name: String) -> Result<bool, String> {
     delete_universal_skill_dir(&uninstall_name, &ScanContext::from_environment())
@@ -64,13 +72,84 @@ pub fn delete_universal_skill(uninstall_name: String) -> Result<bool, String> {
 
 /// Copy one installed skill into selected provider folders as directory symlinks.
 /// Returns independent per-provider outcomes so partial success is preserved.
-#[tauri::command]
+#[tauri::command(async)]
 #[specta::specta]
 pub fn copy_skill_to_providers(
     uninstall_name: String,
     provider_ids: Vec<String>,
 ) -> Result<CopySkillToProvidersResult, String> {
     copy_skill_to_providers_impl(
+        &uninstall_name,
+        &provider_ids,
+        &ScanContext::from_environment(),
+    )
+}
+
+/// Copy every named skill owned by one provider into the given target providers.
+/// Sources come from the named provider's own skills directory, so a Universal
+/// copy of the same name never stands in for it. Names already present at a
+/// destination are left untouched and counted as skipped.
+#[tauri::command(async)]
+#[specta::specta]
+pub fn copy_provider_skills(
+    source_provider_id: String,
+    skill_names: Vec<String>,
+    target_provider_ids: Vec<String>,
+    on_progress: Channel<BulkCopyProgress>,
+) -> Result<CopyProviderSkillsResult, String> {
+    copy_provider_skills_impl(
+        &source_provider_id,
+        &skill_names,
+        &target_provider_ids,
+        &ScanContext::from_environment(),
+        // A dropped receiver is not a reason to abandon a batch that is
+        // already writing to disk, so a send failure is ignored.
+        &|progress| {
+            let _ = on_progress.send(progress);
+        },
+    )
+}
+
+/// Where acquired skill sources are cached between installs.
+fn skill_cache_root(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+    app.path()
+        .app_cache_dir()
+        .map(|dir| dir.join("skill-sources"))
+        .map_err(|e| format!("Failed to resolve the app cache directory: {e}"))
+}
+
+/// Install one skill from `source` into Universal and the given providers.
+/// Acquisition may spawn the resolved Git executable; cache hits do not.
+/// `project_path` selects project scope, `null` installs into the home roots.
+#[tauri::command(async)]
+#[specta::specta]
+pub fn install_skill(
+    app: AppHandle,
+    source: String,
+    skill_name: String,
+    provider_ids: Vec<String>,
+    project_path: Option<String>,
+) -> Result<SkillProjectionResult, String> {
+    install_skill_impl(
+        &source,
+        &skill_name,
+        &provider_ids,
+        project_path.as_deref().map(std::path::Path::new),
+        &skill_cache_root(&app)?,
+        &ScanContext::from_environment(),
+    )
+}
+
+/// Remove one skill from each given target, `universal` included when the
+/// caller lists it. Outcomes are independent: a failing target never stops the
+/// rest, so the Universal cleanup always runs.
+#[tauri::command(async)]
+#[specta::specta]
+pub fn uninstall_skill(
+    uninstall_name: String,
+    provider_ids: Vec<String>,
+) -> Result<SkillProjectionResult, String> {
+    uninstall_skill_impl(
         &uninstall_name,
         &provider_ids,
         &ScanContext::from_environment(),

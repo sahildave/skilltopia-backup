@@ -1,3 +1,5 @@
+import type { SkillCategory } from '../../api/_lib/taxonomy';
+
 export interface SkillsShSkill {
   id: string;
   slug: string;
@@ -8,6 +10,14 @@ export interface SkillsShSkill {
   installUrl?: string | null;
   url: string;
   isDuplicate?: boolean | null;
+  /** Taxonomy slugs from the enrichment record, most representative first. */
+  categories?: SkillCategory[];
+}
+
+export interface CatalogSearchResult {
+  skills: SkillsShSkill[];
+  /** True when the semantic leg failed and the response is keyword-only. */
+  semanticUnavailable: boolean;
 }
 
 export interface SkillEnrichmentRequired {
@@ -85,7 +95,8 @@ export interface SkillAuditsData {
 
 export interface CatalogPort {
   fetchLeaderboard(view: string, page: number, perPage: number): Promise<SkillsShSkill[]>;
-  search(query: string, limit: number): Promise<SkillsShSkill[]>;
+  /** `categories` narrows the search to those taxonomy slugs; empty means no facet. */
+  search(query: string, limit: number, categories: SkillCategory[]): Promise<CatalogSearchResult>;
   fetchDetail(skillId: string): Promise<SkillDetailData>;
   fetchAudits(skillId: string): Promise<SkillAuditsData>;
 }

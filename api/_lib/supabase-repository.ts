@@ -442,27 +442,41 @@ export function createSupabaseRepository(client: RepositoryClient) {
         .reverse();
     },
 
-    /** Oldest page scrapes first (`page_scraped_at` nulls first). */
+    /** Oldest page scrapes first (`page_scraped_at` nulls first), delisted excluded. */
     async listOldestPageScraped(limit = 160): Promise<string[]> {
       const result = await client
         .from('skill_metadata')
         .select('skill_id')
+        .is('delisted_at', null)
         .order('page_scraped_at', { ascending: true, nullsFirst: true })
         .limit(limit);
       throwOnError(result.error);
       return (result.data ?? []).map((row) => String(row.skill_id));
     },
 
-    /** Skills with empty `content_hash` waiting for detail/scrape. */
+    /** Skills with empty `content_hash` waiting for detail/scrape, delisted excluded. */
     async listQueuedDetailSkills(limit = 500): Promise<string[]> {
       const result = await client
         .from('skill_metadata')
         .select('skill_id')
         .eq('content_hash', '')
+        .is('delisted_at', null)
         .order('skill_id')
         .limit(limit);
       throwOnError(result.error);
       return (result.data ?? []).map((row) => String(row.skill_id));
+    },
+
+    /**
+     * Tombstone a skill skills.sh no longer serves. Sticky on purpose: a
+     * re-sighting would only 404 again and put the queue back where it was.
+     */
+    async markSkillDelisted(skillId: string, delistedAt: string): Promise<void> {
+      const result = await client
+        .from('skill_metadata')
+        .update({ delisted_at: delistedAt })
+        .eq('skill_id', skillId);
+      throwOnError(result.error);
     },
 
     /**

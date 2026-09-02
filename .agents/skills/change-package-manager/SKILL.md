@@ -91,7 +91,6 @@ Key files to check:
 - `docs/USING_THIS_TEMPLATE.md`
 - `docs/CONTRIBUTING.md`
 - `docs/SECURITY.md`
-- `docs/tasks.md`
 - All files under `docs/developer/`
 - `scripts/prepare-release.js` (help text)
 

@@ -1,0 +1,54 @@
+# Progress — Plugin-delivered skills: enumerate, attribute, and protect
+
+| ID | Task | Status | Dependencies |
+| --- | --- | --- | --- |
+| 10 | Skill provenance: an origin field on the scan snapshot | passed | - |
+| 11 | Read installed_plugins.json and resolve active plugin installs | passed | - |
+| 12 | Enumerate the skills shipped by one plugin install path | passed | - |
+| 13 | Merge plugin skills into the installed scan snapshot | passed | 10, 11, 12 |
+| 14 | Enforce plugin skills as read-only, and show their origin | passed | 13 |
+| 15 | Cache the installed scan and invalidate on filesystem change | passed | 13 |
+
+<!-- afk:progress:28 -->
+
+## Progress — Bulk copy all skills from one provider into another
+
+| ID | Task | Status | Dependencies |
+| --- | --- | --- | --- |
+| 21 | Prefactor: shared copy-provider checkbox row and progress primitive | passed | - |
+| 22 | Copy all skills from one provider into another | passed | 21 |
+| 23 | Live progress during a bulk skill copy | passed | 22 |
+
+
+<!-- /afk:progress:28 -->
+
+<!-- afk:progress:30 -->
+
+## Progress — Skilltopia auto-updater: vendored module, real dialog, hardened release
+
+| ID | Task | Status | Dependencies |
+| --- | --- | --- | --- |
+| 31 | Updater module core + i18n (vendored src/platform/updates) | passed | - |
+| 32 | Release CI hardening + updater-key verification | passed | - |
+| 33 | App-shell integration: controller + scheduler + UpdateDialog in App.tsx | passed | 31 |
+| 34 | Manual check: native menu + command-palette entries | passed | 33 |
+
+
+<!-- /afk:progress:30 -->
+
+<!-- afk:progress:53 -->
+
+## Progress — Skill taxonomy + faceted semantic search
+
+| ID | Task | Status | Dependencies |
+| --- | --- | --- | --- |
+| 54 | Finalize the skill taxonomy slugs | passed | - |
+| 55 | Expose categories in the search API response | passed | - |
+| 56 | Category classification run + eval harness (local Ollama) | awaiting_acceptance | 54 |
+| 57 | UI: category icon + label binding | passed | 54 |
+| 58 | Backfill categories onto existing skills | pending | 56 |
+| 59 | UI: category filter control + result pills | passed | 55, 57 |
+| 60 | Ops: launchd timer for local ingest freshness | pending | 56 |
+
+
+<!-- /afk:progress:53 -->

@@ -19,6 +19,7 @@ const scanMock = vi.hoisted(() => ({
   openExternal: vi.fn(),
   uninstall: vi.fn(),
   copySkillToProviders: vi.fn(),
+  copyProviderSkills: vi.fn(),
 }));
 
 vi.mock('@platform', () => ({
@@ -35,6 +36,7 @@ vi.mock('@platform', () => ({
     install: vi.fn(),
     uninstall: (...args: unknown[]) => scanMock.uninstall(...args),
     copySkillToProviders: (...args: unknown[]) => scanMock.copySkillToProviders(...args),
+    copyProviderSkills: (...args: unknown[]) => scanMock.copyProviderSkills(...args),
     openExternal: (...args: unknown[]) => scanMock.openExternal(...args),
   },
 }));
@@ -64,7 +66,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     scanMock.scanInstalled.mockResolvedValue(MOCK_INSTALLED_SCAN);
     scanMock.getInstalledScan.mockResolvedValue(MOCK_INSTALLED_SCAN);
     scanMock.revealProviderSkillsDir.mockResolvedValue(true);
-    scanMock.uninstall.mockResolvedValue(undefined);
+    scanMock.uninstall.mockResolvedValue({ results: [] });
     scanMock.copySkillToProviders.mockResolvedValue({
       results: [{ providerId: 'cursor', status: 'copied' }],
     });
@@ -84,8 +86,8 @@ describe('SkillsLibraryView (local / mock)', () => {
 
     expect(screen.getByRole('heading', { name: 'Installed' })).toBeInTheDocument();
     expect(screen.getByText('find-skills')).toBeInTheDocument();
-    expect(screen.getAllByText('Universal').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('1 Provider').length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText('Universal').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('+1').length).toBeGreaterThan(0);
     expect(screen.queryByText('Claude Code')).not.toBeInTheDocument();
 
     const findSkillsCard = screen.getByText('find-skills').closest('[data-slot="card"]');
@@ -227,7 +229,7 @@ describe('SkillsLibraryView (local / mock)', () => {
       .closest('[data-slot="card"]') as HTMLElement;
     expect(findSkillsCard).toBeTruthy();
 
-    await user.click(within(findSkillsCard).getByRole('button', { name: /skill actions/i }));
+    await user.click(within(findSkillsCard).getByRole('button', { name: /^Installed$/ }));
     await user.click(screen.getByRole('menuitem', { name: /uninstall/i }));
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /yes, uninstall/i })).toBeInTheDocument();
@@ -254,7 +256,7 @@ describe('SkillsLibraryView (local / mock)', () => {
       .getByText('find-skills')
       .closest('[data-slot="card"]') as HTMLElement;
 
-    await user.click(within(findSkillsCard).getByRole('button', { name: /skill actions/i }));
+    await user.click(within(findSkillsCard).getByRole('button', { name: /^Installed$/ }));
     await user.click(screen.getByRole('menuitem', { name: /copy to other providers/i }));
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -281,9 +283,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     const listRow = screen.getByText('find-skills').closest('[data-slot="skill-list-row"]');
     expect(listRow).toBeTruthy();
 
-    await user.click(
-      within(listRow as HTMLElement).getByRole('button', { name: /skill actions/i }),
-    );
+    await user.click(within(listRow as HTMLElement).getByRole('button', { name: /^Installed$/ }));
     await user.click(screen.getByRole('menuitem', { name: /copy to other providers/i }));
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -294,7 +294,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     scanMock.hasLocalLibrary = false;
     render(<SkillsLibraryView />);
 
-    expect(screen.queryByRole('button', { name: /skill actions/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Installed$/ })).not.toBeInTheDocument();
     expect(
       screen.queryByRole('menuitem', { name: /copy to other providers/i }),
     ).not.toBeInTheDocument();
@@ -308,7 +308,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     const codeReviewCard = screen
       .getByText('code-review')
       .closest('[data-slot="card"]') as HTMLElement;
-    await user.click(within(codeReviewCard).getByRole('button', { name: /skill actions/i }));
+    await user.click(within(codeReviewCard).getByRole('button', { name: /^Installed$/ }));
     await user.click(screen.getByRole('menuitem', { name: /uninstall/i }));
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /yes, uninstall/i })).toBeInTheDocument();
@@ -341,7 +341,7 @@ describe('SkillsLibraryView (local / mock)', () => {
     render(<SkillsLibraryView />);
 
     const skillCard = screen.getByText('Find Skills').closest('[data-slot="card"]') as HTMLElement;
-    await user.click(within(skillCard).getByRole('button', { name: /skill actions/i }));
+    await user.click(within(skillCard).getByRole('button', { name: /^Installed$/ }));
     await user.click(screen.getByRole('menuitem', { name: /uninstall/i }));
     await user.click(screen.getByRole('button', { name: /yes, uninstall/i }));
 
@@ -401,6 +401,13 @@ describe('SkillsSidebar providers', () => {
     expect(universal).toHaveTextContent('2');
     const cursorRow = screen.getByText('Cursor').closest('button');
     expect(cursorRow).toHaveTextContent('2');
+  });
+
+  it('renders the provider brand icon inside its row', () => {
+    render(<SkillsSidebar active="installed" onSelect={vi.fn()} />);
+
+    const claude = screen.getByText('Claude Code').closest('button') as HTMLElement;
+    expect(within(claude).getByTitle('Claude Code')).toBeInTheDocument();
   });
 
   it('filters active and inactive providers from the top search field', async () => {
@@ -510,5 +517,90 @@ describe('Installed Skills shared snapshot lifecycle', () => {
     });
     expect(scanMock.scanInstalled).not.toHaveBeenCalled();
     expect(useInstalledScanStore.getState().snapshot).toEqual(MOCK_INSTALLED_SCAN);
+  });
+});
+
+describe('SkillsLibraryView bulk copy entry point', () => {
+  beforeEach(() => {
+    scanMock.hasLocalLibrary = true;
+    scanMock.scanInstalled.mockResolvedValue(MOCK_INSTALLED_SCAN);
+    scanMock.getInstalledScan.mockResolvedValue(MOCK_INSTALLED_SCAN);
+    scanMock.copyProviderSkills.mockResolvedValue({ targets: [] });
+    useInstalledScanStore.setState({
+      snapshot: MOCK_INSTALLED_SCAN,
+      error: null,
+      refreshing: false,
+    });
+    useInstalledSkillsUiStore.setState({
+      providerFilter: ALL_AGENTS_FILTER_ID,
+      layoutMode: 'grid',
+    });
+  });
+
+  const copyToButton = () => screen.queryByRole('button', { name: /copy to/i });
+
+  it('hides the button for the All agents selection', () => {
+    render(<SkillsLibraryView />);
+    expect(copyToButton()).not.toBeInTheDocument();
+  });
+
+  it('hides the button for the Universal selection', () => {
+    useInstalledSkillsUiStore.setState({ providerFilter: UNIVERSAL_PROVIDER_ID });
+    render(<SkillsLibraryView />);
+    expect(copyToButton()).not.toBeInTheDocument();
+  });
+
+  it('shows the button for a universal-registry provider with only Universal skills', () => {
+    // Cursor's own directory holds no real folders, but as a universal-registry
+    // agent it can invoke the Universal skills — and those are copyable now.
+    useInstalledSkillsUiStore.setState({ providerFilter: 'cursor' });
+    render(<SkillsLibraryView />);
+    expect(copyToButton()).toBeInTheDocument();
+  });
+
+  it('hides the button for a provider with nothing invokable', () => {
+    useInstalledScanStore.setState({
+      snapshot: {
+        ...MOCK_INSTALLED_SCAN,
+        providers: MOCK_INSTALLED_SCAN.providers.map((provider) =>
+          provider.id === 'cursor' ? { ...provider, universal: false } : provider,
+        ),
+      },
+    });
+    useInstalledSkillsUiStore.setState({ providerFilter: 'cursor' });
+    render(<SkillsLibraryView />);
+    expect(copyToButton()).not.toBeInTheDocument();
+  });
+
+  it('shows the button for a concrete provider that owns skills', () => {
+    useInstalledSkillsUiStore.setState({ providerFilter: 'claude-code' });
+    render(<SkillsLibraryView />);
+    expect(copyToButton()).toBeInTheDocument();
+    expect(copyToButton()).toBeEnabled();
+  });
+
+  it('disables the button while a rescan is in flight', () => {
+    useInstalledSkillsUiStore.setState({ providerFilter: 'claude-code' });
+    useInstalledScanStore.setState({ refreshing: true });
+    render(<SkillsLibraryView />);
+    expect(copyToButton()).toBeDisabled();
+  });
+
+  it('opens the bulk copy dialog listing the counts for each destination', async () => {
+    const user = userEvent.setup();
+    useInstalledSkillsUiStore.setState({ providerFilter: 'claude-code' });
+    render(<SkillsLibraryView />);
+
+    const button = copyToButton();
+    expect(button).not.toBeNull();
+    if (!button) return;
+    await user.click(button);
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/copy every claude code skill/i)).toBeInTheDocument();
+    expect(within(dialog).getByRole('checkbox', { name: /^cursor$/i })).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole('checkbox', { name: /^universal$/i }),
+    ).not.toBeInTheDocument();
   });
 });

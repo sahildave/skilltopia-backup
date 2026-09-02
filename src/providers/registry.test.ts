@@ -7,7 +7,9 @@ import {
   isUniversalProvider,
   PROVIDER_REGISTRY_SOURCE_URL,
   providerRegistry,
+  universalSkillsDirRelative,
 } from './index';
+import { createProbeContext, resolveGlobalSkillsDir } from './evaluate-detection';
 
 describe('provider registry source metadata', () => {
   it('records the canonical vercel-labs/skills URL, commit, and MIT attribution', () => {
@@ -87,5 +89,30 @@ describe('Universal classification parity', () => {
     expect(universal?.universal).toBe(true);
     expect(universal?.showInUniversalList).toBe(false);
     expect(getUniversalProviders(providerRegistry).some((p) => p.id === 'replit')).toBe(false);
+  });
+});
+
+describe('canonical Universal skills directory', () => {
+  const HOME = '/Users/mock';
+  /** Providers whose globalSkillsDir must resolve to the Universal root. */
+  const SHARING_PROVIDERS = ['cline', 'dexto', 'kimi-code-cli', 'loaf', 'warp', 'zed'];
+
+  it('derives the Universal root from the universal provider skillsDir', () => {
+    expect(universalSkillsDirRelative(providerRegistry)).toBe('.agents/skills');
+  });
+
+  it('agrees with every provider that shares the Universal tree', () => {
+    const universalDir = `${HOME}/${universalSkillsDirRelative(providerRegistry)}`;
+    for (const id of SHARING_PROVIDERS) {
+      const provider = getProviderById(providerRegistry, id);
+      if (!provider) throw new Error(`${id} missing from registry`);
+      expect(
+        resolveGlobalSkillsDir(
+          provider.globalSkillsDir,
+          createProbeContext({ home: HOME, cwd: HOME, platform: 'darwin', env: {} }),
+        ),
+        `${id} no longer resolves to the Universal skills dir`,
+      ).toBe(universalDir);
+    }
   });
 });

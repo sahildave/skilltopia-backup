@@ -1,3 +1,10 @@
+// Skill provenance is declared once in Rust (`provider_scan::types::SkillOrigin`)
+// and reaches TypeScript through `npm run rust:bindings`. Re-exported here so
+// shared UI keeps importing only from `@platform`.
+import type { SkillOrigin } from '@/lib/bindings';
+
+export type { SkillOrigin };
+
 export type InstallScope = 'global' | 'project';
 
 export interface SkillEntry {
@@ -70,6 +77,8 @@ export interface ScannedSkill {
   scope: InstallScope;
   /** Provider ids plus {@link UNIVERSAL_PROVIDER_ID} or {@link PROJECT_AGENTS_PROVIDER_ID}. */
   providerIds: string[];
+  /** Where this skill came from; a skill can have more than one origin. */
+  origins: SkillOrigin[];
   /** Source paths (all copies after dedupe). */
   paths: ScannedSkillPath[];
 }
@@ -102,7 +111,39 @@ export interface UninstallOptions {
   providerIds?: string[];
 }
 
-export type CopyProviderStatus = 'copied' | 'conflict' | 'failed';
+/** Outcome of projecting one skill into (or out of) one target. */
+export type SkillTargetStatus =
+  | 'written'
+  | 'already_present'
+  | 'conflict'
+  | 'removed'
+  | 'absent'
+  /** The destination is inside the read-only Claude plugin cache. */
+  | 'refused'
+  | 'failed';
+
+export interface SkillTargetResult {
+  providerId: string;
+  status: SkillTargetStatus;
+  message?: string;
+}
+
+export interface SkillTargetsResult {
+  results: SkillTargetResult[];
+  /**
+   * The folder a project-scoped install landed in. Absent for global installs.
+   * Nothing else can report it: the user picks it in a native dialog, and the
+   * home-root scan never walks it.
+   */
+  projectPath?: string;
+}
+
+export type CopyProviderStatus =
+  | 'copied'
+  | 'conflict'
+  /** The destination is inside the read-only Claude plugin cache. */
+  | 'refused'
+  | 'failed';
 
 export interface CopyProviderResult {
   providerId: string;
@@ -112,6 +153,45 @@ export interface CopyProviderResult {
 
 export interface CopySkillToProvidersResult {
   results: CopyProviderResult[];
+}
+
+export type BulkCopyStatus =
+  | 'copied'
+  /** Already present at the destination; left untouched. */
+  | 'skipped'
+  /** The destination is inside the read-only Claude plugin cache. */
+  | 'refused'
+  | 'failed';
+
+/** One skill that did not copy, named so the summary can say which. */
+export interface BulkCopyIssue {
+  skillName: string;
+  status: BulkCopyStatus;
+  message?: string;
+}
+
+export interface BulkCopyTargetResult {
+  providerId: string;
+  copied: number;
+  skipped: number;
+  refused: number;
+  failed: number;
+  /** Failures only; skipped and refused are counted, not enumerated. */
+  issues: BulkCopyIssue[];
+}
+
+export interface CopyProviderSkillsResult {
+  targets: BulkCopyTargetResult[];
+}
+
+/**
+ * One tick of a bulk copy: emitted after a skill has been handled for every
+ * selected target, so `completed` advances once per name, not per write.
+ */
+export interface BulkCopyProgress {
+  completed: number;
+  total: number;
+  skillName: string;
 }
 
 export interface PlatformPort {
@@ -137,8 +217,13 @@ export interface PlatformPort {
   revealPath(path: string): Promise<boolean>;
   listInstalled(): Promise<SkillEntry[]>;
   listProviders(): Promise<SkillProvider[]>;
-  install(skill: InstallableSkill, scope: InstallScope): Promise<void>;
-  uninstall(skillName: string, options: UninstallOptions): Promise<void>;
+  /**
+   * Install one skill. Returns independent per-target outcomes so the caller can
+   * report partial success; only a whole-operation failure rejects.
+   */
+  install(skill: InstallableSkill, scope: InstallScope): Promise<SkillTargetsResult>;
+  /** Uninstall one skill. Per-target outcomes as with {@link install}. */
+  uninstall(skillName: string, options: UninstallOptions): Promise<SkillTargetsResult>;
   /**
    * Symlink one installed skill into each selected provider skills folder.
    * Returns independent per-provider outcomes; does not rescan.
@@ -147,5 +232,19 @@ export interface PlatformPort {
     uninstallName: string,
     providerIds: string[],
   ): Promise<CopySkillToProvidersResult>;
+  /**
+   * Copy every named skill owned by `sourceProviderId` into each target
+   * provider. Sources come from that provider's own skills directory, so a
+   * Universal copy of the same name never stands in for it. Names already at a
+   * destination are left untouched and counted as skipped. Does not rescan.
+   * `onProgress` receives one tick per skill; a port with no backend to report
+   * from may never call it.
+   */
+  copyProviderSkills(
+    sourceProviderId: string,
+    skillNames: string[],
+    targetProviderIds: string[],
+    onProgress?: (progress: BulkCopyProgress) => void,
+  ): Promise<CopyProviderSkillsResult>;
   openExternal(url: string): Promise<void>;
 }

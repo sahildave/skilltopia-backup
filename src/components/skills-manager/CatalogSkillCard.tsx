@@ -1,164 +1,22 @@
 import type { SkillsShSkill } from '@/catalog/types';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  MorphingDialog,
-  MorphingDialogClose,
-  MorphingDialogContainer,
-  MorphingDialogContent,
-  MorphingDialogSubtitle,
-  MorphingDialogTitle,
-  MorphingDialogTrigger,
-} from '@/components/ui/morphing-dialog';
 import type { InstalledScanSnapshot, ScannedSkill } from '@/platform/types';
-import { useInstalledScanStore } from '@/store/installed-scan-store';
-import { platform } from '@platform';
-import { Check, ChevronDown, Info } from 'lucide-react';
-import { useState, type SyntheticEvent } from 'react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'sonner';
 import { isCatalogSkillInstalled } from './catalog-installed-match';
-import { isInstallCancelled, isPermissionError } from './library-errors';
+import {
+  CatalogExternalInfoButton,
+  CatalogInstalledMenu,
+  SkillInstallMenu,
+} from './CatalogSkillActions';
+import { SkillCardSubtitle, SkillCardTitle } from './skill-card-text';
 import { SkillDetailBody } from './SkillDetailDialog';
+import { SkillDetailDialogShell } from './SkillDetailDialogShell';
+import { SkillCategoryPills } from './SkillCategoryPills';
 import { SkillProviderBadges } from './SkillProviderBadges';
 import { SkillSurfaceCard } from './SkillSurfaceCard';
 import { SkillSurfaceListRow } from './SkillSurfaceListRow';
-import type { InstallScope } from './types';
-
-const MORPH_TRANSITION = { stiffness: 26.7, damping: 4.1, mass: 0.2 } as const;
-
-function stopCardActivation(event: SyntheticEvent) {
-  event.stopPropagation();
-}
-
-const DETAIL_CONTENT_CLASS =
-  'app-material-strong bg-background relative max-h-[85vh] w-full max-w-[calc(100%-2rem)] overflow-y-auto rounded-[min(var(--radius-4xl),24px)] border p-6 scrollbar-none shadow-lg sm:max-w-2xl';
 
 function formatInstalls(count: number): string {
   return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(count);
-}
-
-export function SkillInstallMenu({
-  skill,
-  installedKeys,
-}: {
-  skill: SkillsShSkill;
-  installedKeys: Set<string>;
-}) {
-  const { t } = useTranslation();
-  const [installing, setInstalling] = useState(false);
-  const copiesCommand = platform.copiesInstallCommand;
-  const isInstalled = isCatalogSkillInstalled(skill, installedKeys);
-
-  const handleInstall = async (scope: InstallScope) => {
-    setInstalling(true);
-    try {
-      await platform.install(
-        {
-          id: skill.id,
-          name: skill.name,
-          installUrl: skill.installUrl,
-        },
-        scope,
-      );
-      toast.success(
-        t(copiesCommand ? 'skills.install.copied' : 'skills.install.success', {
-          name: skill.name,
-        }),
-      );
-      if (platform.hasLocalLibrary) {
-        void useInstalledScanStore.getState().rescan();
-      }
-    } catch (error) {
-      if (isInstallCancelled(error)) return;
-      const message = error instanceof Error ? error.message : String(error);
-      if (isPermissionError(message)) {
-        toast.error(t('skills.install.permissionError'), {
-          description: message,
-        });
-      } else {
-        toast.error(
-          t(copiesCommand ? 'skills.install.copyFailed' : 'skills.install.failed', {
-            name: skill.name,
-          }),
-          { description: message },
-        );
-      }
-    } finally {
-      setInstalling(false);
-    }
-  };
-
-  if (isInstalled) {
-    return (
-      <Button
-        variant="outline"
-        size="sm"
-        className="text-teal-700 dark:text-teal-500 bg-transparent shadow-none border-none"
-        onClick={stopCardActivation}
-        onPointerDown={stopCardActivation}
-        onKeyDown={stopCardActivation}
-      >
-        <Check size={16} data-icon="inline-end" />
-        {t('skills.install.installed')}
-      </Button>
-    );
-  }
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={installing}
-          onClick={stopCardActivation}
-          onPointerDown={stopCardActivation}
-          onKeyDown={stopCardActivation}
-        >
-          {t(copiesCommand ? 'skills.install.copyAction' : 'skills.install.action')}
-          <ChevronDown size={16} data-icon="inline-end" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem disabled={installing} onSelect={() => void handleInstall('global')}>
-          {t(copiesCommand ? 'skills.install.copyGlobal' : 'skills.install.global')}
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled={installing} onSelect={() => void handleInstall('project')}>
-          {t(copiesCommand ? 'skills.install.copyProject' : 'skills.install.project')}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-function CatalogExternalInfoButton({ skill }: { skill: SkillsShSkill }) {
-  const { t } = useTranslation();
-
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="size-7"
-      onClick={(event) => {
-        stopCardActivation(event);
-        void platform.openExternal(skill.url);
-      }}
-      onPointerDown={stopCardActivation}
-      onKeyDown={stopCardActivation}
-      aria-label={t('skills.dashboard.openExternalLabel', {
-        name: skill.name,
-      })}
-    >
-      <Info data-icon="inline-start" />
-    </Button>
-  );
 }
 
 export function CatalogSkillCard({
@@ -173,60 +31,79 @@ export function CatalogSkillCard({
   scannedSkill: ScannedSkill | undefined;
 }) {
   const isInstalled = isCatalogSkillInstalled(skill, installedKeys);
-  const showProviderBadges = isInstalled && snapshot !== null && scannedSkill !== undefined;
+  const manageable = isInstalled && snapshot !== null && scannedSkill !== undefined;
 
   return (
-    <MorphingDialog transition={MORPH_TRANSITION}>
-      <MorphingDialogTrigger asChild>
-        <div>
-          <SkillSurfaceCard
-            title={<MorphingDialogTitle>{skill.name}</MorphingDialogTitle>}
-            subtitle={<MorphingDialogSubtitle>{skill.source}</MorphingDialogSubtitle>}
-            headerTrailing={
-              <Badge
-                variant="secondary"
-                size="sm"
-                className="font-semibold text-muted-foreground font-mono"
-              >
-                {formatInstalls(skill.installs)}
-              </Badge>
-            }
-            footerLeading={
-              showProviderBadges ? (
-                <SkillProviderBadges skill={scannedSkill} snapshot={snapshot} />
-              ) : (
-                <CatalogExternalInfoButton skill={skill} />
-              )
-            }
-            footerTrailing={<SkillInstallMenu skill={skill} installedKeys={installedKeys} />}
-          />
-        </div>
-      </MorphingDialogTrigger>
-      <MorphingDialogContainer>
-        <MorphingDialogContent className={DETAIL_CONTENT_CLASS}>
-          <SkillDetailBody skill={skill} />
-          <MorphingDialogClose />
-        </MorphingDialogContent>
-      </MorphingDialogContainer>
-    </MorphingDialog>
+    <SkillDetailDialogShell
+      trigger={
+        <SkillSurfaceCard
+          title={<SkillCardTitle>{skill.name}</SkillCardTitle>}
+          subtitle={
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <SkillCardSubtitle>{skill.source}</SkillCardSubtitle>
+              <SkillCategoryPills categories={skill.categories ?? []} />
+            </div>
+          }
+          headerTrailing={
+            <Badge
+              variant="secondary"
+              size="sm"
+              className="font-semibold text-muted-foreground font-mono"
+            >
+              {formatInstalls(skill.installs)}
+            </Badge>
+          }
+          footerLeading={
+            manageable ? (
+              <SkillProviderBadges skill={scannedSkill} snapshot={snapshot} />
+            ) : (
+              <CatalogExternalInfoButton skill={skill} />
+            )
+          }
+          footerTrailing={
+            manageable ? (
+              <CatalogInstalledMenu snapshot={snapshot} scannedSkill={scannedSkill} />
+            ) : (
+              <SkillInstallMenu skill={skill} installedKeys={installedKeys} />
+            )
+          }
+        />
+      }
+    >
+      <SkillDetailBody
+        skill={skill}
+        installedKeys={installedKeys}
+        snapshot={snapshot}
+        scannedSkill={scannedSkill}
+      />
+    </SkillDetailDialogShell>
   );
 }
 
 export function CatalogSkillListRow({
   skill,
   installedKeys,
+  snapshot,
+  scannedSkill,
 }: {
   skill: SkillsShSkill;
   installedKeys: Set<string>;
+  snapshot: InstalledScanSnapshot | null;
+  scannedSkill: ScannedSkill | undefined;
 }) {
+  const manageable =
+    isCatalogSkillInstalled(skill, installedKeys) &&
+    snapshot !== null &&
+    scannedSkill !== undefined;
+
   return (
-    <MorphingDialog transition={MORPH_TRANSITION}>
-      <MorphingDialogTrigger asChild>
+    <SkillDetailDialogShell
+      trigger={
         <div data-slot="catalog-skill-list-row">
           <SkillSurfaceListRow
             title={
               <div className="flex min-w-0 h-6.5 items-center gap-2">
-                <MorphingDialogTitle className="min-w-0 truncate">{skill.name}</MorphingDialogTitle>
+                <SkillCardTitle className="min-w-0">{skill.name}</SkillCardTitle>
                 <Badge
                   variant="secondary"
                   size="sm"
@@ -236,23 +113,32 @@ export function CatalogSkillListRow({
                 </Badge>
               </div>
             }
-            subtitle={<MorphingDialogSubtitle>{skill.source}</MorphingDialogSubtitle>}
+            subtitle={
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <SkillCardSubtitle>{skill.source}</SkillCardSubtitle>
+                <SkillCategoryPills categories={skill.categories ?? []} />
+              </div>
+            }
             trailing={
               <>
                 <CatalogExternalInfoButton skill={skill} />
-                <SkillInstallMenu skill={skill} installedKeys={installedKeys} />
+                {manageable ? (
+                  <CatalogInstalledMenu snapshot={snapshot} scannedSkill={scannedSkill} />
+                ) : (
+                  <SkillInstallMenu skill={skill} installedKeys={installedKeys} />
+                )}
               </>
             }
           />
         </div>
-      </MorphingDialogTrigger>
-
-      <MorphingDialogContainer>
-        <MorphingDialogContent className={DETAIL_CONTENT_CLASS}>
-          <SkillDetailBody skill={skill} />
-          <MorphingDialogClose />
-        </MorphingDialogContent>
-      </MorphingDialogContainer>
-    </MorphingDialog>
+      }
+    >
+      <SkillDetailBody
+        skill={skill}
+        installedKeys={installedKeys}
+        snapshot={snapshot}
+        scannedSkill={scannedSkill}
+      />
+    </SkillDetailDialogShell>
   );
 }

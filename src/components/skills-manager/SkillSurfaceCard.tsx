@@ -2,7 +2,7 @@ import { Card, CardFooter, CardHeader } from '@/components/ui/card';
 import type { ReactNode } from 'react';
 
 const SURFACE_CARD_CLASS =
-  'gap-4 overflow-visible has-[[role=menu]]:z-20 ring-1 ring-foreground/5 dark:ring-foreground/10 hover:scale-102 hover:bg-linear-to-t hover:from-secondary hover:via-background hover:to-background dark:hover:bg-linear-to-t dark:hover:from-primary/10 dark:hover:via-secondary/30 dark:hover:to-transparent transition-all';
+  'group/card relative gap-4 overflow-visible has-[[role=menu]]:z-20 ring-1 ring-foreground/5 dark:ring-foreground/10 hover:scale-102 hover:bg-linear-to-t hover:from-secondary hover:via-background hover:to-background dark:hover:bg-linear-to-t dark:hover:from-primary/10 dark:hover:via-secondary/30 dark:hover:to-transparent transition-all';
 
 export function SkillSurfaceCard({
   title,

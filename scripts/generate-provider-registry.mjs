@@ -42,8 +42,22 @@ function getBooleanLiteral(node) {
   return null;
 }
 
+/**
+ * Parameter aliases active while inlining a detection helper, e.g. upstream's
+ * `isKimchiInstalled(homeDir = home, pathExists = existsSync)` binds
+ * homeDir→home and pathExists→existsSync inside that helper's body.
+ * @type {Map<string, string>}
+ */
+let identAliases = new Map();
+
+/** Identifier text with any active helper-parameter alias applied. */
+function resolvedName(node) {
+  if (!ts.isIdentifier(node)) return null;
+  return identAliases.get(node.text) ?? node.text;
+}
+
 function isIdentifierNamed(node, name) {
-  return ts.isIdentifier(node) && node.text === name;
+  return resolvedName(node) === name;
 }
 
 function isPropertyAccess(node, objectName, name) {
@@ -63,6 +77,107 @@ function unwrapExpression(node) {
     node = node.expression;
   }
   return node;
+}
+
+/**
+ * Home-directory aliases declared at the top of upstream `agents.ts`, derived
+ * per parse rather than hardcoded — upstream adds one per new agent, and a
+ * hardcoded list made every such addition a build break.
+ *
+ * Recognised shapes:
+ *   const xHome = process.env.X_HOME?.trim() || join(home, '.x');  → envHome
+ *   const xHome = process.env.X?.trim();                           → env (optional)
+ *
+ * @type {Map<string, {env: string, defaultPath?: string, optional?: boolean}>}
+ */
+let homeAliases = new Map();
+
+/** `process.env.NAME?.trim()` → "NAME", else null. */
+function getTrimmedEnvRead(node) {
+  node = unwrapExpression(node);
+  if (!ts.isCallExpression(node)) return null;
+  const callee = unwrapExpression(node.expression);
+  if (!ts.isPropertyAccessExpression(callee) || callee.name.text !== 'trim') return null;
+  const target = unwrapExpression(callee.expression);
+  if (!ts.isPropertyAccessExpression(target)) return null;
+  if (!isPropertyAccess(target.expression, 'process', 'env')) return null;
+  return target.name.text;
+}
+
+/**
+ * Zero-arg detection helpers upstream factors out of `detectInstalled`, e.g.
+ *   export function isKimchiInstalled(homeDir = home, pathExists = existsSync) {
+ *     return pathExists(join(homeDir, '.config', 'kimchi'));
+ *   }
+ * Recorded so a `return isKimchiInstalled()` call site can be inlined.
+ * @type {Map<string, {expression: object, aliases: Map<string, string>}>}
+ */
+let detectionHelpers = new Map();
+
+function collectDetectionHelpers(sourceFile) {
+  const helpers = new Map();
+  for (const statement of sourceFile.statements) {
+    if (!ts.isFunctionDeclaration(statement) || !statement.name || !statement.body) continue;
+
+    // Every parameter must have a plain identifier default, so a zero-arg call
+    // is fully determined by the defaults.
+    const aliases = new Map();
+    let usable = true;
+    for (const param of statement.parameters) {
+      if (!ts.isIdentifier(param.name) || !param.initializer) {
+        usable = false;
+        break;
+      }
+      const init = unwrapExpression(param.initializer);
+      if (!ts.isIdentifier(init)) {
+        usable = false;
+        break;
+      }
+      aliases.set(param.name.text, init.text);
+    }
+    if (!usable) continue;
+
+    const statements = statement.body.statements;
+    if (statements.length !== 1) continue;
+    const only = statements[0];
+    if (!ts.isReturnStatement(only) || !only.expression) continue;
+
+    helpers.set(statement.name.text, { expression: only.expression, aliases });
+  }
+  return helpers;
+}
+
+function collectHomeAliases(sourceFile) {
+  const aliases = new Map();
+  for (const statement of sourceFile.statements) {
+    if (!ts.isVariableStatement(statement)) continue;
+    for (const decl of statement.declarationList.declarations) {
+      if (!ts.isIdentifier(decl.name) || !decl.initializer) continue;
+      const init = unwrapExpression(decl.initializer);
+
+      // const x = process.env.X?.trim() || join(home, '.x')
+      if (ts.isBinaryExpression(init) && init.operatorToken.kind === ts.SyntaxKind.BarBarToken) {
+        const env = getTrimmedEnvRead(init.left);
+        const fallback = unwrapExpression(init.right);
+        if (
+          env &&
+          ts.isCallExpression(fallback) &&
+          isIdentifierNamed(fallback.expression, 'join') &&
+          fallback.arguments.length === 2 &&
+          isIdentifierNamed(unwrapExpression(fallback.arguments[0]), 'home')
+        ) {
+          const defaultPath = getStringLiteral(unwrapExpression(fallback.arguments[1]));
+          if (defaultPath !== null) aliases.set(decl.name.text, { env, defaultPath });
+        }
+        continue;
+      }
+
+      // const x = process.env.X?.trim()
+      const env = getTrimmedEnvRead(init);
+      if (env) aliases.set(decl.name.text, { env, optional: true });
+    }
+  }
+  return aliases;
 }
 
 /**
@@ -92,74 +207,27 @@ function parsePathExpression(node, cwdAliases = new Set()) {
     ) {
       return { base: 'cwd', path };
     }
-    if (isIdentifierNamed(root, 'claudeHome')) {
-      return {
-        base: 'envHome',
-        env: 'CLAUDE_CONFIG_DIR',
-        defaultPath: '.claude',
-        ...(path ? { path } : {}),
-      };
-    }
-    if (isIdentifierNamed(root, 'codexHome')) {
-      return {
-        base: 'envHome',
-        env: 'CODEX_HOME',
-        defaultPath: '.codex',
-        ...(path ? { path } : {}),
-      };
-    }
-    if (isIdentifierNamed(root, 'vibeHome')) {
-      return {
-        base: 'envHome',
-        env: 'VIBE_HOME',
-        defaultPath: '.vibe',
-        ...(path ? { path } : {}),
-      };
-    }
-    if (isIdentifierNamed(root, 'hermesHome')) {
-      return {
-        base: 'envHome',
-        env: 'HERMES_HOME',
-        defaultPath: '.hermes',
-        ...(path ? { path } : {}),
-      };
-    }
-    if (isIdentifierNamed(root, 'autohandHome')) {
-      return {
-        base: 'envHome',
-        env: 'AUTOHAND_HOME',
-        defaultPath: '.autohand',
-        ...(path ? { path } : {}),
-      };
-    }
-    if (isIdentifierNamed(root, 'zedAppDataHome')) {
-      return { base: 'env', env: 'APPDATA', path, optional: true };
-    }
-    if (isIdentifierNamed(root, 'zedFlatpakConfigHome')) {
-      return {
-        base: 'env',
-        env: 'FLATPAK_XDG_CONFIG_HOME',
-        path,
-        optional: true,
-      };
+    if (ts.isIdentifier(root)) {
+      const alias = homeAliases.get(resolvedName(root));
+      if (alias) {
+        return alias.optional
+          ? { base: 'env', env: alias.env, path, optional: true }
+          : {
+              base: 'envHome',
+              env: alias.env,
+              defaultPath: alias.defaultPath,
+              ...(path ? { path } : {}),
+            };
+      }
     }
     return null;
   }
 
-  if (isIdentifierNamed(node, 'claudeHome')) {
-    return { base: 'envHome', env: 'CLAUDE_CONFIG_DIR', defaultPath: '.claude' };
-  }
-  if (isIdentifierNamed(node, 'codexHome')) {
-    return { base: 'envHome', env: 'CODEX_HOME', defaultPath: '.codex' };
-  }
-  if (isIdentifierNamed(node, 'vibeHome')) {
-    return { base: 'envHome', env: 'VIBE_HOME', defaultPath: '.vibe' };
-  }
-  if (isIdentifierNamed(node, 'hermesHome')) {
-    return { base: 'envHome', env: 'HERMES_HOME', defaultPath: '.hermes' };
-  }
-  if (isIdentifierNamed(node, 'autohandHome')) {
-    return { base: 'envHome', env: 'AUTOHAND_HOME', defaultPath: '.autohand' };
+  if (ts.isIdentifier(node)) {
+    const alias = homeAliases.get(resolvedName(node));
+    if (alias && !alias.optional) {
+      return { base: 'envHome', env: alias.env, defaultPath: alias.defaultPath };
+    }
   }
 
   const absolute = getStringLiteral(node);
@@ -293,6 +361,23 @@ function parseDetectionExpression(node, agentId, cwdAliases = new Set()) {
 
   const single = parseExistsSyncArg(node, cwdAliases);
   if (single) return { type: 'paths', match: 'any', paths: [single] };
+
+  if (
+    ts.isCallExpression(node) &&
+    node.arguments.length === 0 &&
+    ts.isIdentifier(node.expression)
+  ) {
+    const helper = detectionHelpers.get(node.expression.text);
+    if (helper) {
+      const outer = identAliases;
+      identAliases = helper.aliases;
+      try {
+        return parseDetectionExpression(helper.expression, agentId, cwdAliases);
+      } finally {
+        identAliases = outer;
+      }
+    }
+  }
 
   fail(`${agentId}: unsupported detectInstalled expression: ${node.getText()}`);
 }
@@ -433,6 +518,8 @@ export function parseAgentsSource(sourceText, fileName = 'agents.ts') {
     true,
     ts.ScriptKind.TS,
   );
+  homeAliases = collectHomeAliases(sourceFile);
+  detectionHelpers = collectDetectionHelpers(sourceFile);
   const agentsObject = findAgentsObject(sourceFile);
   if (!ts.isObjectLiteralExpression(agentsObject)) {
     fail('`agents` must be an object literal');

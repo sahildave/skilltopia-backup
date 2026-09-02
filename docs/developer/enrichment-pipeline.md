@@ -28,8 +28,9 @@ Order is try-next-on-failure; **rule-based extraction is always last** in code.
 Skip a provider by omitting its API key. Also configure Supabase and Qdrant
 (see [infisical.md](./infisical.md)).
 
-The local process also needs `VERCEL_OIDC_TOKEN` (e.g. from `.env.local` after
-`vercel link`) unless it is run through a linked Vercel environment.
+The local process also needs `VERCEL_OIDC_TOKEN_SECONDARY` from Infisical `dev`,
+minted against the ingest project. The app project's `VERCEL_OIDC_TOKEN` in
+`.env.local` is not used by batch work.
 
 ## Modes
 

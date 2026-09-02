@@ -9,6 +9,25 @@ export function isPermissionError(message: string): boolean {
   );
 }
 
+/** Matches the stable code Rust returns when no working Git executable resolves. */
+export function isGitRuntimeMissing(message: string): boolean {
+  return message.includes('git_runtime_not_found');
+}
+
+/**
+ * Matches the code Rust returns when a destination resolves inside the
+ * read-only Claude plugin cache. Checked before `isPermissionError`, whose
+ * "not allowed" heuristic would otherwise swallow it.
+ */
+export function isPluginManaged(message: string): boolean {
+  return message.includes('plugin_managed_read_only');
+}
+
 export function isInstallCancelled(error: unknown): boolean {
   return error instanceof Error && error.name === 'InstallCancelledError';
+}
+
+/** A skill published from a website, which acquisition cannot clone. */
+export function isUnsupportedSkillSource(error: unknown): boolean {
+  return error instanceof Error && error.name === 'UnsupportedSkillSourceError';
 }

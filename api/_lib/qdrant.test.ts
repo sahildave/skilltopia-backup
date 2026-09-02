@@ -55,6 +55,7 @@ describe('Qdrant helpers', () => {
     await upsertSkillEmbedding(
       'owner/skill',
       'Goal: build accessible React interfaces. Requires React and TypeScript.',
+      ['web-frontend-development', 'coding-agents-ides'],
       config,
     );
 
@@ -69,7 +70,10 @@ describe('Qdrant helpers', () => {
     expect(JSON.parse(String(fetchMock.mock.calls[2]?.[1]?.body))).toMatchObject({
       points: [
         {
-          payload: { skill_id: 'owner/skill' },
+          payload: {
+            skill_id: 'owner/skill',
+            categories: ['web-frontend-development', 'coding-agents-ides'],
+          },
           vector: {
             dense: {
               text: 'Goal: build accessible React interfaces. Requires React and TypeScript.',
@@ -145,7 +149,7 @@ describe('Qdrant helpers', () => {
         }),
       );
 
-    await expect(searchSkillsByText('accessible forms', 5, config)).resolves.toEqual([
+    await expect(searchSkillsByText('accessible forms', 5, [], config)).resolves.toEqual([
       { skillId: 'owner/a', score: 0.88 },
     ]);
 
@@ -154,6 +158,35 @@ describe('Qdrant helpers', () => {
       using: 'dense',
       limit: 5,
       with_payload: true,
+    });
+  });
+
+  it('pre-filters the text search by the requested categories', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        response({
+          result: { config: { params: { vectors: { dense: { size: 384 } } } } },
+        }),
+      )
+      .mockResolvedValueOnce(
+        response({
+          result: {
+            points: [{ score: 0.88, payload: { skill_id: 'owner/a' } }],
+          },
+        }),
+      );
+
+    await expect(
+      searchSkillsByText('deploy pipeline', 5, ['devops-cloud', 'cli-utilities'], config),
+    ).resolves.toEqual([{ skillId: 'owner/a', score: 0.88 }]);
+
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
+      query: { text: 'deploy pipeline', model: config.embeddingModel },
+      using: 'dense',
+      limit: 5,
+      with_payload: true,
+      filter: { must: [{ key: 'categories', match: { any: ['devops-cloud', 'cli-utilities'] } }] },
     });
   });
 

@@ -6,7 +6,11 @@
 
 mod bindings;
 mod commands;
+mod git_runtime;
 mod provider_scan;
+/// Seam C: acquisition into a content-addressed cache, consumed by
+/// `provider_scan::install`.
+mod skill_acquire;
 mod types;
 mod utils;
 
@@ -102,7 +106,6 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_os::init())
-        .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             log::info!("Application starting up");
             log::debug!(

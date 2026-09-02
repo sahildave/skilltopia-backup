@@ -1,4 +1,10 @@
-import type { CatalogPort, SkillAuditsData, SkillDetailData, SkillsShSkill } from './types';
+import type {
+  CatalogPort,
+  CatalogSearchResult,
+  SkillAuditsData,
+  SkillDetailData,
+  SkillsShSkill,
+} from './types';
 
 async function readJson<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -19,15 +25,20 @@ export const catalog: CatalogPort = {
     return json.data;
   },
 
-  async search(query, limit) {
+  async search(query, limit, categories) {
     const params = new URLSearchParams({
       q: query,
       limit: String(limit),
     });
-    const json = await readJson<{ data: SkillsShSkill[] }>(
+    if (categories.length) params.set('category', categories.join(','));
+    const json = await readJson<{ data: SkillsShSkill[]; semanticUnavailable?: boolean }>(
       await fetch(`/api/skills/search?${params}`),
     );
-    return json.data;
+    const result: CatalogSearchResult = {
+      skills: json.data,
+      semanticUnavailable: json.semanticUnavailable === true,
+    };
+    return result;
   },
 
   async fetchDetail(skillId) {

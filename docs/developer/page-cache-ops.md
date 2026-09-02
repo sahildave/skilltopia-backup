@@ -11,10 +11,10 @@ Do these before local scrape or GHA will succeed.
 ### 1. Supabase migration
 
 Apply all files under `supabase/migrations/` to the **dev** (and later **prod**)
-project, including `20260720160027_skill_page_cache.sql` and
-`20260721030000_skill_source_column.sql`:
+project, including `20260720160027_skill_page_cache.sql`,
+`20260721030000_skill_source_column.sql` and `20260821120000_skill_delisted.sql`:
 
-- `skill_metadata`: `page_snapshot`, `audits`, `audits_fetched_at`, `page_scraped_at`, `source`
+- `skill_metadata`: `page_snapshot`, `audits`, `audits_fetched_at`, `page_scraped_at`, `source`, `delisted_at`
 - table `skill_install_snapshots` (`skill_id`, `date`, `installs`)
 - `source` holds external non-GitHub origins; host-like values previously in
   `repository` are moved there by the migration
@@ -47,7 +47,7 @@ skills.sh budget. All of those jobs use the **secondary** token.
    **OIDC Federation**.
 2. Mint a short-lived OIDC token for **that** project and store it in Infisical
    **`dev`** as **`VERCEL_OIDC_TOKEN_SECONDARY`** (preferred). Optional fallback:
-   `VERCEL_OIDC_TOKEN` in Infisical/`env` if secondary is unset.
+   Batch reads `VERCEL_OIDC_TOKEN_SECONDARY` only — there is no fallback.
 3. Do **not** store long-lived skills.sh passwords; refresh the token when it
    expires.
 
@@ -63,9 +63,8 @@ On the GitHub repo, set secrets used by `.github/workflows/ingest.yml`
 | `SUPABASE_URL`                | Same Supabase project the app Backend uses                |
 | `SUPABASE_SERVICE_ROLE_KEY`   | Service role / secret key                                 |
 | `VERCEL_OIDC_TOKEN_SECONDARY` | Preferred: token minted for the **ingest** Vercel project |
-| `VERCEL_OIDC_TOKEN`           | Optional fallback when secondary is unset                 |
 
-Until secondary (or fallback) OIDC plus Supabase secrets are set, the daily cron
+Until secondary OIDC plus Supabase secrets are set, the daily cron
 and `workflow_dispatch` sweep will fail. Local scripts work with Infisical
 `VERCEL_OIDC_TOKEN_SECONDARY` (or `VERCEL_OIDC_TOKEN` fallback).
 
@@ -82,8 +81,8 @@ LLM keys are **not** required for scrape / list / rotate.
 
 All `*:local` / `ingest:daily` / `scrape:sweep` entries use
 `infisical run --env=dev`. Prefer **`VERCEL_OIDC_TOKEN_SECONDARY`** in Infisical
-`dev` (ingest/partner project). If unset, batch falls back to
-`VERCEL_OIDC_TOKEN`.
+`dev` (ingest/partner project). If unset, batch requests go out unauthenticated
+and skills.sh answers `401`.
 
 Progress logs → stderr; JSON summary → stdout.
 
@@ -113,6 +112,48 @@ npm run ingest:daily
 npm run list-snapshots:local
 npm run rotate:local
 ```
+
+`npm run ingest:daily` is exactly what the scheduled workflow runs
+(`node --import tsx/esm scripts/ingest-daily.mjs`). The only difference is
+where the OIDC token comes from: CI mints a fresh one per run, locally you
+supply one from Infisical `dev`. Everything else — same script, same Supabase,
+same upstream — so a local run writes to the **same** tables as the cron.
+
+#### The local token is minted for you
+
+Local batch scripts route through `scripts/with-ingest-oidc.mjs`, which mints a
+fresh ingest OIDC token and passes it to the real script as
+`VERCEL_OIDC_TOKEN_SECONDARY`. Same approach as CI, same pinned CLI version, so
+local and CI cannot drift apart. Nothing stores the 12-hour token.
+
+The one prerequisite is **`VERCEL_TOKEN`** — the _ingest account's_ Vercel API
+token — in Infisical `dev`:
+
+```bash
+infisical secrets set VERCEL_TOKEN=<ingest account token> --env=dev
+```
+
+Do **not** store `VERCEL_OIDC_TOKEN_SECONDARY` in Infisical. A 12-hour token in
+a secrets store is stale by definition and produces a confusing 401 later.
+
+#### Reading a token instead of guessing
+
+To check which account issued a token and when it dies, decode the payload:
+
+```bash
+node scripts/with-ingest-oidc.mjs node -e 'const p=process.env.VERCEL_OIDC_TOKEN_SECONDARY.split(".")[1];console.log(JSON.parse(Buffer.from(p,"base64url")))'
+```
+
+`iss` must end in the **ingest** account. If it names the app account, batch
+work is spending the user-facing 600/min budget.
+
+#### When a local run fails, it is usually one of three things
+
+| Symptom                                   | Cause                                                                                    |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `skills.sh request failed: 401`           | Stale or app-scoped `VERCEL_OIDC_TOKEN_SECONDARY`. Re-mint as above.                     |
+| `Supabase repository error: fetch failed` | Supabase project **paused** — the subdomain stops resolving (NXDOMAIN). Resume it.       |
+| `skills.sh request failed: 429`/`5xx`     | Upstream throttle or blip. `fetchJson` retries twice; raise `THROTTLE_MS` if persistent. |
 
 ### Full corpus sweep (after ~100 looks good)
 
@@ -150,8 +191,8 @@ Pipeline docs: [list-snapshots-pipeline.md](./list-snapshots-pipeline.md),
 
 1. Keep GHA **Ingest** enabled (`cron: 15 6 * * *` UTC = list + rotation).
 2. Refresh **`VERCEL_OIDC_TOKEN_SECONDARY`** (and optional
-   `VERCEL_OIDC_TOKEN` fallback) in GitHub / Infisical when the ingest token
-   expires (app deploy does not need these secrets).
+   in Infisical when the ingest token expires. GitHub Actions mints its own
+   per run from `VERCEL_TOKEN`; the app deploy needs neither.
 3. Re-run a sweep only when growing the corpus or after a large schema/parser
    change.
 4. App users never run these scripts — they read Supabase via

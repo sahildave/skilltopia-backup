@@ -3,14 +3,34 @@ import { SkillsContent, SkillsSidebar, type SkillsNavId } from '@/components/ski
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useTheme } from '@/hooks/use-theme';
 import { cn } from '@/lib/utils';
+import {
+  connectUpdateStore,
+  createMockUpdateSource,
+  createUpdateController,
+  StoreUpdateDialog,
+} from '@/platform/updates';
 import { useUIStore } from '@/store/ui-store';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
 
 const LAYOUT = {
   leftSidebar: { default: 16, min: 15, max: 18 },
   main: { min: 30 },
 } as const;
+
+/**
+ * Only mounted in the `mock` target. Connects a self-driving update source so
+ * the sidebar's update menu and the full available → downloading →
+ * readyToRestart flow are walkable in the browser via `npm run dev:mock`.
+ */
+function MockUpdates() {
+  useEffect(() => {
+    const controller = createUpdateController({ source: createMockUpdateSource() });
+    return connectUpdateStore(controller);
+  }, []);
+
+  return <StoreUpdateDialog />;
+}
 
 /**
  * Thin browser shell — skills UI without desktop chrome
@@ -45,6 +65,8 @@ export function WebShell() {
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
+
+      {__APP_TARGET__ === 'mock' ? <MockUpdates /> : null}
 
       <Toaster
         position="bottom-right"

@@ -2,20 +2,27 @@
  * Simple logging utility for the frontend
  *
  * In development: logs to browser console
- * In production: can optionally send to Tauri backend for system logging
+ * Desktop entry points attach a sink that forwards logs to Tauri.
  */
 
-type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error';
+export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error';
 
-interface LogEntry {
+export interface LogEntry {
   level: LogLevel;
   message: string;
   timestamp: Date;
   context?: Record<string, unknown>;
 }
 
+type LogSink = (entry: LogEntry) => void;
+
 class Logger {
   private isDevelopment = import.meta.env.DEV;
+  private sink: LogSink | null = null;
+
+  setSink(sink: LogSink | null): void {
+    this.sink = sink;
+  }
 
   /**
    * Log a trace message (most verbose)
@@ -65,13 +72,7 @@ class Logger {
       this.logToConsole(entry);
     }
 
-    // In production, you could optionally send logs to Tauri backend
-    // This is commented out to keep it simple, but here's how you might do it:
-    /*
-    if (!this.isDevelopment && (level === 'warn' || level === 'error')) {
-      this.logToBackend(entry)
-    }
-    */
+    this.sink?.(entry);
   }
 
   private logToConsole(entry: LogEntry): void {
@@ -96,22 +97,6 @@ class Logger {
         break;
     }
   }
-
-  /*
-  // Optional: Send logs to Tauri backend for system logging
-  private async logToBackend(entry: LogEntry): Promise<void> {
-    try {
-      await invoke('log_from_frontend', {
-        level: entry.level,
-        message: entry.message,
-        timestamp: entry.timestamp.toISOString(),
-        context: entry.context,
-      })
-    } catch (error) {
-      console.warn('Failed to send log to backend:', error)
-    }
-  }
-  */
 }
 
 // Export a singleton logger instance

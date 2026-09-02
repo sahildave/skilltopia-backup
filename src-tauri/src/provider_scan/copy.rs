@@ -1,4 +1,10 @@
 //! Copy an installed skill into provider skill folders via directory symlinks.
+//!
+//! A fan-out of a bundle the user already has, so it refuses to delete a
+//! *different* real directory at the destination — that is someone else's
+//! content, not a stale projection of ours. Every other prior entry, including
+//! a dangling link we wrote, is repaired rather than reported as a conflict.
+//! The writes themselves belong to `projection`.
 
 use crate::utils::platform::normalize_path_for_serialization;
 use serde::{Deserialize, Serialize};
@@ -8,6 +14,11 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use super::paths::{load_registry, resolve_global_skills_dir, universal_skills_dir};
+use super::plugin::active_plugin_skill_dirs;
+use super::plugin_guard::PluginGuard;
+use super::projection::{
+    project_skill, ForeignDirPolicy, ProjectionMode, ProjectionStatus, ProjectionTarget,
+};
 use super::scan::{classify_skill_entry, validate_skill_dir_name, ScanContext};
 use super::types::UNIVERSAL_PROVIDER_ID;
 
@@ -16,6 +27,8 @@ use super::types::UNIVERSAL_PROVIDER_ID;
 pub enum CopyProviderStatus {
     Copied,
     Conflict,
+    /// The destination is inside the read-only Claude plugin cache.
+    Refused,
     Failed,
 }
 
@@ -40,6 +53,10 @@ enum SourceKind {
     Universal,
     RealDir,
     SymlinkTarget,
+    /// Shipped by a plugin. Last resort: a copy the user manages themselves is
+    /// always the better source, but a plugin skill is still a legitimate one —
+    /// reading the cache is allowed, only writing to it is not.
+    Plugin,
 }
 
 #[derive(Debug, Clone)]
@@ -64,6 +81,7 @@ pub fn copy_skill_to_providers(
     }
 
     let source = resolve_copy_source(uninstall_name, ctx)?;
+    let guard = PluginGuard::for_context(ctx);
     let mut results = Vec::with_capacity(provider_ids.len());
     let mut seen = BTreeSet::new();
 
@@ -76,6 +94,7 @@ pub fn copy_skill_to_providers(
             provider_id,
             &source,
             ctx,
+            &guard,
         ));
     }
 
@@ -96,7 +115,10 @@ fn resolve_copy_source(uninstall_name: &str, ctx: &ScanContext) -> Result<PathBu
     if let Some(path) = first_unique_root(&candidates, SourceKind::RealDir)? {
         return Ok(path);
     }
-    first_unique_root(&candidates, SourceKind::SymlinkTarget)?.ok_or_else(|| {
+    if let Some(path) = first_unique_root(&candidates, SourceKind::SymlinkTarget)? {
+        return Ok(path);
+    }
+    first_unique_root(&candidates, SourceKind::Plugin)?.ok_or_else(|| {
         format!(
             "Skill '{uninstall_name}' was not found in Universal or any provider skills directory"
         )
@@ -123,6 +145,7 @@ fn first_unique_root(
                 SourceKind::Universal => "Universal",
                 SourceKind::RealDir => "real directory",
                 SourceKind::SymlinkTarget => "symlink target",
+                SourceKind::Plugin => "plugin",
             }
         ));
     }
@@ -135,10 +158,9 @@ fn collect_source_candidates(
     ctx: &ScanContext,
 ) -> Result<Vec<SourceCandidate>, String> {
     let mut candidates = Vec::new();
-    let universal_dir = universal_skills_dir(&ctx.probe);
-    push_candidate(&mut candidates, &universal_dir.join(uninstall_name), true);
-
     let registry = load_registry()?;
+    let universal_dir = universal_skills_dir(&registry, &ctx.probe)?;
+    push_candidate(&mut candidates, &universal_dir.join(uninstall_name), true);
     for provider in &registry.providers {
         let Some(skills_dir) = resolve_global_skills_dir(&provider.global_skills_dir, &ctx.probe)
         else {
@@ -148,6 +170,21 @@ fn collect_source_candidates(
             continue;
         }
         push_candidate(&mut candidates, &skills_dir.join(uninstall_name), false);
+    }
+
+    // Copying *from* a plugin is the supported way to bring a plugin skill into
+    // a provider directory you own, so plugin skills have to be findable here.
+    for dir in active_plugin_skill_dirs(&ctx.probe.home) {
+        if dir.file_name().and_then(|name| name.to_str()) != Some(uninstall_name) {
+            continue;
+        }
+        if !dir.join("SKILL.md").is_file() {
+            continue;
+        }
+        candidates.push(SourceCandidate {
+            kind: SourceKind::Plugin,
+            content_root: dir,
+        });
     }
 
     Ok(candidates)
@@ -180,6 +217,7 @@ fn copy_to_one_provider(
     provider_id: &str,
     source: &Path,
     ctx: &ScanContext,
+    guard: &PluginGuard,
 ) -> CopyProviderResult {
     if provider_id == UNIVERSAL_PROVIDER_ID {
         return CopyProviderResult {
@@ -207,78 +245,33 @@ fn copy_to_one_provider(
         }
     };
 
-    if let Err(message) = fs::create_dir_all(&skills_dir) {
-        return CopyProviderResult {
-            provider_id: provider_id.to_string(),
-            status: CopyProviderStatus::Failed,
-            message: Some(format!(
-                "Failed to create skills directory '{}': {message}",
-                normalize_path_for_serialization(&skills_dir)
-            )),
-        };
-    }
+    let outcome = project_skill(
+        source,
+        uninstall_name,
+        &[ProjectionTarget {
+            id: provider_id.to_string(),
+            root: skills_dir,
+        }],
+        ProjectionMode::Symlink,
+        ForeignDirPolicy::Refuse,
+        None,
+        guard,
+    )
+    .remove(0);
 
-    let target = skills_dir.join(uninstall_name);
-    if fs::symlink_metadata(&target).is_ok() {
-        return CopyProviderResult {
-            provider_id: provider_id.to_string(),
-            status: CopyProviderStatus::Conflict,
-            message: Some(format!(
-                "Path already exists: {}",
-                normalize_path_for_serialization(&target)
-            )),
-        };
-    }
-
-    match create_dir_symlink(source, &target) {
-        Ok(()) => CopyProviderResult {
-            provider_id: provider_id.to_string(),
-            status: CopyProviderStatus::Copied,
-            message: None,
+    CopyProviderResult {
+        provider_id: provider_id.to_string(),
+        status: match outcome.status {
+            // A provider sharing the source's own skills root already has it.
+            ProjectionStatus::Written | ProjectionStatus::AlreadyPresent => {
+                CopyProviderStatus::Copied
+            }
+            ProjectionStatus::Conflict => CopyProviderStatus::Conflict,
+            // A destination inside the plugin cache. Refused, not attempted.
+            ProjectionStatus::Refused => CopyProviderStatus::Refused,
+            _ => CopyProviderStatus::Failed,
         },
-        Err(message) => CopyProviderResult {
-            provider_id: provider_id.to_string(),
-            status: CopyProviderStatus::Failed,
-            message: Some(message),
-        },
-    }
-}
-
-fn create_dir_symlink(source: &Path, target: &Path) -> Result<(), String> {
-    let absolute_source = if source.is_absolute() {
-        source.to_path_buf()
-    } else {
-        std::env::current_dir()
-            .map_err(|e| format!("Failed to resolve current directory: {e}"))?
-            .join(source)
-    };
-
-    #[cfg(unix)]
-    {
-        std::os::unix::fs::symlink(&absolute_source, target).map_err(|e| {
-            format!(
-                "Failed to create symlink '{}' → '{}': {e}",
-                normalize_path_for_serialization(target),
-                normalize_path_for_serialization(&absolute_source)
-            )
-        })
-    }
-
-    #[cfg(windows)]
-    {
-        std::os::windows::fs::symlink_dir(&absolute_source, target).map_err(|e| {
-            format!(
-                "Failed to create symlink '{}' → '{}': {e}",
-                normalize_path_for_serialization(target),
-                normalize_path_for_serialization(&absolute_source)
-            )
-        })
-    }
-
-    #[cfg(not(any(unix, windows)))]
-    {
-        let _ = (absolute_source, target);
-        Err("Directory symlinks are not supported on this platform".into())
+        message: outcome.message,
     }
 }
 
@@ -486,6 +479,32 @@ mod tests {
         assert_eq!(
             fs::read_to_string(claude_skills.join("find-skills/SKILL.md")).unwrap(),
             before
+        );
+    }
+
+    /// The other half of the conflict rule: a projection we wrote ourselves and
+    /// whose target has since gone is ours to repair, not a conflict to report.
+    #[test]
+    #[cfg(unix)]
+    fn repairs_a_dangling_link_rather_than_reporting_a_conflict() {
+        use std::os::unix::fs::symlink;
+
+        let home = temp_home("dangling");
+        let universal = home.join(".agents/skills");
+        write_skill(&universal, "find-skills", "find-skills", "Find skills");
+        let claude_skills = home.join(".claude/skills");
+        fs::create_dir_all(&claude_skills).unwrap();
+        fs::create_dir_all(home.join(".claude")).unwrap();
+        symlink(home.join("gone"), claude_skills.join("find-skills")).unwrap();
+
+        let result =
+            copy_skill_to_providers("find-skills", &["claude-code".into()], &scan_ctx(&home))
+                .unwrap();
+
+        assert_eq!(result.results[0].status, CopyProviderStatus::Copied);
+        assert_eq!(
+            fs::read_link(claude_skills.join("find-skills")).unwrap(),
+            universal.join("find-skills")
         );
     }
 

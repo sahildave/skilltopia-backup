@@ -14,6 +14,10 @@ env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
 
+# Only the release upload job below may write repository contents.
+permissions:
+  contents: read
+
 jobs:
   publish-tauri:
     permissions:
@@ -63,24 +67,15 @@ jobs:
         run: |
           node --input-type=module -e "import fs from 'node:fs'; import { validateUpdaterReleaseConfig } from './scripts/release-config.mjs'; const config = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8')); const errors = validateUpdaterReleaseConfig(config); if (errors.length > 0) { console.error('Updater release configuration is not ready:'); for (const error of errors) console.error('- ' + error); process.exit(1); }"
 
-      - name: Validate updater signing secrets
-        shell: bash
+      - name: Verify updater signing key matches committed public key
         env:
-          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: |
-          if [ -z "$TAURI_PRIVATE_KEY" ]; then
-            echo "TAURI_PRIVATE_KEY is required for updater signatures."
-            exit 1
-          fi
-
-          if [ -z "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" ]; then
-            echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD is required for updater signatures."
-            exit 1
-          fi
+        run: node scripts/verify-updater-key.mjs
 
       - name: Build and release
-        uses: tauri-apps/tauri-action@dev
+        # Pinned to the reviewed v1.0.0 commit: this action receives the signing key.
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}

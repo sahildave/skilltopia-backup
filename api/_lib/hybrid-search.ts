@@ -1,4 +1,5 @@
 import type { SimilarSkill } from './qdrant.js';
+import type { SkillCategory } from './taxonomy.js';
 
 export type SearchResult = {
   id: string;
@@ -15,6 +16,7 @@ export type SkillSearchMetadata = {
   source?: string;
   installCount?: number;
   sourceUrl?: string;
+  categories?: SkillCategory[];
 };
 
 const INSTALL_BOOST_SCALE = 0.05;
@@ -45,6 +47,7 @@ export function mergeHybridSearchResults(
   semanticResults: SimilarSkill[],
   metadata: SkillSearchMetadata[],
   limit: number,
+  categories: readonly SkillCategory[] = [],
 ): EnrichedSearchResult[] {
   const metadataById = new Map(metadata.map((item) => [item.skillId, item]));
   const keywordIds = new Set(keywordResults.map((result) => result.id));
@@ -53,13 +56,27 @@ export function mergeHybridSearchResults(
       const difference = rankKeywordResult(right, query) - rankKeywordResult(left, query);
       return difference || keywordResults.indexOf(left) - keywordResults.indexOf(right);
     })
-    .map((result) => ({ ...result }));
+    .map((result) => ({
+      ...result,
+      categories: metadataById.get(result.id)?.categories ?? [],
+    }))
+    .filter(
+      (result) =>
+        categories.length === 0 ||
+        result.categories.some((category) => categories.includes(category)),
+    );
 
   const semantic = semanticResults
     .filter((result) => !keywordIds.has(result.skillId))
     .flatMap((result) => {
       const item = metadataById.get(result.skillId);
       if (!item) return [];
+      if (
+        categories.length > 0 &&
+        !item.categories?.some((category) => categories.includes(category))
+      ) {
+        return [];
+      }
       return [
         {
           id: item.skillId,
@@ -70,6 +87,7 @@ export function mergeHybridSearchResults(
           sourceType: 'github',
           installUrl: null,
           url: item.sourceUrl ?? `https://skills.sh/skills/${item.skillId}`,
+          categories: item.categories ?? [],
           semanticScore: rankSemanticResult(result, item.installCount ?? 0),
         },
       ];

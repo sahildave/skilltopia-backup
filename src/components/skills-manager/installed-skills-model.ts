@@ -2,6 +2,7 @@ import type {
   InstalledScanSnapshot,
   ScannedProvider,
   ScannedSkill,
+  ScannedSkillPath,
   ScanWarning,
   ScanWarningCode,
   UninstallAgentScope,
@@ -58,11 +59,26 @@ export type SkillProviderBadge =
   | { kind: 'universal' }
   | { kind: 'project' }
   | { kind: 'location'; label: string }
+  /** Shipped by a Claude plugin, which owns it — read-only to this app. */
+  | { kind: 'plugin'; plugin: string; marketplace: string; version: string }
   | { kind: 'providers'; count: number; names: string[] };
 
 export interface CopyProviderOption {
   id: string;
   name: string;
+}
+
+/**
+ * Case-insensitive name filter behind the copy dialogs' search box. It only
+ * narrows what is listed; callers keep selections for hidden rows.
+ */
+export function filterProviderOptions<T extends Pick<CopyProviderOption, 'name'>>(
+  options: T[],
+  query: string,
+): T[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return options;
+  return options.filter((option) => option.name.toLowerCase().includes(needle));
 }
 
 export interface CopyProviderDialogModel {
@@ -157,18 +173,24 @@ function projectLocationBadges(
   return badges;
 }
 
+function pluginBadges(skill: ScannedSkill): SkillProviderBadge[] {
+  return pluginOriginsForSkill(skill).map((origin) => ({ kind: 'plugin' as const, ...origin }));
+}
+
 /**
  * Card/list badges:
  * - Global: optional `Universal`, plus aggregated `n Providers`
  * - Project: `Project` for `.agents/skills`, plus short folder labels (`.claude`) —
  *   never Universal or global provider counts
+ * - Either scope: one badge per plugin that ships the skill, last, so the
+ *   origin the user cannot change reads as an annotation on the rest.
  */
 export function providerBadgesForSkill(
   skill: ScannedSkill,
   snapshot: InstalledScanSnapshot,
 ): SkillProviderBadge[] {
   if (skill.scope === 'project') {
-    return projectLocationBadges(skill, snapshot);
+    return [...projectLocationBadges(skill, snapshot), ...pluginBadges(skill)];
   }
 
   const badges: SkillProviderBadge[] = [];
@@ -179,7 +201,43 @@ export function providerBadgesForSkill(
   if (names.length > 0) {
     badges.push({ kind: 'providers', count: names.length, names });
   }
-  return badges;
+  return [...badges, ...pluginBadges(skill)];
+}
+
+/** Plugin origins, deduped by plugin + marketplace and sorted for stable badges. */
+export function pluginOriginsForSkill(
+  skill: ScannedSkill,
+): { plugin: string; marketplace: string; version: string }[] {
+  const byKey = new Map<string, { plugin: string; marketplace: string; version: string }>();
+  for (const origin of skill.origins) {
+    if (origin.kind !== 'claudePlugin') continue;
+    const key = `${origin.plugin}@${origin.marketplace}`;
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        plugin: origin.plugin,
+        marketplace: origin.marketplace,
+        version: origin.version,
+      });
+    }
+  }
+  return [...byKey.values()].sort((a, b) => a.plugin.localeCompare(b.plugin));
+}
+
+/**
+ * True when a plugin is the *only* reason this skill is here. The plugin cache
+ * is read-only, so there is nothing for an uninstall to remove — Rust refuses
+ * it, and the UI should not offer it. A skill that also sits in a directory the
+ * user owns is still uninstallable from there.
+ */
+export function isPluginManagedSkill(skill: ScannedSkill): boolean {
+  return (
+    skill.origins.length > 0 && skill.origins.every((origin) => origin.kind === 'claudePlugin')
+  );
+}
+
+/** `<plugin>@<marketplace>`, or the bare plugin name when unknown. */
+export function pluginOriginLabel(origin: { plugin: string; marketplace: string }): string {
+  return origin.marketplace ? `${origin.plugin}@${origin.marketplace}` : origin.plugin;
 }
 
 function toCopyOption(item: ProviderSidebarItem): CopyProviderOption {
@@ -258,6 +316,127 @@ export function buildCopyProviderDialogModel(
   };
 }
 
+export interface BulkCopyTargetOption extends CopyProviderOption {
+  /** Source skills this target does not have yet. */
+  toCopy: number;
+  /** Source skills whose name is already present at this target. */
+  alreadyThere: number;
+}
+
+export interface BulkCopyDialogModel {
+  /** Folder names to copy, in the order the dialog reports them. */
+  skillNames: string[];
+  /** Plugin-managed skills left out of the batch, named so the dialog can say which. */
+  pluginSkippedNames: string[];
+  targets: BulkCopyTargetOption[];
+}
+
+export interface BulkCopySourceSkills {
+  copyable: ScannedSkill[];
+  pluginSkippedNames: string[];
+}
+
+/**
+ * Source set for a bulk copy: everything the provider can invoke — its own
+ * folders, entries symlinked in, and (for universal-registry agents) Universal
+ * skills — the same set the sidebar badge counts. Plugin-shipped skills are
+ * held out and reported by name instead: their bundles live in the read-only
+ * plugin cache and are the plugin manager's to distribute, not ours.
+ * A provider whose skills dir IS the Universal tree is not a source at all.
+ */
+export function bulkCopySourceSkillsForProvider(
+  snapshot: InstalledScanSnapshot,
+  providerId: string,
+): BulkCopySourceSkills {
+  const skillsDir = snapshot.providers.find((p) => p.id === providerId)?.skillsDir;
+  if (!skillsDir || skillsDir === snapshot.universal.skillsDir) {
+    return { copyable: [], pluginSkippedNames: [] };
+  }
+
+  const copyable: ScannedSkill[] = [];
+  const pluginSkippedNames: string[] = [];
+  for (const skill of filterSkillsForSelection(snapshot, providerId).primary) {
+    if (isPluginManagedSkill(skill)) pluginSkippedNames.push(skill.name);
+    else copyable.push(skill);
+  }
+  return { copyable, pluginSkippedNames };
+}
+
+/** Direct children of `skillsDir`, keyed by folder name — links included. */
+function entriesInSkillsDir(
+  snapshot: InstalledScanSnapshot,
+  skillsDir: string | null,
+): Map<string, ScannedSkillPath> {
+  const entries = new Map<string, ScannedSkillPath>();
+  if (!skillsDir) return entries;
+  const normalizedDir = skillsDir.replaceAll('\\', '/').replace(/\/+$/, '');
+  for (const skill of snapshot.skills) {
+    for (const entry of skill.paths) {
+      const normalized = entry.path.replaceAll('\\', '/').replace(/\/+$/, '');
+      const cut = normalized.lastIndexOf('/');
+      if (cut < 0 || normalized.slice(0, cut) !== normalizedDir) continue;
+      const name = normalized.slice(cut + 1);
+      if (name && !entries.has(name)) entries.set(name, entry);
+    }
+  }
+  return entries;
+}
+
+/**
+ * Destination rows for the bulk copy dialog, counted from the snapshot alone —
+ * no extra scan and no backend preview call.
+ *
+ * "Already there" mirrors what the backend skips, which is not simply "the name
+ * exists here": a real directory is refused (skipped), and so is a link that
+ * already points at the source bundle — but a link pointing at some *other*
+ * provider's copy is removed and rewritten, so it still counts as to-copy.
+ * Getting this wrong made the second run of the same copy advertise N to copy
+ * and then report N skipped.
+ */
+export function buildBulkCopyDialogModel(
+  snapshot: InstalledScanSnapshot,
+  sourceProviderId: string,
+): BulkCopyDialogModel {
+  const sourceDir = snapshot.providers.find((p) => p.id === sourceProviderId)?.skillsDir ?? null;
+  const sourceEntries = entriesInSkillsDir(snapshot, sourceDir);
+  const universalEntries = entriesInSkillsDir(snapshot, snapshot.universal.skillsDir || null);
+  const { copyable, pluginSkippedNames } = bulkCopySourceSkillsForProvider(
+    snapshot,
+    sourceProviderId,
+  );
+  const skillNames = copyable.map((skill) => skill.uninstallName);
+  const sidebar = buildProviderSidebarModel(snapshot);
+
+  // Where the backend will point each destination link: the resolved content
+  // root. A symlinked source entry contributes its target, and a skill only
+  // reachable through Universal contributes the Universal bundle.
+  const resolvedSourcePath = (name: string): string | undefined => {
+    const entry = sourceEntries.get(name) ?? universalEntries.get(name);
+    if (!entry) return undefined;
+    return entry.originalPath ?? entry.path;
+  };
+
+  const targets = [...sidebar.activeProviders, ...sidebar.inactiveProviders]
+    .filter((item) => item.id !== sourceProviderId && isEligibleCopyDestination(item, snapshot))
+    .map((item) => {
+      const present = entriesInSkillsDir(snapshot, item.skillsDir);
+      const alreadyThere = skillNames.filter((name) => {
+        const entry = present.get(name);
+        if (!entry) return false;
+        if (!entry.originalPath) return true;
+        return entry.originalPath === resolvedSourcePath(name);
+      }).length;
+      return {
+        ...toCopyOption(item),
+        toCopy: skillNames.length - alreadyThere,
+        alreadyThere,
+      };
+    })
+    .sort((a, b) => b.toCopy - a.toCopy || a.name.localeCompare(b.name));
+
+  return { skillNames, pluginSkippedNames, targets };
+}
+
 function sortSkills(skills: ScannedSkill[]): ScannedSkill[] {
   return [...skills].sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -329,7 +508,8 @@ export function filterSkillSectionsByQuery(
 
 /**
  * Apply the Installed Skills toolbar view after provider/sidebar filtering.
- * Provider = real folders in a provider-specific directory.
+ * Provider = real folders in a provider-specific directory, plus skills a
+ * plugin ships (a real folder in the plugin's own tree, no provider id).
  * Available = Universal skills and/or provider entries that resolve through a
  * symlink (shared slash commands an agent can use).
  */
@@ -345,6 +525,8 @@ export function filterSkillSectionsByView(
     const hasUniversalPath = skill.providerIds.includes(UNIVERSAL_PROVIDER_ID);
     const hasSymlink = skill.paths.some((entry) => Boolean(entry.originalPath));
     if (view === 'available') return hasUniversalPath || hasSymlink;
+
+    if (skill.origins.some((origin) => origin.kind === 'claudePlugin')) return true;
 
     return skill.paths.some(
       (entry) =>

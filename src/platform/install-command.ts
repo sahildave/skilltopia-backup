@@ -5,6 +5,7 @@ import type {
   UninstallOptions,
 } from './types';
 import { PROJECT_AGENTS_PROVIDER_ID, UNIVERSAL_PROVIDER_ID } from './types';
+import { providerRegistry, universalSkillsDirRelative } from '@/providers';
 
 /** Non-universal detected providers to pass as `-a` flags to `skills add`. */
 export interface InstallAgentTargets {
@@ -28,25 +29,41 @@ export class InstallCancelledError extends Error {
   }
 }
 
+/**
+ * A catalog entry published from a website rather than a git repository.
+ *
+ * skills.sh ids come in two shapes: `owner/repo/skill` for GitHub, and
+ * `domain.com/skill` for a "well-known" site (see `skillPageUrl` in
+ * `api/_lib/skills-catalog.ts`). Acquisition clones git, so the second shape
+ * has nothing to clone and cannot be installed — a real gap, not a bad id.
+ */
+export class UnsupportedSkillSourceError extends Error {
+  constructor(readonly host: string) {
+    super(`Skill is published from ${host}, which cannot be installed yet`);
+    this.name = 'UnsupportedSkillSourceError';
+  }
+}
+
 export function parseSkillInstallTarget(skillId: string): {
   source: string;
   skillName: string;
 } {
   const parts = skillId.split('/').filter(Boolean);
-  if (parts.length < 3) {
-    throw new Error(`Invalid skill id for install (expected owner/repo/skill): ${skillId}`);
+  const host = parts[0];
+  if (parts.length === 2 && host) {
+    throw new UnsupportedSkillSourceError(host);
   }
 
   const skillName = parts[parts.length - 1];
-  if (!skillName) {
+  if (parts.length < 3 || !skillName) {
     throw new Error(`Invalid skill id for install (expected owner/repo/skill): ${skillId}`);
   }
   const source = parts.slice(0, -1).join('/');
   return { source, skillName };
 }
 
-/** Args for `npx` — non-interactive skills CLI install. */
-export function buildSkillsAddArgs(
+/** Args for the pasteable `npx` install command. */
+function buildSkillsAddArgs(
   skill: InstallableSkill,
   scope: InstallScope,
   targets: InstallAgentTargets = { providerIds: [] },
@@ -62,8 +79,27 @@ export function buildSkillsAddArgs(
   return args;
 }
 
-/** Args for `npx` — non-interactive skills CLI remove. */
-export function buildSkillsRemoveArgs(skillName: string, options: UninstallOptions): string[] {
+/**
+ * Targets for the in-process uninstall, `universal` included as an ordinary id.
+ *
+ * An `all` scope with no known provider list means "wherever this landed", so it
+ * fans out over the whole registry — the equivalent of the CLI's `-a '*'`, which
+ * only cost real time back when each id was its own subprocess.
+ */
+export function uninstallTargetIds(options: UninstallOptions): string[] {
+  if (options.agentScope === 'universal') return [UNIVERSAL_PROVIDER_ID];
+  if (options.agentScope !== 'all') return [options.agentScope.providerId];
+
+  const providerIds = options.providerIds
+    ? uninstallProviderIds(options)
+    : providerRegistry.providers
+        .map((provider) => provider.id)
+        .filter((id) => id !== UNIVERSAL_PROVIDER_ID);
+  return [...providerIds, UNIVERSAL_PROVIDER_ID];
+}
+
+/** Args for the pasteable `npx` remove command. */
+function buildSkillsRemoveArgs(skillName: string, options: UninstallOptions): string[] {
   const args = ['--yes', 'skills', 'remove', skillName, '-g', '-y'];
   if (options.agentScope === 'all') {
     const providerIds = uninstallProviderIds(options);
@@ -127,7 +163,7 @@ function buildUniversalCleanupCommand(skillName: string): string {
   ) {
     throw new Error('Skill folder name must be a single path segment');
   }
-  return `rm -rf ~/.agents/skills/${shellQuoteArg(skillName)}`;
+  return `rm -rf ~/${universalSkillsDirRelative(providerRegistry)}/${shellQuoteArg(skillName)}`;
 }
 
 function uninstallProviderIds(options: UninstallOptions): string[] {

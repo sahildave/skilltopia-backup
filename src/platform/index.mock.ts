@@ -51,10 +51,12 @@ export const platform: PlatformPort = {
 
   async install(_skill, _scope) {
     // Mock install succeeds without touching disk.
+    return { results: [] };
   },
 
   async uninstall(_skillName, _options) {
     // Mock uninstall succeeds without touching disk.
+    return { results: [] };
   },
 
   async copySkillToProviders(_uninstallName, providerIds) {
@@ -62,6 +64,24 @@ export const platform: PlatformPort = {
       results: providerIds.map((providerId) => ({
         providerId,
         status: 'copied' as const,
+      })),
+    };
+  },
+
+  async copyProviderSkills(_sourceProviderId, skillNames, targetProviderIds, onProgress) {
+    // Synthetic ticks, one per skill, so the dialog's progress bar is
+    // exercisable in the browser with no desktop backend behind it.
+    skillNames.forEach((skillName, index) =>
+      onProgress?.({ completed: index + 1, total: skillNames.length, skillName }),
+    );
+    return {
+      targets: targetProviderIds.map((providerId) => ({
+        providerId,
+        copied: skillNames.length,
+        skipped: 0,
+        refused: 0,
+        failed: 0,
+        issues: [],
       })),
     };
   },

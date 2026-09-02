@@ -2,7 +2,7 @@
 
 One repo, one `package.json`, one shared React skills UI. Two runtimes: a **Tauri desktop app** and a **browser web app**. Both call the same **Backend API**. Clients hold no Backend secrets.
 
-This is the agent source of truth for dual-client work. Do not invent a monorepo, CORS on `/api/*`, or Tauri imports in shared UI. See the epic: `docs/tasks-todo/task-x-web-desktop-dual-client.md`.
+This is the agent source of truth for dual-client work. Do not invent a monorepo, CORS on `/api/*`, or Tauri imports in shared UI.
 
 ## Mental model
 
@@ -65,16 +65,42 @@ direct global skills directory. Shared UI must not import `@tauri-apps/*`.
 
 ### Desktop skill install paths
 
-Desktop `platform.install` runs `npx skills add` (shell plugin). Conventions:
+Desktop `platform.install` / `platform.uninstall` run **in Rust, in-process**
+(`install_skill` / `uninstall_skill`). No subprocess is spawned to write or
+remove a projection: the old `npx skills remove` loop cost ~1.4 s per provider,
+sequentially, which is where the ~60 s uninstall came from.
 
-| Scope     | CLI flags                                                       | Typical on-disk location                                          |
-| --------- | --------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `global`  | `-g -y` plus `-a <id>` per detected non-universal provider only | Universal (`~/.agents/skills`) and symlinks for detected agents   |
-| `project` | `-y` plus `-a <id>` per detected non-universal provider only    | `<chosen-project>/.agents/skills` and detected agent project dirs |
+| Scope     | What is written                                                                           |
+| --------- | ----------------------------------------------------------------------------------------- |
+| `global`  | A copy in Universal (`~/.agents/skills/<name>`), a symlink in each detected provider root |
+| `project` | The same shape under the chosen project (`<project>/.agents/skills/<name>`)               |
 
-Desktop install reads the cached provider scan and never passes `-a '*'`, so undetected registry agents do not get new folders. Universal agents (Cursor, Codex, etc.) read from `~/.agents/skills` and do not need an explicit `-a` flag. Web `install` copies a universal-only command (no scan available).
+Universal holds a **copy** (the acquisition cache is app-owned and may be
+pruned); providers hold **symlinks** at that copy, so editing one bundle updates
+every agent. Desktop install reads the cached provider scan, so undetected
+registry agents do not get new folders. Universal agents (Cursor, Codex, …) read
+`~/.agents/skills` directly and are reported as `already_present`.
 
-Skill ids are `owner/repo/skill` → CLI source `owner/repo` + `--skill skill`. Web `install` copies a pasteable `npx skills add …` command (`copiesInstallCommand: true`). Desktop runs the same args via the shell plugin. Shared UI must not import `@tauri-apps/*`; only `index.desktop.ts` may.
+Every write goes through `provider_scan/projection.rs`, which owns three rules:
+install is authoritative (a stale or dangling link is repaired, never reported as
+a conflict); a host root that resolves onto the source's own root is never
+written through (the six providers that declare `~/.agents/skills`, plus folder
+symlinks onto it); and per-target outcomes are independent, so one failing
+provider never skips the Universal cleanup.
+
+Skill ids are `owner/repo/skill` → source `owner/repo` + skill `skill`. Web
+`install` copies a pasteable `npx skills add …` command
+(`copiesInstallCommand: true`); only the web path still speaks CLI args. Shared
+UI must not import `@tauri-apps/*`; only `index.desktop.ts` may.
+
+### Resolving Git in desktop builds
+
+Desktop install acquires repositories with Git. A Finder-launched `.app` gets a
+minimal `PATH`, so `src-tauri/src/git_runtime.rs` probes inherited and standard
+install locations once, caches the absolute executable path, and uses it for
+every acquisition. If no working Git resolves, Rust returns
+`git_runtime_not_found` and the UI shows the localized install instructions.
+Cache hits do not spawn Git. Copy and uninstall stay entirely in-process.
 
 ### CatalogPort
 

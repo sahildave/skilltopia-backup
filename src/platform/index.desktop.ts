@@ -1,22 +1,25 @@
+import { Channel } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { Command } from '@tauri-apps/plugin-shell';
 import i18n from '@/i18n/config';
 import {
   commands,
   unwrapResult,
   type InstalledScanSnapshot as RustInstalledScanSnapshot,
+  type SkillProjectionResult,
 } from '@/lib/tauri-bindings';
 import {
-  buildSkillsAddArgs,
-  buildSkillsRemoveArgs,
   installAgentTargetsFromScan,
   InstallCancelledError,
+  parseSkillInstallTarget,
+  uninstallTargetIds,
 } from './install-command';
 import { skillEntriesFromScan, providersFromScan } from './scan-utils';
-import { PROJECT_AGENTS_PROVIDER_ID, UNIVERSAL_PROVIDER_ID } from './types';
 import type {
+  BulkCopyProgress,
+  BulkCopyStatus,
   CopyProviderResult,
+  CopyProviderSkillsResult,
   CopySkillToProvidersResult,
   InstallableSkill,
   InstalledScanSnapshot,
@@ -25,6 +28,7 @@ import type {
   PlatformPort,
   SkillEntry,
   SkillProvider,
+  SkillTargetsResult,
   UninstallOptions,
 } from './types';
 
@@ -70,6 +74,28 @@ function normalizeCopyResult(result: {
   };
 }
 
+function normalizeBulkCopyResult(result: {
+  targets: {
+    providerId: string;
+    copied: number;
+    skipped: number;
+    refused: number;
+    failed: number;
+    issues: { skillName: string; status: BulkCopyStatus; message?: string | null }[];
+  }[];
+}): CopyProviderSkillsResult {
+  return {
+    targets: result.targets.map((target) => ({
+      ...target,
+      issues: target.issues.map((issue) => ({
+        skillName: issue.skillName,
+        status: issue.status,
+        message: issue.message ?? undefined,
+      })),
+    })),
+  };
+}
+
 async function ensureScan(): Promise<InstalledScanSnapshot> {
   if (cachedScan) return cachedScan;
   return refreshScan();
@@ -95,61 +121,49 @@ async function pickProjectDirectory(): Promise<string> {
   return selected;
 }
 
-async function installSkillToDisk(skill: InstallableSkill, scope: InstallScope): Promise<void> {
-  const cwd = scope === 'project' ? await pickProjectDirectory() : undefined;
-  const snapshot = await ensureScan();
-  const args = buildSkillsAddArgs(skill, scope, installAgentTargetsFromScan(snapshot));
-  const output = await Command.create('npx', args, cwd ? { cwd } : undefined).execute();
-
-  if (output.code !== 0) {
-    const detail = [output.stderr, output.stdout]
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .join('\n');
-    throw new Error(detail || `Skill install failed (exit ${String(output.code ?? 'unknown')})`);
-  }
+/**
+ * Hand the per-target outcomes to the caller rather than collapsing them into a
+ * thrown string. Nothing here aborts the fan-out — that was the old loop's bug,
+ * where the first stale provider left every later one installed and skipped the
+ * Universal cleanup entirely.
+ */
+function normalizeProjection(result: SkillProjectionResult): SkillTargetsResult {
+  return {
+    results: result.results.map((entry) => ({
+      providerId: entry.providerId,
+      status: entry.status,
+      message: entry.message ?? undefined,
+    })),
+  };
 }
 
-async function uninstallSkillFromDisk(skillName: string, options: UninstallOptions): Promise<void> {
-  if (options.agentScope === 'all' && options.providerIds && options.providerIds.length > 0) {
-    const providerIds = options.providerIds.filter(
-      (providerId) =>
-        providerId !== UNIVERSAL_PROVIDER_ID && providerId !== PROJECT_AGENTS_PROVIDER_ID,
-    );
-    for (const providerId of providerIds) {
-      const args = buildSkillsRemoveArgs(skillName, {
-        agentScope: { providerId },
-      });
-      const output = await Command.create('npx', args).execute();
-      if (output.code !== 0) {
-        const detail = [output.stderr, output.stdout]
-          .map((part) => part.trim())
-          .filter(Boolean)
-          .join('\n');
-        throw new Error(
-          detail ||
-            `Skill uninstall failed for ${providerId} (exit ${String(output.code ?? 'unknown')})`,
-        );
-      }
-    }
-    unwrapResult(await commands.deleteUniversalSkill(skillName));
-    return;
-  }
+async function installSkillToDisk(
+  skill: InstallableSkill,
+  scope: InstallScope,
+): Promise<SkillTargetsResult> {
+  const projectPath = scope === 'project' ? await pickProjectDirectory() : null;
+  const snapshot = await ensureScan();
+  const { source, skillName } = parseSkillInstallTarget(skill.id);
+  const result = normalizeProjection(
+    unwrapResult(
+      await commands.installSkill(
+        source,
+        skillName,
+        installAgentTargetsFromScan(snapshot).providerIds,
+        projectPath,
+      ),
+    ),
+  );
+  return projectPath ? { ...result, projectPath } : result;
+}
 
-  const args = buildSkillsRemoveArgs(skillName, options);
-  const output = await Command.create('npx', args).execute();
-
-  if (output.code !== 0) {
-    const detail = [output.stderr, output.stdout]
-      .map((part) => part.trim())
-      .filter(Boolean)
-      .join('\n');
-    throw new Error(detail || `Skill uninstall failed (exit ${String(output.code ?? 'unknown')})`);
-  }
-
-  if (options.agentScope === 'all') {
-    unwrapResult(await commands.deleteUniversalSkill(skillName));
-  }
+async function uninstallSkillFromDisk(
+  skillName: string,
+  options: UninstallOptions,
+): Promise<SkillTargetsResult> {
+  return normalizeProjection(
+    unwrapResult(await commands.uninstallSkill(skillName, uninstallTargetIds(options))),
+  );
 }
 
 export const platform: PlatformPort = {
@@ -200,6 +214,18 @@ export const platform: PlatformPort = {
   async copySkillToProviders(uninstallName, providerIds) {
     return normalizeCopyResult(
       unwrapResult(await commands.copySkillToProviders(uninstallName, providerIds)),
+    );
+  },
+
+  async copyProviderSkills(sourceProviderId, skillNames, targetProviderIds, onProgress) {
+    // The command's channel argument is not optional, so an uninterested
+    // caller still gets a channel — it just drops what arrives.
+    const channel = new Channel<BulkCopyProgress>();
+    if (onProgress) channel.onmessage = onProgress;
+    return normalizeBulkCopyResult(
+      unwrapResult(
+        await commands.copyProviderSkills(sourceProviderId, skillNames, targetProviderIds, channel),
+      ),
     );
   },
 

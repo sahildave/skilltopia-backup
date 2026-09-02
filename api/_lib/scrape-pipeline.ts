@@ -7,6 +7,7 @@ import {
   fetchSkillAudits,
   fetchSkillDetail,
   skillPageUrl,
+  skillsShErrorStatus,
   type SkillDetail,
 } from './skills-catalog.js';
 import {
@@ -48,6 +49,8 @@ export type ScrapeRunResult = {
   skipped: number;
   /** Ids dropped up front because `page_snapshot` already exists (`skipCached`). */
   cachedSkipped: number;
+  /** Ids tombstoned this run because skills.sh 404'd their detail. */
+  delisted: number;
   failed: Array<{ skillId: string; message: string }>;
   aborted?: boolean;
 };
@@ -176,6 +179,7 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
     scraped: 0,
     skipped: 0,
     cachedSkipped: 0,
+    delisted: 0,
     failed: [],
   };
 
@@ -204,6 +208,23 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
     log(`skipCached: ${result.cachedSkipped} already cached · ${skillIds.length} remaining`, 'ok');
   }
 
+  /** False means the run was aborted mid-wait and the caller should stop. */
+  async function throttleAfter(index: number, step: string): Promise<boolean> {
+    if (throttleMs <= 0 || index >= skillIds.length - 1) return true;
+    log(`${step}: throttling ${throttleMs}ms…`, 'step');
+    try {
+      await sleep(throttleMs, signal);
+      return true;
+    } catch (error) {
+      if (isAbortError(error) || signal?.aborted) {
+        result.aborted = true;
+        log('aborted during throttle', 'warn');
+        return false;
+      }
+      throw error;
+    }
+  }
+
   for (const [index, skillId] of skillIds.entries()) {
     if (signal?.aborted) {
       result.aborted = true;
@@ -214,8 +235,22 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
     const step = `[${index + 1}/${skillIds.length}] ${skillId}`;
     result.attempted += 1;
     try {
-      log(`${step}: fetching detail…`, 'step');
-      const detail = await loadDetail(skillId);
+      let detail: SkillDetail;
+      try {
+        log(`${step}: fetching detail…`, 'step');
+        detail = await loadDetail(skillId);
+      } catch (error) {
+        // A 404 means the skill is gone upstream, not that the run went wrong.
+        // Tombstone it so it leaves the queue instead of failing every run.
+        if (skillsShErrorStatus(error) !== 404) throw error;
+        await options.repository.markSkillDelisted(skillId, scrapeDate.toISOString());
+        result.delisted += 1;
+        log(`${step}: delisted upstream (404) — removed from rotation`, 'warn');
+        // Still pay the throttle: a block of dead skills must not burst the
+        // OIDC budget just because none of them reached the scrape step.
+        if (!(await throttleAfter(index, step))) break;
+        continue;
+      }
       if (!detail.hash) {
         result.skipped += 1;
         log(`${step}: skipped (null hash)`, 'warn');
@@ -294,23 +329,11 @@ export async function runScrapePipeline(options: ScrapePipelineOptions): Promise
       log(`${step}: failed — ${message}`, 'error');
     }
 
-    if (throttleMs > 0 && index < skillIds.length - 1) {
-      log(`${step}: throttling ${throttleMs}ms…`, 'step');
-      try {
-        await sleep(throttleMs, signal);
-      } catch (error) {
-        if (isAbortError(error) || signal?.aborted) {
-          result.aborted = true;
-          log('aborted during throttle', 'warn');
-          break;
-        }
-        throw error;
-      }
-    }
+    if (!(await throttleAfter(index, step))) break;
   }
 
   log(
-    `done attempted=${result.attempted} scraped=${result.scraped} skipped=${result.skipped} cachedSkipped=${result.cachedSkipped} failed=${result.failed.length}${result.aborted ? ' aborted=1' : ''}`,
+    `done attempted=${result.attempted} scraped=${result.scraped} skipped=${result.skipped} cachedSkipped=${result.cachedSkipped} delisted=${result.delisted} failed=${result.failed.length}${result.aborted ? ' aborted=1' : ''}`,
     result.failed.length > 0 || result.aborted ? 'warn' : 'ok',
   );
   return result;

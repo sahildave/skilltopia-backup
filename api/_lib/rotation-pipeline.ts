@@ -12,8 +12,24 @@ type Repository = ReturnType<typeof createSupabaseRepositoryFromEnv>;
 
 export type RotationLogLevel = ScrapeLogLevel;
 
+/**
+ * Skills per run. The 200 fixed slots always fit; the rest is queued backlog,
+ * which drains across days instead of in one multi-hour job. At ~3.2s/skill
+ * this keeps a run near 27 minutes — GitHub Actions minutes on a private repo
+ * are the binding constraint, not throughput.
+ */
+export const ROTATION_MAX_DEFAULT = 500;
+
+function resolveMaxSkills(explicit?: number): number {
+  if (explicit !== undefined) return explicit;
+  const fromEnv = Number(process.env.ROTATION_MAX);
+  return Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : ROTATION_MAX_DEFAULT;
+}
+
 export type RotationPipelineOptions = {
   repository: Repository;
+  /** Cap on skills per run; defaults to `ROTATION_MAX` env or 500. */
+  maxSkills?: number;
   /** Default 1000ms keeps detail+audit under ~120 OIDC req/min (≪ 600). */
   throttleMs?: number;
   scrapeDate?: Date;
@@ -37,6 +53,8 @@ export type RotationPipelineOptions = {
 export type RotationRunResult = ScrapeRunResult & {
   selected: number;
   queuedExtra: number;
+  /** Queued ids left for a later run by the cap. Never drop these silently. */
+  dropped: number;
   slots: typeof ROTATION_SLOTS;
 };
 
@@ -80,9 +98,16 @@ export async function runRotationPipeline(
   ]);
 
   const queued = [...(options.extraQueued ?? []), ...queuedFromDb];
-  const skillIds = selectRotationIds({ top, hot, trending, oldest, queued });
+  const candidates = selectRotationIds({ top, hot, trending, oldest, queued });
+  // Slots come first out of selectRotationIds, so truncating drops backlog.
+  const maxSkills = resolveMaxSkills(options.maxSkills);
+  const skillIds = candidates.slice(0, maxSkills);
+  const dropped = candidates.length - skillIds.length;
   const queuedExtra = Math.max(0, skillIds.length - ROTATION_SLOT_TOTAL);
   log(`selected ${skillIds.length} skill(s) (queued extras=${queuedExtra})`, 'ok');
+  if (dropped > 0) {
+    log(`capped at ${maxSkills}; ${dropped} queued skill(s) deferred to a later run`, 'warn');
+  }
 
   const scrapeResult = await scrape({
     repository: options.repository,
@@ -101,6 +126,7 @@ export async function runRotationPipeline(
     ...scrapeResult,
     selected: skillIds.length,
     queuedExtra,
+    dropped,
     slots: ROTATION_SLOTS,
   };
 }

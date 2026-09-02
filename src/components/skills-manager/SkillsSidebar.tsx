@@ -1,6 +1,12 @@
 import appLogo from '@/assets/icon.png';
 import { Button } from '@/components/ui/button';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
@@ -9,6 +15,7 @@ import {
 import { useTheme } from '@/hooks/use-theme';
 import { CODUO_URL, GITHUB_REPO_URL } from '@/lib/desktop-download';
 import { cn } from '@/lib/utils';
+import { requestManualUpdateCheck, useUpdateStore } from '@/platform/updates';
 import type { ProjectInfo } from '@/platform/types';
 import { useInstalledScanStore } from '@/store/installed-scan-store';
 import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
@@ -27,7 +34,6 @@ import {
   Search,
   Sun,
   X,
-  type Sparkles,
 } from 'lucide-react';
 import { useState, type SVGProps } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -38,6 +44,7 @@ import {
   type ProviderFilterId,
   type ProviderSidebarItem,
 } from './installed-skills-model';
+import { FALLBACK_PROVIDER_ICON, PROVIDER_ICONS } from './provider-icons';
 import { SkillsSidebarFilter } from './SkillsSidebarFilter';
 import type { SkillsNavId } from './types';
 
@@ -76,6 +83,9 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
   const chooseRoot = useProjectsStore((state) => state.chooseRoot);
   const clearSelection = useProjectsStore((state) => state.clearSelection);
   const selectProject = useProjectsStore((state) => state.selectProject);
+  // Show the actions menu only where a controller is mounted (desktop and the
+  // mock target); the plain web shell mounts none, so a check can't run there.
+  const hasUpdateController = useUpdateStore((state) => state.controller !== null);
   const [inactiveOpen, setInactiveOpen] = useState(false);
   const [providerQuery, setProviderQuery] = useState('');
   const [projectQuery, setProjectQuery] = useState('');
@@ -327,6 +337,25 @@ export function SkillsSidebar({ active, onSelect }: SkillsSidebarProps) {
           >
             <GithubIcon />
           </Button>
+          {hasUpdateController ? (
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="icon-sm"
+                  aria-label={t('skills.sidebar.moreActions')}
+                >
+                  <ChevronDown />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" side="top">
+                <DropdownMenuItem onSelect={() => void requestManualUpdateCheck()}>
+                  {t('update.menu.checkForUpdates')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
         </div>
         <div className="flex flex-col text-[10px] text-muted-foreground text-right items-end gap-0">
           <span>Made by</span>
@@ -538,7 +567,6 @@ function ProviderRow(props: {
   skillCount?: number;
   selected: boolean;
   onSelect: (id: ProviderFilterId) => void;
-  icon?: typeof Sparkles;
   installedTabActive: boolean;
   onEnsureInstalledTab: () => void;
   compact?: boolean;
@@ -547,7 +575,6 @@ function ProviderRow(props: {
     item,
     selected,
     onSelect,
-    icon: Icon,
     installedTabActive,
     onEnsureInstalledTab,
     compact = false,
@@ -557,6 +584,7 @@ function ProviderRow(props: {
   if (rowId === undefined || rowName === undefined) {
     return null;
   }
+  const Icon = PROVIDER_ICONS[String(rowId)] ?? FALLBACK_PROVIDER_ICON;
   const count = item?.skillCount ?? props.skillCount ?? 0;
   const hasWarning = sidebarWarnings(item?.warnings ?? []).length > 0;
   const showSelected = selected && installedTabActive;
@@ -579,7 +607,7 @@ function ProviderRow(props: {
       {showSelected ? (
         <span aria-hidden className="bg-primary absolute inset-y-1 inset-s-0 w-0.5 rounded-full" />
       ) : null}
-      {Icon ? <Icon className="size-4 shrink-0" /> : null}
+      <Icon className="size-4 shrink-0" aria-hidden />
       <span className="truncate">{rowName}</span>
       {hasWarning ? (
         <AlertTriangle

@@ -1,9 +1,21 @@
 import type { InstalledScanSnapshot, ProjectInfo } from '@/platform/types';
+import { logger } from '@/lib/logger';
 import { platform } from '@platform';
 import { create } from 'zustand';
 
 const ROOT_KEY = 'skilltopia.projects.root';
 let requestId = 0;
+
+/** Default to the project the sidebar lists first: most skills, then name. */
+function pickDefaultProject(projects: ProjectInfo[]): ProjectInfo | null {
+  return projects.reduce<ProjectInfo | null>((best, project) => {
+    if (!best) return project;
+    if (project.skillCount !== best.skillCount) {
+      return project.skillCount > best.skillCount ? project : best;
+    }
+    return project.name.localeCompare(best.name) < 0 ? project : best;
+  }, null);
+}
 
 function readRoot(): string | null {
   return typeof localStorage === 'undefined' ? null : localStorage.getItem(ROOT_KEY);
@@ -14,6 +26,7 @@ interface ProjectsState {
   projects: ProjectInfo[];
   selectedPath: string | null;
   snapshot: InstalledScanSnapshot | null;
+  hasLoadedProjects: boolean;
   refreshing: boolean;
   error: string | null;
   chooseRoot: () => Promise<void>;
@@ -27,15 +40,28 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
   projects: [],
   selectedPath: null,
   snapshot: null,
+  hasLoadedProjects: false,
   refreshing: false,
   error: null,
 
   chooseRoot: async () => {
-    const root = await platform.pickCodingFolder();
-    if (!root) return;
-    if (typeof localStorage !== 'undefined') localStorage.setItem(ROOT_KEY, root);
-    set({ root, selectedPath: null, snapshot: null });
-    await get().refresh();
+    set({ error: null });
+    try {
+      const root = await platform.pickCodingFolder();
+      if (!root) return;
+      if (typeof localStorage !== 'undefined') localStorage.setItem(ROOT_KEY, root);
+      set({
+        root,
+        projects: [],
+        selectedPath: null,
+        snapshot: null,
+        hasLoadedProjects: false,
+      });
+      await get().refresh();
+    } catch (error) {
+      logger.error('Failed to choose coding folder', { error });
+      set({ error: error instanceof Error ? error.message : String(error) });
+    }
   },
 
   clearSelection: () => {
@@ -53,8 +79,8 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
       if (currentRequest !== requestId) return;
       const selectedPath = get().selectedPath;
       const selected =
-        projects.find((project) => project.path === selectedPath) ?? projects[0] ?? null;
-      set({ projects, selectedPath: selected?.path ?? null });
+        projects.find((project) => project.path === selectedPath) ?? pickDefaultProject(projects);
+      set({ projects, selectedPath: selected?.path ?? null, hasLoadedProjects: true });
       if (selected) {
         const snapshot = await platform.scanProject(selected.path);
         if (currentRequest !== requestId) return;
@@ -64,6 +90,7 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
       }
     } catch (error) {
       if (currentRequest === requestId) {
+        logger.error('Failed to refresh projects', { error });
         set({ error: error instanceof Error ? error.message : String(error) });
       }
     } finally {
@@ -79,6 +106,7 @@ export const useProjectsStore = create<ProjectsState>((set, get) => ({
       if (currentRequest === requestId) set({ snapshot });
     } catch (error) {
       if (currentRequest === requestId) {
+        logger.error('Failed to scan project', { error });
         set({ error: error instanceof Error ? error.message : String(error), snapshot: null });
       }
     } finally {

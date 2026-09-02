@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { AlertTriangle } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +11,33 @@ import { SettingsField, SettingsSection } from '../shared/SettingsComponents';
 import { usePreferences, useSavePreferences } from '@/services/preferences';
 import { commands } from '@/lib/tauri-bindings';
 import { logger } from '@/lib/logger';
+import { useUpdateStore } from '@/platform/updates';
+
+/**
+ * The quiet home for an automatic update check that failed. Automatic checks
+ * never interrupt, so this line is the only place their failure is visible;
+ * a manual check reports itself in the update dialog and is skipped here.
+ */
+function AutomaticUpdateCheckIndicator() {
+  const { t } = useTranslation();
+  const state = useUpdateStore((s) => s.state);
+
+  if (state.status !== 'failed' || state.reason === 'manual') return null;
+
+  return (
+    <p
+      role="status"
+      data-slot="update-check-indicator"
+      className="text-muted-foreground flex items-start gap-2 text-xs"
+    >
+      <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+      <span>
+        <span className="text-foreground font-medium">{t('update.title.failed')}</span>{' '}
+        {t(`update.error.${state.error.code}`)}
+      </span>
+    </p>
+  );
+}
 
 export function GeneralPane() {
   const { t } = useTranslation();
@@ -84,6 +112,8 @@ export function GeneralPane() {
 
   return (
     <div className="space-y-6">
+      <AutomaticUpdateCheckIndicator />
+
       <SettingsSection title={t('preferences.general.keyboardShortcuts')}>
         <SettingsField
           label={t('preferences.general.quickPaneShortcut')}

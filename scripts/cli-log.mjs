@@ -43,6 +43,7 @@ function formatDoneMessage(message, level) {
   if (stats.queued != null) bits.push(`${stats.queued} queued`);
   if (stats.snapshots != null) bits.push(`${stats.snapshots} snapshots`);
   if (stats.skipped != null && Number(stats.skipped) > 0) bits.push(`${stats.skipped} skipped`);
+  if (stats.delisted != null && Number(stats.delisted) > 0) bits.push(`${stats.delisted} delisted`);
   if (stats.failed != null) bits.push(`${stats.failed} failed`);
 
   const summary = bits.length > 0 ? bits.join(' · ') : message.replace(DONE_RE, '').trim();

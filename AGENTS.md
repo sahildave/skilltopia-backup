@@ -17,7 +17,7 @@ This repository is a template with sensible defaults for building Tauri React ap
 ### New Sessions
 
 - Read @CODING_STANDARD.md for how code should be written (judgement standards)
-- Read @docs/tasks.md for task management
+- Track work in GitHub issues, grouped by milestone (`v1`, `v2`, `Ideas`); there is no local task-file backlog
 - Review `docs/developer/architecture-guide.md` for high-level patterns
 - Check `docs/developer/README.md` for the full documentation index
 - Check git status and project structure

@@ -60,3 +60,9 @@ probe-output/
 # Mobile icons from `tauri icon` (desktop-only app)
 src-tauri/icons/android/
 src-tauri/icons/ios/
+
+# AFK runner machine state (.afk-setup/ is committed on purpose; runs/ too)
+.afk/
+
+# AFK runner scratch report (runs/ IS committed on purpose; this is not)
+.afk-report.json

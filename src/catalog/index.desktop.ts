@@ -1,13 +1,40 @@
 import { commands, unwrapResult } from '@/lib/tauri-bindings';
-import type { CatalogPort, SkillAuditsData, SkillDetailData } from './types';
+import type {
+  SkillsSearchResult as BindingsSkillsSearchResult,
+  SkillsShSkill as BindingsSkillsShSkill,
+} from '@/lib/bindings';
+import { toSkillCategories } from '../../api/_lib/taxonomy';
+import type {
+  CatalogPort,
+  CatalogSearchResult,
+  SkillAuditsData,
+  SkillDetailData,
+  SkillsShSkill,
+} from './types';
+
+/**
+ * Rust carries the taxonomy slugs untyped. Narrowing keeps their order, so the
+ * primary category stays first.
+ */
+function narrowCategories(skill: BindingsSkillsShSkill): SkillsShSkill {
+  return { ...skill, categories: toSkillCategories(skill.categories) };
+}
 
 export const catalog: CatalogPort = {
   async fetchLeaderboard(view, page, perPage) {
-    return unwrapResult(await commands.fetchSkillsLeaderboard(view, page, perPage));
+    const skills = unwrapResult(await commands.fetchSkillsLeaderboard(view, page, perPage));
+    return skills.map(narrowCategories);
   },
 
-  async search(query, limit) {
-    return unwrapResult(await commands.searchSkills(query, limit));
+  async search(query, limit, categories) {
+    const result = unwrapResult(
+      await commands.searchSkills(query, limit, categories),
+    ) as BindingsSkillsSearchResult;
+    const response: CatalogSearchResult = {
+      skills: result.skills.map(narrowCategories),
+      semanticUnavailable: result.semanticUnavailable === true,
+    };
+    return response;
   },
 
   async fetchDetail(skillId) {

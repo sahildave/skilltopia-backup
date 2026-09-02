@@ -92,14 +92,13 @@ export function classifySkillOrigin(
  * such as scrape, list snapshots, rotation, enrichment, and GHA ingest should
  * use a secondary ingest project token so they cannot consume the app budget.
  *
- * `VERCEL_OIDC_TOKEN` remains as a fallback for older environments, but new
- * batch setups should provide `VERCEL_OIDC_TOKEN_SECONDARY`.
+ * Deliberately no `VERCEL_OIDC_TOKEN` fallback: that variable belongs to the
+ * app project (the Vercel CLI writes it into `.env.local`), so falling back to
+ * it would silently spend the app's budget on batch work — and a stale copy
+ * would mask a missing secondary token instead of failing.
  */
 export function resolveBatchOidcToken(): string | undefined {
-  const secondary = process.env.VERCEL_OIDC_TOKEN_SECONDARY?.trim();
-  if (secondary) return secondary;
-  const fallback = process.env.VERCEL_OIDC_TOKEN?.trim();
-  return fallback || undefined;
+  return process.env.VERCEL_OIDC_TOKEN_SECONDARY?.trim() || undefined;
 }
 
 function authHeaders(): HeadersInit {
@@ -107,12 +106,66 @@ function authHeaders(): HeadersInit {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-async function fetchJson(url: string): Promise<unknown> {
-  const response = await fetch(url, {
-    headers: { Accept: 'application/json', ...authHeaders() },
-  });
-  if (!response.ok) throw new Error(`skills.sh request failed: ${response.status}`);
-  return response.json();
+/**
+ * Backoff between upstream retries. Batch ingest runs once a day, so a single
+ * transient 5xx mid-pagination would otherwise cost a whole day of data.
+ */
+const RETRY_DELAYS_MS = [1_000, 3_000];
+
+/** 429 and 5xx are worth another go; 4xx (bad token, bad request) is not. */
+function isRetryable(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+
+/**
+ * Carries the upstream status so callers can tell "gone for good" (404) from
+ * "try again tomorrow" without matching on the message string.
+ */
+export type SkillsShRequestError = Error & { status: number };
+
+export function skillsShErrorStatus(error: unknown): number | undefined {
+  if (typeof error !== 'object' || error === null || !('status' in error)) return undefined;
+  const status = (error as { status: unknown }).status;
+  return typeof status === 'number' ? status : undefined;
+}
+
+async function fetchCatalogJson(url: string, auth: HeadersInit): Promise<unknown> {
+  for (let attempt = 0; ; attempt += 1) {
+    const canRetry = attempt < RETRY_DELAYS_MS.length;
+    let status: number | undefined;
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: 'application/json', ...auth },
+      });
+      if (response.ok) return await response.json();
+      status = response.status;
+    } catch (networkError) {
+      if (!canRetry) throw networkError;
+    }
+    if (status !== undefined && (!canRetry || !isRetryable(status))) {
+      const error: SkillsShRequestError = Object.assign(
+        new Error(`skills.sh request failed: ${status}`),
+        { status },
+      );
+      throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
+  }
+}
+
+/** Batch/ingest catalog reads (scrape, rotation, enrichment). */
+export function fetchJson(url: string): Promise<unknown> {
+  return fetchCatalogJson(url, authHeaders());
+}
+
+/**
+ * Catalog reads on behalf of a user request. Same retry and error shape as
+ * `fetchJson`, but the caller supplies the token — user-facing routes run on
+ * the app Vercel project, which has no batch token and must spend its own
+ * OIDC budget. See `resolveBatchOidcToken` for why the two stay separate.
+ */
+export function createCatalogFetcher(resolveToken: () => Promise<string>): FetchCatalog {
+  return async (url) => fetchCatalogJson(url, { Authorization: `Bearer ${await resolveToken()}` });
 }
 
 export async function fetchLeaderboardPage(

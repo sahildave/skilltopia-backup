@@ -51,6 +51,23 @@ export function findScannedSkillForCatalog(
 }
 
 /**
+ * The folder name a catalog skill installs as — the last segment of its id,
+ * matching what the Rust install writes to disk.
+ */
+export function catalogInstallName(skill: SkillsShSkill): string | undefined {
+  return skill.id.split('/').filter(Boolean).at(-1);
+}
+
+/** Local keys a catalog skill can be matched by (same rules as {@link isCatalogSkillInstalled}). */
+function catalogSkillKeys(skill: SkillsShSkill): Set<string> {
+  const keys = new Set<string>();
+  if (skill.slug) keys.add(skill.slug);
+  const idTail = skill.id.split('/').filter(Boolean).at(-1);
+  if (idTail) keys.add(idTail);
+  return keys;
+}
+
+/**
  * Map local uninstallName / name keys → catalog `source` (owner/repo).
  * First catalog hit wins when multiple skills share a slug.
  */
@@ -60,18 +77,36 @@ export function catalogSourcesByInstalledKey(catalogSkills: SkillsShSkill[]): Ma
     const source = skill.source.trim();
     if (!source) continue;
 
-    const keys = new Set<string>();
-    if (skill.slug) keys.add(skill.slug);
-    const idTail = skill.id.split('/').filter(Boolean).at(-1);
-    if (idTail) keys.add(idTail);
-
-    for (const key of keys) {
+    for (const key of catalogSkillKeys(skill)) {
       if (!map.has(key)) {
         map.set(key, source);
       }
     }
   }
   return map;
+}
+
+/** Map local uninstallName / name keys → catalog skill. First catalog hit wins. */
+export function catalogSkillsByInstalledKey(
+  catalogSkills: SkillsShSkill[],
+): Map<string, SkillsShSkill> {
+  const map = new Map<string, SkillsShSkill>();
+  for (const skill of catalogSkills) {
+    for (const key of catalogSkillKeys(skill)) {
+      if (!map.has(key)) {
+        map.set(key, skill);
+      }
+    }
+  }
+  return map;
+}
+
+/** Resolve the catalog entry for an installed skill, when the catalog knows it. */
+export function findCatalogSkillForInstalled(
+  skill: ScannedSkill,
+  byKey: ReadonlyMap<string, SkillsShSkill>,
+): SkillsShSkill | undefined {
+  return byKey.get(skill.uninstallName) ?? byKey.get(skill.name);
 }
 
 export function catalogSourceForScannedSkill(

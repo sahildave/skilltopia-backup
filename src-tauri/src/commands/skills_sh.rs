@@ -26,6 +26,10 @@ pub struct SkillsShSkill {
     pub url: String,
     #[serde(rename = "isDuplicate", default)]
     pub is_duplicate: Option<bool>,
+    /// Taxonomy slugs from the enrichment record, most representative first.
+    /// Missing categories mean the catalog row could not be enriched.
+    #[serde(default)]
+    pub categories: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -42,6 +46,15 @@ pub struct SkillsSearchResponse {
     pub search_type: Option<String>,
     #[serde(default)]
     pub count: Option<i32>,
+    #[serde(rename = "semanticUnavailable", default)]
+    pub semantic_unavailable: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+pub struct SkillsSearchResult {
+    pub skills: Vec<SkillsShSkill>,
+    #[serde(rename = "semanticUnavailable", default)]
+    pub semantic_unavailable: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -262,10 +275,29 @@ pub async fn fetch_skills_leaderboard(
     Ok(filter_duplicates(response.data))
 }
 
+/// Renders the `category` query fragment, empty when no facet is selected.
+fn category_facet(categories: Vec<String>) -> String {
+    let slugs: Vec<String> = categories
+        .iter()
+        .filter(|slug| !slug.trim().is_empty())
+        .map(|slug| urlencoding_encode(slug.trim()))
+        .collect();
+
+    if slugs.is_empty() {
+        String::new()
+    } else {
+        format!("&category={}", slugs.join(","))
+    }
+}
+
 /// Searches skills by name/description (min 2 characters on the API).
 #[tauri::command]
 #[specta::specta]
-pub async fn search_skills(q: String, limit: Option<i32>) -> Result<Vec<SkillsShSkill>, String> {
+pub async fn search_skills(
+    q: String,
+    limit: Option<i32>,
+    categories: Option<Vec<String>>,
+) -> Result<SkillsSearchResult, String> {
     let trimmed = q.trim().to_string();
     if trimmed.chars().count() < 2 {
         return Err("Search query must be at least 2 characters.".to_string());
@@ -273,15 +305,19 @@ pub async fn search_skills(q: String, limit: Option<i32>) -> Result<Vec<SkillsSh
 
     let limit = limit.unwrap_or(50).clamp(1, 200);
     let encoded = urlencoding_encode(&trimmed);
+    let facet = category_facet(categories.unwrap_or_default());
 
     let path = if direct_token().is_some() {
-        format!("/skills/search?q={encoded}&limit={limit}")
+        format!("/skills/search?q={encoded}&limit={limit}{facet}")
     } else {
-        format!("/api/skills/search?q={encoded}&limit={limit}")
+        format!("/api/skills/search?q={encoded}&limit={limit}{facet}")
     };
 
     let response: SkillsSearchResponse = get_json(&path).await?;
-    Ok(filter_duplicates(response.data))
+    Ok(SkillsSearchResult {
+        skills: filter_duplicates(response.data),
+        semantic_unavailable: response.semantic_unavailable,
+    })
 }
 
 /// Fetches enrichment and related skills for a catalog skill.
@@ -345,4 +381,23 @@ fn urlencoding_encode(value: &str) -> String {
         }
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::category_facet;
+
+    #[test]
+    fn no_facet_when_nothing_is_selected() {
+        assert_eq!(category_facet(vec![]), "");
+        assert_eq!(category_facet(vec!["  ".to_string()]), "");
+    }
+
+    #[test]
+    fn joins_selected_slugs_into_one_encoded_parameter() {
+        assert_eq!(
+            category_facet(vec!["git-github".to_string(), "cli-utilities".to_string()]),
+            "&category=git-github,cli-utilities"
+        );
+    }
 }

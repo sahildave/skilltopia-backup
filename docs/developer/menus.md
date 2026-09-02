@@ -16,7 +16,7 @@ This app builds menus from **JavaScript** using Tauri's JS Menu API (`@tauri-app
 App Name
 ├── About App Name
 ├── ────────────────────
-├── Check for Updates...
+├── Check for Updates…
 ├── ────────────────────
 ├── Preferences...           (Cmd+,)
 ├── ────────────────────
@@ -39,6 +39,16 @@ Edit
 View
 └── Toggle Left Sidebar      (Cmd+1)
 ```
+
+**Check for Updates…** is wired to the update module: the action calls
+`requestManualUpdateCheck()` from `@/platform/updates`, which opens the
+`<UpdateDialog>` mounted in `src/App.tsx` and then runs `controller.check('manual')`.
+A manual check therefore always ends on a visible answer — up to date, a version
+available with an **Install update** button, or a failure with **Try again** —
+rather than a silent notification. The same seam backs the
+`update.check-for-updates` command-palette entry in
+`src/lib/commands/update-commands.ts`, so both paths share one code path and the
+`update.*` translation keys.
 
 **Why Edit exists:** On macOS, Tauri’s WKWebView only receives standard text-editing accelerators (Select All, Cut, Copy, Paste, Undo/Redo) when they are registered as native `PredefinedMenuItem`s on the app menu. Without this submenu, inputs like the dashboard search field ignore ⌘A even though they are ordinary HTML inputs.
 

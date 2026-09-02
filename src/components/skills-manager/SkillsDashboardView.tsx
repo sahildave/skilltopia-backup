@@ -1,9 +1,11 @@
 import type { SkillsShSkill } from '@/catalog/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { ContinuousTabs } from '@/components/ui/continuous-tabs';
 import {
   Empty,
+  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
@@ -12,7 +14,9 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Spinner } from '@/components/ui/spinner';
+import { useCollapsibleHeader } from '@/hooks/use-collapsible-header';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { useSkillCategories } from '@/hooks/use-skill-categories';
 import { cn } from '@/lib/utils';
 import {
   collectCachedLeaderboardSkillsFromClient,
@@ -31,9 +35,12 @@ import { useInstalledSkillsUiStore } from '@/store/installed-skills-ui-store';
 import { useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Search } from 'lucide-react';
 import { useState } from 'react';
+import type { SkillCategory } from '../../../api/_lib/taxonomy';
 import { useTranslation } from 'react-i18next';
 import { CatalogSkillCard, CatalogSkillListRow } from './CatalogSkillCard';
 import { InstalledToolbar } from './InstalledToolbar';
+import { SkillCategoryRail } from './SkillCategoryFilter';
+import { countSkillCategories, filterSkillsByCategory } from './skill-category-model';
 import {
   findScannedSkillForCatalog,
   installedSkillKeysFromSnapshot,
@@ -87,6 +94,7 @@ function SkillsResults({
   error,
   emptyTitle,
   emptyDescription,
+  emptyAction,
 }: {
   skills: SkillsShSkill[];
   layoutMode: 'grid' | 'list';
@@ -94,6 +102,7 @@ function SkillsResults({
   error: string | null;
   emptyTitle: string;
   emptyDescription: string;
+  emptyAction?: React.ReactNode;
 }) {
   const { t } = useTranslation();
   const snapshot = useInstalledScanStore((state) => state.snapshot);
@@ -124,6 +133,7 @@ function SkillsResults({
           <EmptyTitle>{emptyTitle}</EmptyTitle>
           <EmptyDescription>{emptyDescription}</EmptyDescription>
         </EmptyHeader>
+        {emptyAction ? <EmptyContent>{emptyAction}</EmptyContent> : null}
       </Empty>
     );
   }
@@ -156,7 +166,13 @@ function SkillsResults({
               scannedSkill={findScannedSkillForCatalog(skill, scannedByKey)}
             />
           ) : (
-            <CatalogSkillListRow key={skill.id} skill={skill} installedKeys={installedKeys} />
+            <CatalogSkillListRow
+              key={skill.id}
+              skill={skill}
+              installedKeys={installedKeys}
+              snapshot={snapshot}
+              scannedSkill={findScannedSkillForCatalog(skill, scannedByKey)}
+            />
           ),
         )}
       </div>
@@ -169,14 +185,21 @@ const API_SEARCH_DEBOUNCE_MS = 450;
 export function SkillsDashboardView() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  const { viewportRef, collapsed, headerHeight, onExpandedHeightChange } = useCollapsibleHeader();
   const [viewId, setViewId] = useState<DiscoveryViewId>('trending');
   const layoutMode = useInstalledSkillsUiStore((state) => state.layoutMode);
   const setLayoutMode = useInstalledSkillsUiStore((state) => state.setLayoutMode);
   const [searchInput, setSearchInput] = useState('');
+  const [category, setCategory] = useState<SkillCategory | null>(null);
   const isSearchView = searchInput.trim().length >= 2;
   const debouncedApiQuery = useDebouncedValue(searchInput, API_SEARCH_DEBOUNCE_MS);
   const apiInSync = shouldMergeApiResults(searchInput, debouncedApiQuery);
+  const selectedCategories = category ? [category] : [];
   const search = useSkillsSearch(debouncedApiQuery, {
+    enabled: isSearchView && apiInSync,
+    categories: selectedCategories,
+  });
+  const baseSearch = useSkillsSearch(debouncedApiQuery, {
     enabled: isSearchView && apiInSync,
   });
   const leaderboard = useSkillsLeaderboard({
@@ -187,20 +210,38 @@ export function SkillsDashboardView() {
 
   const cachedCorpus = collectCachedLeaderboardSkillsFromClient(queryClient, leaderboard.data);
   const localSkills = isSearchView ? filterSkillsLocally(cachedCorpus, searchInput) : [];
+  const filteredLocalSkills = filterSkillsByCategory(localSkills, category);
   const canMergeApi = apiInSync && Boolean(search.data) && !search.isPlaceholderData;
+  const canMergeBaseApi = apiInSync && Boolean(baseSearch.data) && !baseSearch.isPlaceholderData;
   const skills = isSearchView
     ? canMergeApi && search.data
-      ? mergeLocalAndApiSkills(localSkills, search.data)
-      : localSkills
-    : (leaderboard.data ?? []);
+      ? mergeLocalAndApiSkills(filteredLocalSkills, search.data.skills)
+      : filteredLocalSkills
+    : filterSkillsByCategory(leaderboard.data ?? [], category);
+  const unfilteredSearchSkills =
+    canMergeBaseApi && baseSearch.data
+      ? mergeLocalAndApiSkills(localSkills, baseSearch.data.skills)
+      : localSkills;
+  const countSource = isSearchView ? unfilteredSearchSkills : (leaderboard.data ?? []);
+  const categoryCounts = countSkillCategories(countSource);
+  const categoryBindings = useSkillCategories();
+  const selectedCategoryLabel =
+    categoryBindings.find((binding) => binding.key === category)?.label ?? category ?? '';
 
   const isApiSearching =
     isSearchView &&
-    (!apiInSync || search.isFetching || search.isPending || search.isPlaceholderData);
-  const isRefreshing = !isSearchView && leaderboard.isFetching && skills.length > 0;
+    (!apiInSync ||
+      search.isFetching ||
+      search.isPending ||
+      search.isPlaceholderData ||
+      baseSearch.isFetching ||
+      baseSearch.isPending ||
+      baseSearch.isPlaceholderData);
+  const isRefreshing =
+    !isSearchView && leaderboard.isFetching && (leaderboard.data?.length ?? 0) > 0;
   const hasSearchError = isSearchView && apiInSync && Boolean(search.error);
   const resultsLoading = isSearchView
-    ? localSkills.length === 0 && (!apiInSync || search.isLoading)
+    ? filteredLocalSkills.length === 0 && (!apiInSync || search.isLoading)
     : leaderboard.isLoading;
   const resultsError = isSearchView
     ? apiInSync
@@ -210,19 +251,22 @@ export function SkillsDashboardView() {
 
   return (
     <div className="relative flex h-full min-w-0 flex-col overflow-hidden">
-      <InstalledToolbar
-        title={t('skills.dashboard.title')}
-        description={t('skills.dashboard.description')}
-        skillCount={null}
-        layoutMode={layoutMode}
-        skillQuery={searchInput}
-        onSkillQueryChange={setSearchInput}
-        searchPlaceholder={t('skills.dashboard.searchPlaceholder')}
-        searchLabel={t('skills.dashboard.searchLabel')}
-        clearSearchLabel={t('skills.dashboard.clearSearch')}
-        showInstalledControls={false}
-        leadingAction={
-          <>
+      <div className="absolute inset-x-0 top-0 z-20">
+        <InstalledToolbar
+          title={t('skills.dashboard.title')}
+          description={t('skills.dashboard.description')}
+          skillCount={null}
+          refreshing={isRefreshing}
+          collapsed={collapsed}
+          onExpandedHeightChange={onExpandedHeightChange}
+          layoutMode={layoutMode}
+          skillQuery={searchInput}
+          onSkillQueryChange={setSearchInput}
+          searchPlaceholder={t('skills.dashboard.searchPlaceholder')}
+          searchLabel={t('skills.dashboard.searchLabel')}
+          clearSearchLabel={t('skills.dashboard.clearSearch')}
+          showInstalledControls={false}
+          leadingAction={
             <ContinuousTabs
               value={viewId}
               defaultActiveId="trending"
@@ -237,34 +281,61 @@ export function SkillsDashboardView() {
                 }
               }}
             />
-            {isRefreshing ? (
-              <Spinner
-                className="text-muted-foreground size-3.5"
-                aria-label={t('skills.dashboard.refreshing')}
-              />
-            ) : null}
-          </>
-        }
-        searchError={
-          hasSearchError ? (
-            <Alert variant="destructive" className="max-w-xl">
+          }
+          searchError={
+            hasSearchError ? (
+              <Alert variant="destructive" className="max-w-xl">
+                <AlertCircle />
+                <AlertTitle>{t('skills.dashboard.searchFailed')}</AlertTitle>
+                <AlertDescription>{errorMessage(search.error)}</AlertDescription>
+              </Alert>
+            ) : null
+          }
+          onLayoutModeChange={setLayoutMode}
+        />
+      </div>
+      <ScrollArea viewportRef={viewportRef} className="min-h-0 min-w-0 flex-1">
+        <div
+          className="flex w-full min-w-0 max-w-full flex-col gap-6 px-6 pb-6"
+          style={{ paddingTop: (headerHeight ?? 0) + 24 }}
+        >
+          <SkillCategoryRail
+            selected={category}
+            counts={categoryCounts}
+            totalCount={countSource.length}
+            onChange={setCategory}
+          />
+          {canMergeApi && search.data?.semanticUnavailable ? (
+            <Alert>
               <AlertCircle />
-              <AlertTitle>{t('skills.dashboard.searchFailed')}</AlertTitle>
-              <AlertDescription>{errorMessage(search.error)}</AlertDescription>
+              <AlertTitle>{t('skills.dashboard.semanticUnavailable')}</AlertTitle>
+              <AlertDescription>
+                {t('skills.dashboard.semanticUnavailableDescription')}
+              </AlertDescription>
             </Alert>
-          ) : null
-        }
-        onLayoutModeChange={setLayoutMode}
-      />
-      <ScrollArea className="min-h-0 min-w-0 flex-1">
-        <div className="flex w-full min-w-0 max-w-full flex-col gap-6 px-6 py-6">
+          ) : null}
           <SkillsResults
             skills={skills}
             layoutMode={layoutMode}
             isLoading={resultsLoading}
             error={resultsError}
-            emptyTitle={t('skills.dashboard.noResultsTitle')}
-            emptyDescription={t('skills.dashboard.noResultsDescription')}
+            emptyTitle={
+              category
+                ? t('skills.dashboard.noCategoryResultsTitle', { category: selectedCategoryLabel })
+                : t('skills.dashboard.noResultsTitle')
+            }
+            emptyDescription={
+              category
+                ? t('skills.dashboard.noCategoryResultsDescription')
+                : t('skills.dashboard.noResultsDescription')
+            }
+            emptyAction={
+              category ? (
+                <Button variant="outline" size="sm" onClick={() => setCategory(null)}>
+                  {t('skills.dashboard.clearCategory')}
+                </Button>
+              ) : null
+            }
           />
         </div>
       </ScrollArea>
